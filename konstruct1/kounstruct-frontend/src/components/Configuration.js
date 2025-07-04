@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-
+import { useSelector } from "react-redux";
 import projectImage from "../Images/Project.png";
 import { getProjectUserDetails } from "../api";
 import toast from "react-hot-toast";
@@ -10,7 +10,7 @@ const Configuration = () => {
   const { state } = useLocation();
   const userDataString = localStorage.getItem("USER_DATA");
   const userData = JSON.parse(userDataString);
-  const userId = userData.id;
+  const userId = useSelector((state) => state.user.user.id);
   console.log(userId);
   // const projects = [
   //   { name: "Prime Core", image: projectImage, id: 1 },
@@ -22,7 +22,7 @@ const Configuration = () => {
 
   const handleImageClick = (project) => {
     console.log(project);
-    navigate(`/project/${project.project_id}`, { state: { project } });
+    navigate(`/project/${project.id}`, { state: { project } });
   };
   const handleBack = () => {
     navigate(-1); // Navigate to the previous page
@@ -45,9 +45,9 @@ const Configuration = () => {
   useEffect(() => {
     const getAllProject = async () => {
       const response = await getProjectUserDetails(userId);
-      console.log(response.data.projectData);
+      console.log(response.data);
       if (response.status === 200) {
-        setAllProject(response.data.projectData);
+        setAllProject(response.data);
       } else {
         toast.error(response.data.message);
       }
@@ -80,11 +80,11 @@ const Configuration = () => {
               >
                 <img
                   src={project?.image_url || projectImage}
-                  alt={`${project.project_name} Background`}
+                  alt={`${project.name} Background`}
                   className="w-56 h-56"
                 />
                 <div className="absolute bottom-0 left-0 right-0 bg-gray-800 bg-opacity-50 text-white text-lg font-semibold p-2">
-                  {project.project_name}
+                  {project.name}
                 </div>
               </div>
             ))}

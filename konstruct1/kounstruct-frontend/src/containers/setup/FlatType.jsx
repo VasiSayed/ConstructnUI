@@ -4,7 +4,7 @@ import Select from "react-select";
 import { toast } from "react-hot-toast";
 import {
   createRoom,
-  getRooms,
+  getRoomsByProject,
   createFlatType,
   getFlatTypes,
   updateFlatType,
@@ -12,208 +12,307 @@ import {
 import { useSelector, useDispatch } from "react-redux";
 import { setRoomTypes, setFlatTypes } from "../../store/userSlice";
 
+// Get token (adapt this to your auth method)
+const getAuthToken = () =>
+  localStorage.getItem("token") || sessionStorage.getItem("token") || "";
+
 function FlatType({ nextStep, previousStep }) {
   const dispatch = useDispatch();
-
-  const projectId = useSelector((state) => state.user.selectedProject.id);
-  const organizationId = useSelector((state) => state.user.organization.id);
-  const companyId = useSelector((state) => state.user.company.id);
-  const rooms = useSelector((state) => state.user.rooms);
-  const flatTypes = useSelector(
+  const projectId = useSelector((state) => state.user.selectedProject?.id);
+  const flatTypesRedux = useSelector(
     (state) => state.user.flatTypes?.[projectId] || []
   );
 
-  const [selectedOptions, setSelectedOptions] = useState([]);
+  // Rooms State
+  const [projectRooms, setProjectRooms] = useState([]);
+  const [roomOptions, setRoomOptions] = useState([]);
   const [newRoom, setNewRoom] = useState("");
-  const [roomOptions, setRoomOptions] = useState([...rooms]);
-  const [showAll, setShowAll] = useState(false);
   const [createNewRoom, setCreateNewRoom] = useState(false);
+
+  // Flat Type State
   const [flatTypeDetails, setFlatTypeDetails] = useState({
     flat_type: "",
-    color: "",
     is_common: false,
     room_ids: [],
   });
+  const [flatTypeList, setFlatTypeList] = useState([]);
+  const [isFlatType, setIsFlatType] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Edit Flat Type State
   const [isEditFlatType, setIsEditFlatType] = useState(-1);
-  const [flatTypeList, setFlatTypeList] = useState(flatTypes);
   const [editFlatType, setEditFlatType] = useState({
     flat_type: "",
-    color: "",
     is_common: false,
     room_ids: [],
     id: "",
   });
 
+  // UI State for room display
+  const [showAll, setShowAll] = useState(false);
+  const containerRef = useRef(null);
+  const [visibleRooms, setVisibleRooms] = useState([]);
+
+  // Safe async wrapper to handle 401s
+  const safeApiCall = async (apiFunc, ...args) => {
+    try {
+      const token = getAuthToken();
+      const res = await apiFunc(...args, token);
+      return res;
+    } catch (err) {
+      console.error("API Call Error:", err);
+      if (err.response?.status === 401) {
+        toast.error("Session expired. Please login again.");
+        // Optionally: redirect to login
+      }
+      return {
+        status: err.response?.status || 500,
+        data: err.response?.data || null,
+      };
+    }
+  };
+
+  // Fetch Rooms by Project
   const fetchRooms = async () => {
-    const response = await getRooms(companyId);
-    if (response.status === 200) {
-      setRoomOptions(response.data.data.rooms);
-      dispatch(setRoomTypes(response.data.data.rooms));
+    if (!projectId) return;
+
+    try {
+      console.log("Fetching rooms for project:", projectId);
+      const res = await safeApiCall(getRoomsByProject, projectId);
+      console.log("Rooms API Response:", res);
+
+      if (res.status === 200) {
+        const rooms = res.data || [];
+        setProjectRooms(rooms);
+        setRoomOptions(rooms);
+        dispatch(setRoomTypes(rooms));
+        console.log("Rooms fetched successfully:", rooms);
+      } else if (res.status === 401) {
+        setProjectRooms([]);
+        setRoomOptions([]);
+      } else {
+        console.error("Failed to fetch rooms, status:", res.status);
+        toast.error("Failed to fetch rooms");
+      }
+    } catch (error) {
+      console.error("Error fetching rooms:", error);
+      toast.error("Failed to fetch rooms");
     }
   };
 
+  // Fetch FlatTypes by Project - Fixed version
   const fetchFlatTypes = async () => {
-    const response = await getFlatTypes(projectId);
-    if (response.status === 200) {
-      console.log(response.data.data);
-      setFlatTypeList(response.data.data);
-      dispatch(
-        setFlatTypes({
-          project_id: projectId,
-          data: response.data.data,
-        })
-      );
+    if (!projectId) {
+      console.log("No projectId available for fetching flat types");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      console.log("Fetching flat types for project:", projectId);
+      const res = await safeApiCall(getFlatTypes, projectId);
+      console.log("FlatTypes API Response:", res);
+
+      if (res.status === 200) {
+        // Handle both direct array response and nested data response
+        let flatTypes = [];
+        if (Array.isArray(res.data)) {
+          // Direct array response from backend
+          flatTypes = res.data;
+        } else if (res.data && Array.isArray(res.data.data)) {
+          // Nested data response
+          flatTypes = res.data.data;
+        } else if (
+          res.data &&
+          res.data.results &&
+          Array.isArray(res.data.results)
+        ) {
+          // Paginated response
+          flatTypes = res.data.results;
+        } else {
+          console.warn("Unexpected response format:", res.data);
+          flatTypes = [];
+        }
+
+        console.log("Processed flat types:", flatTypes);
+        setFlatTypeList(flatTypes);
+        dispatch(setFlatTypes({ project_id: projectId, data: flatTypes }));
+
+        if (flatTypes.length > 0) {
+          console.log(`Successfully loaded ${flatTypes.length} flat types`);
+        } else {
+          console.log("No flat types found for this project");
+        }
+      } else if (res.status === 401) {
+        setFlatTypeList([]);
+        toast.error("Unauthorized to fetch flat types");
+      } else {
+        console.error("Failed to fetch flat types, status:", res.status);
+        toast.error("Failed to fetch flat types");
+        setFlatTypeList([]);
+      }
+    } catch (error) {
+      console.error("Error fetching flat types:", error);
+      toast.error("Error loading flat types");
+      setFlatTypeList([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  // Initial data fetch on component mount and project change
   useEffect(() => {
-    if (companyId) fetchRooms();
-    if (projectId) fetchFlatTypes();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [companyId, projectId]);
+    if (projectId) {
+      console.log("Component mounted/project changed. Project ID:", projectId);
+      fetchRooms();
+      fetchFlatTypes();
+    } else {
+      console.log("No project ID available");
+      setFlatTypeList([]);
+      setProjectRooms([]);
+      setRoomOptions([]);
+    }
+  }, [projectId]);
 
-  // Adding a new room
+  // Update local state when Redux state changes
+  useEffect(() => {
+    console.log("Redux flat types updated:", flatTypesRedux);
+    if (Array.isArray(flatTypesRedux)) {
+      setFlatTypeList(flatTypesRedux);
+    }
+  }, [flatTypesRedux]);
+
+  // Debug useEffect to monitor state changes
+  useEffect(() => {
+    console.log("Current flatTypeList state:", flatTypeList);
+  }, [flatTypeList]);
+
+  // Room create
   const handleAddRoom = async () => {
+    if (!newRoom.trim()) {
+      toast.error("Room name is required");
+      return;
+    }
+
     if (
-      newRoom &&
-      !roomOptions?.find(
-        (room) => room?.room_type.toLowerCase() === newRoom.toLowerCase()
+      (roomOptions || []).some(
+        (room) => room?.rooms?.toLowerCase() === newRoom.toLowerCase()
       )
     ) {
-      const response = await createRoom({
-        room_types: newRoom,
-        company_id: companyId,
-        // organization_id: organizationId,
-        // project_id: projectId,
+      toast.error("Room already exists");
+      return;
+    }
+
+    try {
+      const res = await safeApiCall(createRoom, {
+        Project: projectId,
+        rooms: newRoom.trim(),
       });
 
-      if (response.status === 200) {
-        await fetchRooms();
+      if (res.status === 201 || res.status === 200) {
+        toast.success("Room added successfully");
         setNewRoom("");
+        setCreateNewRoom(false);
+        // Refresh rooms list
+        await fetchRooms();
+      } else if (res.status === 401) {
+        toast.error("You are not authorized to add a room.");
       } else {
-        toast.error("Failed to add room");
+        toast.error(res.data?.message || "Failed to add room");
       }
-    } else {
-      toast.error("Room already exists");
+    } catch (error) {
+      console.error("Error adding room:", error);
+      toast.error("Error adding room");
     }
   };
 
-  const handleOptionChange = (option) => {
-    if (selectedOptions.includes(option)) {
-      setSelectedOptions(selectedOptions.filter((item) => item !== option));
-    } else if (selectedOptions.length < 15) {
-      setSelectedOptions([...selectedOptions, option]);
-    }
-  };
-
-  const visibleOptions =
-    showAll && roomOptions.length > 0
-      ? roomOptions
-      : roomOptions.length > 0
-      ? roomOptions?.slice(0, 10)
-      : [];
-
-  const formattedRoomOptions = roomOptions?.map((room) => ({
-    value: room?.id,
-    label: room?.room_type,
+  // Room options for select
+  const formattedRoomOptions = (projectRooms || []).map((room) => ({
+    value: room.id,
+    label: room.rooms,
   }));
 
-  const generateColor = (text) => {
-    let hash = 2166136261; // FNV-1a 32-bit prime offset
-    for (let i = 0; i < text.length; i++) {
-      hash ^= text.charCodeAt(i);
-      hash +=
-        (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
-    }
-    const color = "#" + ("00000" + (hash >>> 0).toString(16)).slice(-6);
-    return color;
-  };
-
+  // FlatType logic
   const handleFlatTypeChange = (field, value) => {
-    console.log(field, value);
-    if (field === "flat_type") {
-      setFlatTypeDetails({
-        ...flatTypeDetails,
-        color: generateColor(value),
-        [field]: value,
-      });
-    } else {
-      setFlatTypeDetails({
-        ...flatTypeDetails,
-        [field]: value,
-      });
-    }
+    setFlatTypeDetails({
+      ...flatTypeDetails,
+      [field]: value,
+    });
   };
 
   const validateCreateFlatType = () => {
-    if (flatTypeDetails.flat_type === "") {
-      toast.error("Flat Type is required");
+    if (!flatTypeDetails.flat_type.trim()) {
+      toast.error("Flat Type name is required");
       return false;
     }
-    if (flatTypeDetails.room_ids.length === 0) {
+    if ((flatTypeDetails.room_ids || []).length === 0) {
       toast.error("At least one room is required");
       return false;
     }
-
-    const isFlatTypeExists = flatTypeList?.find(
-      (item) => item.flat_type === flatTypeDetails.flat_type
+    const isFlatTypeExists = (flatTypeList || []).find(
+      (item) =>
+        item.type_name?.toLowerCase() ===
+        flatTypeDetails.flat_type.toLowerCase()
     );
     if (isFlatTypeExists) {
       toast.error("Flat Type already exists");
       return false;
     }
-
-    const isColorExists = flatTypeList?.find(
-      (item) => item.color === flatTypeDetails.color
-    );
-    if (isColorExists) {
-      toast.error("Color already exists");
-      return false;
-    }
-
     return true;
   };
 
   const handleCreateFlatType = async () => {
     if (!validateCreateFlatType()) return;
 
-    const response = await createFlatType({
-      ...flatTypeDetails,
-      room_types: flatTypeDetails.room_ids.map((item) => item.label),
-      room_ids: flatTypeDetails.room_ids.map((item) => item.value),
-      project_id: projectId,
-    });
-    if (response.status === 200) {
-      console.log(response.data.data);
-      toast.success(response.data.message);
-      await fetchFlatTypes();
-      setFlatTypeDetails({
-        flat_type: "",
-        color: "",
-        is_common: false,
-        room_ids: [],
+    setIsLoading(true);
+    try {
+      const res = await safeApiCall(createFlatType, {
+        project: projectId,
+        type_name: flatTypeDetails.flat_type.trim(),
+        rooms: (flatTypeDetails.room_ids || []).map((item) => item.value),
       });
-    } else {
-      toast.error(response.data.message);
+
+      if (res.status === 201 || res.status === 200) {
+        toast.success(res.data?.message || "Flat Type Created Successfully");
+
+        // Reset form
+        setFlatTypeDetails({
+          flat_type: "",
+          is_common: false,
+          room_ids: [],
+        });
+        setIsFlatType(false);
+
+        // Refresh flat types list to show the newly created one
+        await fetchFlatTypes();
+      } else if (res.status === 401) {
+        toast.error("You are not authorized to create a flat type.");
+      } else {
+        toast.error(res.data?.message || "Error creating flat type");
+      }
+    } catch (error) {
+      console.error("Error creating flat type:", error);
+      toast.error("Error creating flat type");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleEditFlatType = async (index) => {
+  // Edit logic
+  const handleEditFlatType = (index) => {
     setIsEditFlatType(index);
-    const flat = flatTypes[index];
-    console.log(flat, "RESP FLAT");
+    const flat = flatTypeList[index];
     setEditFlatType({
-      id: flat.flat_type_id,
-      flat_type: flat.flat_type,
-      color: flat.color,
-      is_common: flat.is_common,
+      id: flat.id || flat.flat_type_id,
+      flat_type: flat.type_name,
+      is_common: flat.is_common || false,
       room_ids: formattedRoomOptions.filter((item) =>
-        flat.room_ids.includes(item.value)
+        (flat.rooms || []).includes(item.value)
       ),
     });
   };
 
-  const handleUpdateFlatType = async (field, value) => {
+  const handleUpdateFlatType = (field, value) => {
     setEditFlatType({
       ...editFlatType,
       [field]: value,
@@ -221,30 +320,53 @@ function FlatType({ nextStep, previousStep }) {
   };
 
   const handleSaveFlatType = async () => {
-    setIsEditFlatType(-1);
-    console.log(editFlatType, "EDIT FLAT TYPE");
+    if (!editFlatType.flat_type.trim()) {
+      toast.error("Flat Type name is required");
+      return;
+    }
 
-    const response = await updateFlatType({
-      project_id: projectId,
-      flat_type_id: editFlatType.id,
-      flat_type: editFlatType.flat_type,
-      color: editFlatType.color,
-      is_common: editFlatType.is_common,
-      room_ids: editFlatType.room_ids.map((item) => item.value),
-      room_types: editFlatType.room_ids.map((item) => item.label),
-    });
-    if (response.status === 200) {
-      toast.success(response.data.message);
-      await fetchFlatTypes();
-    } else {
-      toast.error(response.data.message);
+    if ((editFlatType.room_ids || []).length === 0) {
+      toast.error("At least one room is required");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await safeApiCall(updateFlatType, {
+        project: projectId,
+        flat_type_id: editFlatType.id,
+        type_name: editFlatType.flat_type.trim(),
+        rooms: (editFlatType.room_ids || []).map((item) => item.value),
+      });
+
+      if (res.status === 200) {
+        toast.success(res.data?.message || "Flat Type updated successfully");
+        setIsEditFlatType(-1);
+        // Refresh flat types list to show the updated data
+        await fetchFlatTypes();
+      } else if (res.status === 401) {
+        toast.error("You are not authorized to update this flat type.");
+      } else {
+        toast.error(res.data?.message || "Error updating flat type");
+      }
+    } catch (error) {
+      console.error("Error updating flat type:", error);
+      toast.error("Error updating flat type");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // const [showAll, setShowAll] = useState(false);
-  const containerRef = useRef(null);
-  // const [showAll, setShowAll] = useState(false);
-  const [visibleRooms, setVisibleRooms] = useState(roomOptions);
+  // Cancel edit
+  const handleCancelEdit = () => {
+    setIsEditFlatType(-1);
+    setEditFlatType({
+      flat_type: "",
+      is_common: false,
+      room_ids: [],
+      id: "",
+    });
+  };
 
   useEffect(() => {
     if (!showAll && containerRef.current) {
@@ -252,7 +374,6 @@ function FlatType({ nextStep, previousStep }) {
       const children = Array.from(container.children);
       let totalWidth = 0;
       let fitCount = 0;
-
       for (let child of children) {
         const style = window.getComputedStyle(child);
         const width = child.offsetWidth + parseFloat(style.marginRight || 0);
@@ -263,131 +384,186 @@ function FlatType({ nextStep, previousStep }) {
           break;
         }
       }
-
-      setVisibleRooms(roomOptions.slice(0, fitCount));
+      setVisibleRooms((roomOptions || []).slice(0, fitCount));
     } else {
-      setVisibleRooms(roomOptions);
+      setVisibleRooms(roomOptions || []);
     }
   }, [showAll, roomOptions]);
 
-  const [isFlatType, setIsFlatType] = useState(false);
   return (
     <div className="max-w-7xl h-dvh my-1 mx-auto px-6 py-3 bg-white rounded-lg shadow-md">
-      {/* <h2 className="text-lg font-bold mb-4">Flat Type Setup</h2> */}
-      {/* Room selection section */}
+      {/* Status Bar */}
+      <div className="mb-4 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200">
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span className="text-sm font-medium text-gray-700">
+              Project {projectId}
+            </span>
+          </div>
+          <div className="text-sm text-gray-600">
+            {(flatTypeList || []).length} Flat Types •{" "}
+            {(projectRooms || []).length} Rooms
+          </div>
+        </div>
+        {isLoading && (
+          <div className="flex items-center space-x-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+            <span className="text-sm text-blue-600">Loading...</span>
+          </div>
+        )}
+      </div>
+
+      {/* Loading indicator - Removed as it's now in status bar */}
+
+      {/* Room selection (optional for quick view) */}
       <div className="w-full mb-2 bg-gray-200 rounded-md p-3">
         <div className="flex items-center w-full">
-          {/* 90% width for room options */}
           <div
             ref={containerRef}
-            className={`flex gap-2 items-center transition-all duration-300 flex-wrap`}
+            className="flex gap-2 items-center transition-all duration-300 flex-wrap"
             style={{
               width: "90%",
-              overflowY: showAll ? "auto" : "hidden", // Show scroll only when expanded
-              maxHeight: showAll ? "180px" : "120px", // Limit to ~3 lines when collapsed, adjust 180px to fit your button size
+              overflowY: showAll ? "auto" : "hidden",
+              maxHeight: showAll ? "180px" : "120px",
             }}
           >
-            {visibleRooms.map((option) => (
+            {(visibleRooms || []).map((option) => (
               <button
                 key={option?.id}
-                className={`border rounded-md px-4 py-2 whitespace-nowrap ${
-                  selectedOptions.includes(option)
-                    ? "bg-[#3CB0E1] text-white"
-                    : "bg-white text-[#3CB0E1]"
-                }`}
-                onClick={() => handleOptionChange(option)}
+                className="border rounded-md px-4 py-2 whitespace-nowrap bg-white text-[#3CB0E1]"
+                disabled
               >
-                {option?.room_type || ""}
+                {option?.rooms || ""}
               </button>
             ))}
+            {(visibleRooms || []).length === 0 && (
+              <span className="text-gray-500">No rooms available</span>
+            )}
           </div>
-
-          {/* 10% width for toggle button */}
           <div
             className="flex justify-end items-start pl-2"
             style={{ width: "10%" }}
           >
-            <button
-              className="text-sm underline text-[#3CB0E1] whitespace-nowrap mx-5"
-              onClick={() => setShowAll((prev) => !prev)}
-            >
-              {showAll ? "View Less" : "View More"}
-            </button>
+            {(roomOptions || []).length > (visibleRooms || []).length && (
+              <button
+                className="text-sm underline text-[#3CB0E1] whitespace-nowrap mx-5"
+                onClick={() => setShowAll((prev) => !prev)}
+              >
+                {showAll ? "View Less" : "View More"}
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="flex gap-2 mb-4">
+      {/* Action Buttons */}
+      <div className="flex gap-3 mb-6">
         <button
-          className="border rounded-md text-gray-800 px-5 py-2 flex items-center gap-1 shadow-md"
+          className="bg-white border-2 border-gray-300 rounded-lg text-gray-700 px-4 py-2.5 flex items-center gap-2 shadow-sm hover:border-blue-400 hover:text-blue-600 transition-all duration-200"
           onClick={() => setCreateNewRoom(!createNewRoom)}
         >
-          <IoMdAdd /> New Room
+          <IoMdAdd className="text-lg" />
+          <span className="font-medium">New Room</span>
         </button>
         <button
-          className="border py-2 px-5 rounded-md shadow-md flex items-center gap-2"
+          className="bg-blue-500 text-white rounded-lg px-4 py-2.5 flex items-center gap-2 shadow-sm hover:bg-blue-600 transition-all duration-200"
           onClick={() => setIsFlatType(!isFlatType)}
         >
-          <IoMdAdd /> New Flat Type
+          <IoMdAdd className="text-lg" />
+          <span className="font-medium">New Flat Type</span>
         </button>
       </div>
-      <div className="w-80 my-5">
-        {createNewRoom && (
-          <div className="flex items-center">
+
+      {/* Room creation input */}
+      {createNewRoom && (
+        <div className="w-full max-w-md mb-6 bg-gray-50 rounded-lg p-4 border border-gray-200">
+          <h4 className="text-sm font-medium text-gray-700 mb-3">
+            Add New Room
+          </h4>
+          <div className="flex items-center gap-3">
             <input
               type="text"
               value={newRoom}
               onChange={(e) => setNewRoom(e.target.value)}
-              placeholder="Enter New Room"
-              className="border rounded-md p-2 mr-2 w-full"
+              placeholder="Enter room name"
+              className="border border-gray-300 rounded-lg p-2.5 flex-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              onKeyPress={(e) => e.key === "Enter" && handleAddRoom()}
             />
             <button
               onClick={handleAddRoom}
-              className="bg-[#3CB0E1] text-white font-bold py-2 px-4 rounded hover:bg-[#3CB0E1] whitespace-nowrap"
+              className="bg-blue-500 text-white font-medium py-2.5 px-4 rounded-lg hover:bg-blue-600 transition-colors"
+              disabled={isLoading}
             >
               Save
             </button>
+            <button
+              onClick={() => {
+                setCreateNewRoom(false);
+                setNewRoom("");
+              }}
+              className="border border-gray-300 text-gray-600 font-medium py-2.5 px-4 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
           </div>
-        )}
+        </div>
+      )}
+
+      {/* Flat Types Section Header */}
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold text-gray-800 mb-2">Flat Types</h2>
+        <p className="text-sm text-gray-600">
+          Manage your project's flat configurations and room assignments
+        </p>
       </div>
-      <div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {isFlatType && (
-          <div
-            className="border rounded-md w-full p-6 flex flex-col justify-between gap-y-6"
-            style={{
-              height: "320px",
-            }}
-          >
-            <div className="flex gap-5 items-center">
-              <div className="flex items-center">
-                <input
-                  type="text"
-                  value={flatTypeDetails.flat_type}
-                  onChange={(e) =>
-                    handleFlatTypeChange("flat_type", e.target.value)
-                  }
-                  className="border rounded-md w-full p-2"
-                  placeholder="Enter Flat Type"
-                />
-              </div>
-              <div className="flex items-center">
-                <input
-                  type="color"
-                  value={flatTypeDetails.color}
-                  className="w-8 h-8"
-                  onChange={(e) =>
-                    setFlatTypeDetails({
-                      ...flatTypeDetails,
-                      color: e.target.value,
-                    })
-                  }
-                />
-              </div>
+
+      {/* FlatType create form */}
+      {isFlatType && (
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-dashed border-blue-300 rounded-lg p-6 mb-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+            Create New Flat Type
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Flat Type Name
+              </label>
+              <input
+                type="text"
+                value={flatTypeDetails.flat_type}
+                onChange={(e) =>
+                  handleFlatTypeChange("flat_type", e.target.value)
+                }
+                className="border border-gray-300 rounded-lg w-full p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g., 2BHK, 3BHK"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Select Rooms
+              </label>
+              <Select
+                isMulti
+                options={formattedRoomOptions}
+                value={flatTypeDetails.room_ids}
+                onChange={(e) => handleFlatTypeChange("room_ids", e)}
+                placeholder="Choose rooms"
+                className="basic-multi-select"
+                classNamePrefix="select"
+                closeMenuOnSelect={false}
+                maxMenuHeight={150}
+              />
+            </div>
+
+            <div className="flex items-end gap-3">
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
                   id="customCheckbox"
-                  className="w-3 h-3 text-violet-500 border-gray-300 rounded focus:ring focus:ring-violet-300"
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                   checked={flatTypeDetails.is_common}
                   onChange={() =>
                     handleFlatTypeChange(
@@ -396,173 +572,240 @@ function FlatType({ nextStep, previousStep }) {
                     )
                   }
                 />
-                <label htmlFor="customCheckbox" className="text-gray-700">
-                  Common
+                <label
+                  htmlFor="customCheckbox"
+                  className="text-sm font-medium text-gray-700"
+                >
+                  Common Area
                 </label>
               </div>
             </div>
-            <Select
-              isMulti
-              options={formattedRoomOptions}
-              value={flatTypeDetails.room_ids}
-              onChange={(e) => handleFlatTypeChange("room_ids", e)}
-              placeholder="Select up to 15 Options"
-              className="basic-multi-select"
-              classNamePrefix="select"
-            />
+          </div>
+
+          <div className="flex gap-3">
             <button
-              className="border text-black font-bold px-6 py-2 text-center rounded-md w-full"
+              className="bg-blue-500 text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
               onClick={handleCreateFlatType}
-              style={{
-                textAlign: "center",
+              disabled={isLoading}
+            >
+              {isLoading ? "Creating..." : "Create Flat Type"}
+            </button>
+            <button
+              className="border border-gray-300 text-gray-700 font-medium px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-colors"
+              onClick={() => {
+                setIsFlatType(false);
+                setFlatTypeDetails({
+                  flat_type: "",
+                  is_common: false,
+                  room_ids: [],
+                });
               }}
             >
-              Create Flat Type
+              Cancel
             </button>
           </div>
-        )}
-        {flatTypes.length > 0 &&
-          flatTypes.map((flatType, index) => (
-            <div
-              className="border rounded-md w-full p-6 flex flex-col justify-between gap-y-6 shadow-md"
-              style={{ rowGap: "24px", height: "320px" }}
+        </div>
+      )}
+
+      {/* Flat Types Table */}
+      {(flatTypeList || []).length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Flat Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Rooms
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {(flatTypeList || []).map((flatType, index) => (
+                  <tr
+                    key={flatType.id || flatType.flat_type_id}
+                    className="hover:bg-gray-50"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {isEditFlatType === index ? (
+                        <input
+                          type="text"
+                          value={editFlatType.flat_type}
+                          onChange={(e) =>
+                            handleUpdateFlatType("flat_type", e.target.value)
+                          }
+                          className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="Enter flat type name"
+                        />
+                      ) : (
+                        <div className="text-sm font-medium text-gray-900">
+                          {flatType.type_name || "Unnamed"}
+                        </div>
+                      )}
+                    </td>
+
+                    <td className="px-6 py-4">
+                      {isEditFlatType === index ? (
+                        <Select
+                          isMulti
+                          options={formattedRoomOptions}
+                          value={editFlatType.room_ids}
+                          onChange={(e) => handleUpdateFlatType("room_ids", e)}
+                          placeholder="Choose rooms"
+                          className="min-w-[200px]"
+                          classNamePrefix="select"
+                          closeMenuOnSelect={false}
+                          maxMenuHeight={150}
+                        />
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {(flatType.rooms || []).map((roomId, idx) => {
+                            const roomLabel =
+                              formattedRoomOptions.find(
+                                (item) => item.value === roomId
+                              )?.label || `Room ${roomId}`;
+                            return (
+                              <span
+                                key={`${roomId}-${idx}`}
+                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                              >
+                                {roomLabel}
+                              </span>
+                            );
+                          })}
+                          {(!flatType.rooms || flatType.rooms.length === 0) && (
+                            <span className="text-sm text-gray-500 italic">
+                              No rooms assigned
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </td>
+
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {isEditFlatType === index ? (
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`editCheckbox-${index}`}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            checked={editFlatType.is_common}
+                            onChange={() =>
+                              handleUpdateFlatType(
+                                "is_common",
+                                !editFlatType.is_common
+                              )
+                            }
+                          />
+                          <label
+                            htmlFor={`editCheckbox-${index}`}
+                            className="text-sm font-medium text-gray-700"
+                          >
+                            Common Area
+                          </label>
+                        </div>
+                      ) : (
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            flatType.is_common
+                              ? "bg-purple-100 text-purple-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {flatType.is_common ? "Common Area" : "Regular"}
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      {isEditFlatType === index ? (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleSaveFlatType}
+                            className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 text-sm"
+                            disabled={isLoading}
+                          >
+                            {isLoading ? "Saving..." : "Save"}
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleEditFlatType(index)}
+                          className="text-blue-600 hover:text-blue-900 font-medium"
+                        >
+                          Edit
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!isLoading && (flatTypeList || []).length === 0 && (
+        <div className="text-center py-12">
+          <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            <svg
+              className="w-12 h-12 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              {isEditFlatType === index ? (
-                <div className="flex gap-3 items-center">
-                  <div className="flex items-center">
-                    <input
-                      type="text"
-                      value={editFlatType.flat_type}
-                      onChange={(e) =>
-                        handleUpdateFlatType("flat_type", e.target.value)
-                      }
-                      className="border rounded-md w-full p-2"
-                      placeholder="Enter Flat Type"
-                      disabled={isEditFlatType !== index}
-                    />
-                  </div>
-                  <input
-                    type="color"
-                    value={editFlatType.color}
-                    className="w-8 h-8"
-                    disabled={isEditFlatType !== index}
-                    onChange={(e) =>
-                      handleUpdateFlatType("color", e.target.value)
-                    }
-                  />
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="customCheckbox"
-                      className="w-3 h-3 text-violet-500 border-gray-300 rounded focus:ring focus:ring-violet-300"
-                      checked={editFlatType.is_common}
-                      onChange={() =>
-                        handleUpdateFlatType(
-                          "is_common",
-                          !editFlatType.is_common
-                        )
-                      }
-                      disabled={isEditFlatType !== index}
-                    />
-                    <label htmlFor="customCheckbox" className="text-gray-700">
-                      Common
-                    </label>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex gap-3 items-center">
-                  <div className="flex items-center">
-                    <input
-                      type="text"
-                      value={flatType.flat_type}
-                      className="border rounded-md w-full p-1"
-                      placeholder="Enter Flat Type"
-                      disabled={true}
-                    />
-                  </div>
-                  <input
-                    type="color"
-                    value={flatType.color}
-                    className="w-8 h-8"
-                    disabled={isEditFlatType !== index}
-                  />
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="customCheckbox"
-                      className="w-3 h-3 text-violet-500 border-gray-300 rounded focus:ring focus:ring-violet-300"
-                      checked={flatType.is_common}
-                      disabled={true}
-                    />
-                    <label htmlFor="customCheckbox" className="text-gray-700">
-                      Common
-                    </label>
-                  </div>
-                </div>
-              )}
-              <div className="flex justify-center">
-                {isEditFlatType === index ? (
-                  <div className="w-full">
-                    <Select
-                      isMulti
-                      options={formattedRoomOptions}
-                      value={editFlatType.room_ids}
-                      onChange={(e) => handleUpdateFlatType("room_ids", e)}
-                      placeholder="Select up to 15 Options"
-                      className="w-full"
-                      classNamePrefix="select"
-                      readOnly
-                    />
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 max-h-40 overflow-y-auto items-center w-full gap-2 flex-wrap">
-                    {flatType.room_ids?.map((room, index) => (
-                      <div
-                        key={room}
-                        className="border rounded-md w-full px-2 py-2 text-xs"
-                      >
-                        {
-                          formattedRoomOptions.find(
-                            (item) => item.value === room
-                          )?.label
-                        }
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="flex justify-center mt-2">
-                {isEditFlatType === index ? (
-                  <button
-                    onClick={() => handleSaveFlatType(index)}
-                    className="bg-[#3CB0E1] text-white font-bold py-2 px-6 rounded flex items-center gap-1"
-                  >
-                    Save
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleEditFlatType(index)}
-                    className="border text-gray-500 font-medium py-1 px-6 rounded flex items-center gap-1"
-                  >
-                    Edit
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-      </div>
-      <div className="flex justify-between mt-6">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+              />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-800 mb-2">
+            No flat types yet
+          </h3>
+          <p className="text-gray-600 mb-4">
+            Get started by creating your first flat type configuration
+          </p>
+          <button
+            onClick={() => setIsFlatType(true)}
+            className="bg-blue-500 text-white px-6 py-2.5 rounded-lg hover:bg-blue-600 transition-colors inline-flex items-center gap-2"
+          >
+            <IoMdAdd className="text-lg" />
+            Create Flat Type
+          </button>
+        </div>
+      )}
+
+      {/* Navigation */}
+      <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
         <button
-          className="bg-[#3CB0E1] text-white px-4 py-2 rounded-md"
+          className="bg-gray-500 text-white px-6 py-2.5 rounded-lg hover:bg-gray-600 transition-colors font-medium"
           onClick={previousStep}
         >
-          Previous
+          ← Previous
         </button>
         <button
-          className="bg-[#3CB0E1] text-white px-4 py-2 rounded-md"
+          className="bg-blue-500 text-white px-6 py-2.5 rounded-lg hover:bg-blue-600 transition-colors font-medium"
           onClick={nextStep}
         >
-          Save & Proceed to Next Step
+          Save & Continue →
         </button>
       </div>
     </div>

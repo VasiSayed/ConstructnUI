@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
   createPhase,
   createPurpose,
@@ -7,608 +7,605 @@ import {
   getPhaseDetailsByProjectId,
   getStageDetailsByProjectId,
   editStage,
+  deleteStage,
 } from "../../api";
 import { useSelector, useDispatch } from "react-redux";
 import { setPurposes, setPhases, setStages } from "../../store/userSlice";
 import { toast } from "react-toastify";
-import { IoMdAdd } from "react-icons/io";
+import { IoMdAdd, IoMdTrash } from "react-icons/io";
 
-function Stages(nextStep) {
-  const hasRun = useRef(false);
-
+function Stages({ nextStep }) {
   const dispatch = useDispatch();
   const projectId = useSelector((state) => state.user.selectedProject.id);
   const purposesDetails = useSelector((state) => state.user.purposes);
   const phasesDetails = useSelector((state) => state.user.phases);
   const stagesDetails = useSelector((state) => state.user.stages);
+
+  // Main state
   const [isCreateStage, setIsCreateStage] = useState(false);
+  const [purposeData, setPurposeData] = useState([]);
+  const [phasesData, setPhasesData] = useState([]);
+  const [stagesData, setStagesData] = useState([]);
 
-
-  const [purposeData, setPurposeData] = useState(
-    purposesDetails?.[projectId] || []
-  );
-
-  console.log(purposeData,'hey gotit');
-  
-  
-  const getPurposes = async () => {
-    if (projectId) {
-      const response = await getPurposeByProjectId(projectId);
-      console.log(response, "purposedeatilssssss");
-      if (response.status === 200) {
-        // response.data is an array of purposes
-        setPurposeData(response.data);
-        dispatch(
-          setPurposes({
-            project_id: projectId,
-            data: response.data,
-          })
-        );
-      }
-    }
-  };
-  
-  useEffect(() => {
-    if (projectId) {
-      getPurposes();
-      getPhases();
-      getStages();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId]);
-  
-
- 
-  const [phasesData, setPhasesData] = useState(
-    phasesDetails?.[projectId] || []
-  );
-
+  // Creation form state
   const [selectedPurpose, setSelectedPurpose] = useState("");
   const [phaseName, setPhaseName] = useState("");
   const [newPurpose, setNewPurpose] = useState("");
-
-
-  const [stagesData, setStagesData] = useState(
-    stagesDetails?.[projectId] || []
-  );
-
   const [selectedPhase, setSelectedPhase] = useState("");
   const [stageName, setStageName] = useState("");
-  const [color, setColor] = useState("");
+  const [activeSection, setActiveSection] = useState("Purpose");
 
-  const handleColorChange = (e) => {
-    setColor(e.target.value);
-  };
+  // Edit state
+  const [editIndex, setEditIndex] = useState(null);
+  const [editedStageName, setEditedStageName] = useState("");
+  const [editedSequence, setEditedSequence] = useState(1);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // State for Navigation
-  const [activeSection, setActiveSection] = useState("Purpose"); // Default to "Purpose"
-
-  const getPurposeId = async (name) => {
-    console.log(purposesDetails, "purposesDetails ID GET", name);
-    return purposesDetails?.[projectId].find(
-      (purpose) => purpose.name === name
-    ).id;
-  };
-
-  const handleTogglePurpose = (index) => {
-    // setPurposes((prev) =>
-    //   prev.map((purpose, i) =>
-    //     i === index ? { ...purpose, enabled: !purpose.enabled } : purpose
-    //   )
-    // );
-  };
-
-  // Handlers for Phase Management
-  const handleCreatePhase = async () => {
-    if (selectedPurpose && phaseName) {
-      const purposeId = await getPurposeId(selectedPurpose);
-      const response = await createPhase({
-        project: projectId,
-        purpose: purposeId,
-        name: phaseName,
-      });
-
-      if (response.status === 200) {
-        const newPhase = {
-          purpose: selectedPurpose,
-          phase: phaseName,
-          id: response.data.id, // Assuming your API returns new phase id here
-        };
-
-        setPhasesData((prev) => {
-          const updated = [...prev, newPhase];
-          dispatch(setPhases({ project_id: projectId, data: updated }));
-          return updated;
-        });
-        
-
-        setSelectedPurpose("");
-        setPhaseName("");
-        toast.success(response.data.message);
+  // Fetch and set data helpers
+  const getPurposes = async () => {
+    if (projectId) {
+      try {
+        const response = await getPurposeByProjectId(projectId);
+        if (response.status === 200) {
+          setPurposeData(response.data);
+          dispatch(setPurposes({ project_id: projectId, data: response.data }));
+          return response.data; // Return the data for immediate use
+        }
+      } catch (error) {
+        console.error("Error fetching purposes:", error);
+        toast.error("Failed to fetch purposes");
       }
     }
-  };
-  
-  
-
-  useEffect(() => {
-    setPhasesData(phasesDetails?.[projectId] || []);
-  }, [phasesDetails, projectId]);
-  
-  const getPhaseId = async (name) => {
-    console.log(phasesDetails?.[projectId], "phasesDetails ID GET", name);
-    return phasesDetails?.[projectId].find((phase) => phase.phase === name).id;
+    return [];
   };
 
-  // Handlers for Stage Management
-  const handleCreateStage = async () => {
-    if (selectedPhase && stageName) {
-      const [purpose, phase] = selectedPhase.split(":"); // Split the combined string
-      console.log(purpose, phase, "purpose, phase");
-      const purposeId = await getPurposeId(purpose);
-      console.log(purposeId, "purposeId");
-      const phaseId = await getPhaseId(phase);
-      console.log(phaseId, "phaseId");
-      const response = await createStage({
-        project_id: projectId,
-        purpose_id: purposeId,
-        phases_id: phaseId,
-        stages_name: stageName,
-        color: color,
-      });
-
-      if (response.status === 200) {
-        // setStagesData((prevStages) => [
-        //   ...prevStages,
-        //   { purpose, phase, stage: stageName }, // Save all details
-        // ]);
-        setSelectedPhase("");
-        setStageName("");
-        setColor("");
-        toast.success(response.data.message);
-        await getStages();
-      }
-    }
-  };
-  
-  const getPhases = async () => {
+  const getPhases = async (purposesData = null) => {
     if (!projectId) return;
+    try {
+      const response = await getPhaseDetailsByProjectId(projectId);
+      if (response.status === 200) {
+        const phases = response.data;
 
-    const response = await getPhaseDetailsByProjectId(projectId);
-    if (response.status === 200) {
-      const phases = response.data;
+        // Use passed purposesData or current state
+        const currentPurposes = purposesData || purposeData;
 
-      const phasesData = phases.map((phase) => ({
-        purpose: purposesDetails?.[projectId]?.find(
-          (purpose) => purpose.id === phase.purpose
-        )?.name,
-        phase: phase.name,
-        id: phase.id,
-      }));
+        const formattedPhases = phases.map((phase) => ({
+          purpose:
+            currentPurposes.find((p) => p.id === phase.purpose)?.name ||
+            "Unknown",
+          phase: phase.name,
+          id: phase.id,
+          purpose_id: phase.purpose, // Keep the purpose ID for reference
+        }));
 
-      setPhasesData(phasesData);
-      dispatch(setPhases({ project_id: projectId, data: phasesData }));
+        setPhasesData(formattedPhases);
+        dispatch(setPhases({ project_id: projectId, data: formattedPhases }));
+        return formattedPhases; // Return for immediate use
+      }
+    } catch (error) {
+      console.error("Error fetching phases:", error);
+      toast.error("Failed to fetch phases");
     }
+    return [];
   };
-  
-  
-  const getStages = async () => {
+
+  const getStages = async (phasesData = null, purposesData = null) => {
+    if (!projectId) return;
     try {
       const response = await getStageDetailsByProjectId(projectId);
       if (response.status === 200) {
-        const stages = response.data; // Array of stages directly
+        const stages = response.data;
 
-        const stagesData = stages.map((stage) => ({
-          purpose: purposesDetails?.[projectId]?.find(
-            (p) => p.id === stage.purpose
-          )?.purpose_name,
-          phase: phasesDetails?.[projectId]?.find((p) => p.id === stage.phase)
-            ?.phase,
-          stage: stage.name || stage.stages_name, // match your model field name here
+        // Use passed data or current state
+        const currentPhases = phasesData || phasesData;
+        const currentPurposes = purposesData || purposeData;
+
+        const formattedStages = stages.map((stage) => ({
+          purpose:
+            currentPurposes.find((p) => p.id === stage.purpose)?.name ||
+            "Unknown",
+          phase:
+            currentPhases.find((ph) => ph.id === stage.phase)?.phase ||
+            "Unknown",
+          stage: stage.name,
           id: stage.id,
-          color: stage.color,
+          sequence: stage.sequence || 1,
         }));
 
-        setStagesData(stagesData);
-        dispatch(setStages({ project_id: projectId, data: stagesData }));
+        setStagesData(formattedStages);
+        dispatch(setStages({ project_id: projectId, data: formattedStages }));
       }
     } catch (error) {
       console.error("Error fetching stages:", error);
+      toast.error("Failed to fetch stages");
     }
-  };
-  
-  const handleTab = async (tab) => {
-    setActiveSection(tab);
-
-    if (tab === "Purpose") {
-      await getPurposes();
-    }
-    if (tab === "Phases") {
-      await getPhases();
-    }
-    if (tab === "Stages") {
-      await getStages();
-    }
-  };
-  console.log(stagesData);
-  const [editIndex, setEditIndex] = useState(null);
-  const [editedStageName, setEditedStageName] = useState("");
-  const [editedColor, setEditedColor] = useState("");
-  const handleEditClick = (index) => {
-    setEditIndex(index);
-    setEditedStageName(stagesData[index].stage);
-    setEditedColor(stagesData[index].color);
   };
 
+  // Initial data fetch with proper chaining
+  const fetchAllData = async () => {
+    if (projectId) {
+      const purposes = await getPurposes();
+      const phases = await getPhases(purposes);
+      await getStages(phases, purposes);
+    }
+  };
+
+  useEffect(() => {
+    fetchAllData();
+  }, [projectId]);
+
+  // Helpers
+  const getPurposeId = (name) => purposeData.find((p) => p.name === name)?.id;
+
+  const getPhaseId = (name) => phasesData.find((ph) => ph.phase === name)?.id;
+
+  // CREATE Purpose
   const handleCreatePurpose = async () => {
     if (!newPurpose.trim()) {
       toast.error("Purpose name cannot be empty");
       return;
     }
-
     try {
       const response = await createPurpose({
         name: newPurpose.trim(),
         project: projectId,
       });
-
       if (response.status === 201 || response.status === 200) {
         toast.success("Purpose created!");
-        setNewPurpose(""); // Clear input
-        await getPurposes(); // Refresh purpose list
+        setNewPurpose("");
+        await fetchAllData(); // Refresh all data
       }
     } catch (error) {
-      console.error("Error creating purpose:", error);
       toast.error("Failed to create purpose.");
     }
   };
-  
 
+  // CREATE Phase
+  const handleCreatePhase = async () => {
+    if (!selectedPurpose || !phaseName.trim()) {
+      toast.error("Please select purpose and enter phase name");
+      return;
+    }
+
+    try {
+      const purposeId = getPurposeId(selectedPurpose);
+      const response = await createPhase({
+        project: projectId,
+        purpose: purposeId,
+        name: phaseName.trim(),
+      });
+
+      if (response.status === 200 || response.status === 201) {
+        toast.success("Phase created successfully!");
+        setSelectedPurpose("");
+        setPhaseName("");
+        await fetchAllData(); // Refresh all data
+      }
+    } catch (error) {
+      console.error("Error creating phase:", error);
+      toast.error("Failed to create phase.");
+    }
+  };
+
+  // CREATE Stage
+  const handleCreateStage = async () => {
+    if (!selectedPhase || !stageName.trim()) {
+      toast.error("Please select phase and enter stage name");
+      return;
+    }
+
+    try {
+      const [purposeName, phaseName] = selectedPhase.split(":");
+      const purposeId = getPurposeId(purposeName);
+      const phaseId = getPhaseId(phaseName);
+
+      if (!purposeId || !phaseId) {
+        toast.error("Invalid purpose or phase selection");
+        return;
+      }
+
+      const sequence =
+        Math.max(...stagesData.map((s) => s.sequence || 0), 0) + 1;
+
+      const payload = {
+        project: projectId,
+        purpose: purposeId,
+        phase: phaseId,
+        name: stageName.trim(),
+        sequence: sequence,
+      };
+
+      const response = await createStage(payload);
+      if (response.status === 200 || response.status === 201) {
+        toast.success("Stage created successfully!");
+        setSelectedPhase("");
+        setStageName("");
+        setIsCreateStage(false);
+        await fetchAllData(); // Refresh all data
+      }
+    } catch (error) {
+      console.error("Error creating stage:", error);
+      toast.error("Failed to create stage.");
+    }
+  };
+
+  // EDIT Stage
+  const handleEditClick = (index) => {
+    setEditIndex(index);
+    setEditedStageName(stagesData[index].stage);
+    setEditedSequence(stagesData[index].sequence || 1);
+  };
 
   const handleSaveClick = async () => {
-    if (editIndex !== null) {
+    if (editIndex === null) return;
+
+    setIsSaving(true);
+    try {
       const stageToUpdate = stagesData[editIndex];
+      const payload = {
+        stage_id: stageToUpdate.id,
+        name: editedStageName.trim(),
+        sequence: editedSequence,
+      };
 
+      const response = await editStage(payload);
+      if (response.status === 200) {
+        toast.success("Stage updated successfully!");
+        setEditIndex(null);
+        setEditedStageName("");
+        setEditedSequence(1);
+        await fetchAllData(); // Refresh all data
+      }
+    } catch (error) {
+      console.error("Error updating stage:", error);
+      toast.error("Failed to update stage.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // DELETE Stage
+  const handleDeleteStage = async (id) => {
+    if (window.confirm("Are you sure you want to delete this stage?")) {
       try {
-        const response = await editStage({
-          stage_id: stageToUpdate.id, // Assuming your stage data has an `id`
-          stages_name: editedStageName,
-          color: editedColor,
-        });
-
-        if (response.status === 200) {
-          toast.success("Stage updated successfully!");
-
-          setEditIndex(null);
-          setEditedStageName("");
-          setEditedColor("");
-          await getStages();
+        const response = await deleteStage(id);
+        if (response.status === 204 || response.status === 200) {
+          toast.success("Stage deleted successfully!");
+          await fetchAllData(); // Refresh all data
         }
       } catch (error) {
-        console.error(error);
-        toast.error("Failed to update stage.");
+        console.error("Error deleting stage:", error);
+        toast.error("Failed to delete stage.");
       }
     }
   };
 
+  // NAV Tabs
+  const handleTab = (tab) => {
+    setActiveSection(tab);
+  };
+
   return (
-    <div className="w-full h-min max-w-7xl mx-auto px-3 py-5 my-1 bg-white rounded-lg shadow-md flex flex-col gap-4">
+    <div className="w-full max-w-7xl mx-auto px-4 py-6 bg-white rounded-lg shadow-lg">
       {/* Navigation */}
-      <div className="flex lg:flex-row flex-col gap-2 relative items-center justify-center w-full">
-        <div className="sm:flex grid grid-cols-3 flex-wrap text-sm md:text-base sm:flex-row gap-5 font-medium p-2 xl:rounded-full rounded-md opacity-90 bg-gray-200">
-          <button
-            onClick={() => handleTab("Purpose")}
-            className={`md:rounded-full px-4 cursor-pointer text-center transition-all duration-300 ease-linear ${
-              activeSection === "Purpose" &&
-              "bg-white text-blue-500 shadow-custom-all-sides"
-            }`}
-          >
-            Purpose
-          </button>
-          <button
-            onClick={() => handleTab("Phases")}
-            className={`md:rounded-full px-4 cursor-pointer text-center transition-all duration-300 ease-linear ${
-              activeSection === "Phases" &&
-              "bg-white text-blue-500 shadow-custom-all-sides"
-            }`}
-          >
-            Phases
-          </button>
-          <button
-            onClick={() => handleTab("Stages")}
-            className={`md:rounded-full px-4 cursor-pointer text-center transition-all duration-300 ease-linear ${
-              activeSection === "Stages" &&
-              "bg-white text-blue-500 shadow-custom-all-sides"
-            }`}
-          >
-            Stages
-          </button>
+      <div className="flex justify-center mb-6">
+        <div className="inline-flex bg-gray-100 rounded-lg p-1">
+          {["Purpose", "Phases", "Stages"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => handleTab(tab)}
+              className={`px-6 py-2 rounded-md font-medium transition-all duration-200 ${
+                activeSection === tab
+                  ? "bg-white text-blue-600 shadow-md"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
         </div>
       </div>
+
       {/* Purpose Section */}
       {activeSection === "Purpose" && (
-        <div className="w-full bg-green-50 p-4 rounded-lg shadow-lg">
-          <h3 className="text-lg font-bold text-green-900">
+        <div className="bg-gray-50 p-6 rounded-lg">
+          <h3 className="text-xl font-bold text-gray-800 mb-4">
             Purpose Management
           </h3>
-          {/* <input
-            value={newPurpose}
-            onChange={(e) => setNewPurpose(e.target.value)}
-            type="text"
-            className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 mb-2"
-            placeholder="Enter new purpose"
-          />
-          <button
-            onClick={handleCreatePurpose}
-            className="w-full bg-green-700 text-white py-2 rounded hover:bg-green-600 transition"
-          >
-            Add Purpose
-          </button> */}
-          {/* <h4 className="text-md font-semibold text-green-800 mt-4">
-            Manage Purposes
-          </h4> */}
-          <input
-            value={newPurpose}
-            onChange={(e) => setNewPurpose(e.target.value)}
-            type="text"
-            className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500 mb-2 bg-cyan-100"
-            placeholder="Enter new purpose"
-          />
+          <div className="flex gap-2 mb-4">
+            <input
+              value={newPurpose}
+              onChange={(e) => setNewPurpose(e.target.value)}
+              onKeyPress={(e) => e.key === "Enter" && handleCreatePurpose()}
+              type="text"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter new purpose"
+            />
+            <button
+              onClick={handleCreatePurpose}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Add Purpose
+            </button>
+          </div>
 
-          <button
-            onClick={handleCreatePurpose}
-            className="w-full bg-teal-600 text-white py-2 rounded hover:bg-teal-500 transition"
-          >
-            Add Purpose
-          </button>
-
-          <ul>
-
-            {purposeData.length > 0 &&
-              purposeData.map((purpose, index) => (
-                <li
-                  key={index}
-                  className="flex justify-between items-center py-2"
+          {purposeData.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {purposeData.map((purpose, index) => (
+                <div
+                  key={purpose.id}
+                  className="bg-white p-4 rounded-lg border border-gray-200 capitalize"
                 >
-                  <span
-                    style={{
-                      textTransform: "capitalize",
-                    }}
-                  >
-                    {purpose.name}
-                  </span>
-                  <button
-                    onClick={() => handleTogglePurpose(index)}
-                    className={`text-sm ${
-                      purpose.enabled
-                        ? "text-red-600 hover:text-red-800"
-                        : "text-green-600 hover:text-green-800"
-                    }`}
-                  >
-                    {purpose?.enabled ? "Disable" : "Enable"}
-                  </button>
-                </li>
+                  {purpose.name}
+                </div>
               ))}
-
-          </ul>
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-4">
+              No purposes created yet
+            </p>
+          )}
         </div>
       )}
+
       {/* Phases Section */}
       {activeSection === "Phases" && (
-        <div className="w-full">
-          <h3 className="text-lg font-bold text-green-700">Create Phase</h3>
-          <div className="flex mb-4">
-            <div className="w-1/3">
-              <label className="block text-green-600 font-semibold mb-2">
-                Purpose
-              </label>
-              <select
-                value={selectedPurpose}
-                onChange={(e) => setSelectedPurpose(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-              >
-                <option value="">Select Purpose</option>
-                {purposeData.map((purpose, index) => (
-                  <option
-                    key={index}
-                    value={purpose.name}
-                    style={{ textTransform: "capitalize" }}
-                  >
-                    {purpose.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="w-1/3 ml-4">
-              <label className="block text-green-600 font-semibold mb-2">
-                Phase Name
-              </label>
-              <input
-                value={phaseName}
-                onChange={(e) => setPhaseName(e.target.value)}
-                type="text"
-                className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="Enter Phase Name"
-              />
-            </div>
-            <div className="w-1/3 ml-4 flex items-end">
-              <button
-                className="bg-green-700 text-white px-4 py-2 rounded hover:bg-green-600 transition"
-                onClick={handleCreatePhase}
-              >
-                Create
-              </button>
+        <div>
+          <div className="bg-gray-50 p-6 rounded-lg mb-6">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">
+              Create Phase
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-gray-700 font-medium mb-2">
+                  Purpose
+                </label>
+                <select
+                  value={selectedPurpose}
+                  onChange={(e) => setSelectedPurpose(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select Purpose</option>
+                  {purposeData.map((purpose) => (
+                    <option
+                      key={purpose.id}
+                      value={purpose.name}
+                      className="capitalize"
+                    >
+                      {purpose.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-gray-700 font-medium mb-2">
+                  Phase Name
+                </label>
+                <input
+                  value={phaseName}
+                  onChange={(e) => setPhaseName(e.target.value)}
+                  type="text"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter phase name"
+                />
+              </div>
+              <div className="flex items-end">
+                <button
+                  onClick={handleCreatePhase}
+                  className="w-full bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Create Phase
+                </button>
+              </div>
             </div>
           </div>
 
-          <h3 className="text-lg font-bold text-green-600 mt-4">
-            Manage Phases
+          <h3 className="text-xl font-bold text-gray-800 mb-4">
+            Existing Phases
           </h3>
-          <ul className="bg-green-50 p-4 rounded-lg shadow mt-2">
-            {phasesData.map((phase, index) => (
-              <li
-                key={index}
-                className="py-2"
-                style={{ textTransform: "capitalize" }}
-              >
-                {`Purpose: ${phase.purpose}, Phase: ${phase.phase}`}
-              </li>
-            ))}
-          </ul>
+          {phasesData.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {phasesData.map((phase, index) => (
+                <div
+                  key={phase.id}
+                  className="bg-white p-4 rounded-lg border border-gray-200 capitalize"
+                >
+                  <span className="font-medium text-gray-600">Purpose:</span>{" "}
+                  {phase.purpose}
+                  <br />
+                  <span className="font-medium text-gray-600">Phase:</span>{" "}
+                  {phase.phase}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-4">
+              No phases created yet
+            </p>
+          )}
         </div>
       )}
+
       {/* Stages Section */}
       {activeSection === "Stages" && (
-        <div className="w-full">
-          {/* <h3 className="text-lg font-bold text-green-600">Create Stage</h3> */}
+        <div>
           <button
-            className="bg-[#3CB0E1] py-1 px-5 rounded-md mb-5 flex items-center gap-2"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg mb-6 flex items-center gap-2 hover:bg-blue-700 transition-colors"
             onClick={() => setIsCreateStage(!isCreateStage)}
           >
-            <IoMdAdd /> Create Stage
+            <IoMdAdd size={20} /> Create Stage
           </button>
-          <div className="grid grid-cols-4 gap-2">
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {/* Create Stage Card */}
             {isCreateStage && (
-              <div className="flex flex-col border rounded-md space-y-3 p-5  h-[250px]">
-                {/* Form Fields */}
-                <div className="w-full">
-                  <label className="block text-green-600 font-semibold mb-2">
-                    Phase
-                  </label>
-                  <select
-                    value={selectedPhase}
-                    onChange={(e) => setSelectedPhase(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-                  >
-                    <option value="">Select Phase</option>
-                    {phasesData.map((phase, index) => (
-                      <option
-                        key={index}
-                        value={`${phase.purpose}:${phase.phase}`}
-                      >
-                        {`${phase.purpose} - ${phase.phase}`}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="w-full">
-                  <label className="block text-green-600 font-semibold mb-2">
-                    Stage Name
-                  </label>
-                  <input
-                    value={stageName}
-                    onChange={(e) => setStageName(e.target.value)}
-                    type="text"
-                    className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-                    placeholder="Enter Stage Name"
-                  />
-                </div>
-                <div className="flex justify-between">
-                  <div className="flex items-center">
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-5">
+                <h4 className="font-bold text-gray-800 mb-4">New Stage</h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-2">
+                      Phase
+                    </label>
+                    <select
+                      value={selectedPhase}
+                      onChange={(e) => setSelectedPhase(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    >
+                      <option value="">Select Phase</option>
+                      {phasesData.map((phase) => (
+                        <option
+                          key={phase.id}
+                          value={`${phase.purpose}:${phase.phase}`}
+                        >
+                          {phase.purpose} - {phase.phase}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-2">
+                      Stage Name
+                    </label>
                     <input
-                      type="color"
-                      value={color}
-                      onChange={handleColorChange}
-                      className="w-8 h-8"
+                      value={stageName}
+                      onChange={(e) => setStageName(e.target.value)}
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      placeholder="Enter stage name"
                     />
                   </div>
-                  <div className="w-1/3 flex items-end">
+                  <div className="flex gap-2">
                     <button
-                      className="bg-[#3CB0E1] text-white px-4 py-2 rounded hover:bg-[#3CB0E1] transition"
                       onClick={handleCreateStage}
+                      className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
                     >
                       Create
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsCreateStage(false);
+                        setSelectedPhase("");
+                        setStageName("");
+                      }}
+                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                    >
+                      Cancel
                     </button>
                   </div>
                 </div>
               </div>
             )}
+
+            {/* Existing Stages */}
             {stagesData.map((stage, index) => (
               <div
-                key={index}
-                className="flex flex-col border p-2 rounded-md h-[220px] shadow-md"
+                key={stage.id}
+                className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
               >
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="w-full">
-                    <label className="block text-green-600 text-center font-semibold mb-2">
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
                       Purpose
                     </label>
-                    <span className="border shadow-sm py-1 px-4 rounded-md w-full flex items-center justify-center">
+                    <div className="bg-gray-50 px-3 py-2 rounded text-sm capitalize">
                       {stage.purpose}
-                    </span>
+                    </div>
                   </div>
-                  <div className="w-full">
-                    <label className="block text-green-600 text-center font-semibold mb-2">
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
                       Phase
                     </label>
-                    <span className="border shadow-sm py-1 px-4 rounded-md w-full flex items-center justify-center">
+                    <div className="bg-gray-50 px-3 py-2 rounded text-sm capitalize">
                       {stage.phase}
-                    </span>
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex justify-center my-1">
-                  <div className="w-fit min-w-[200px]">
-                    <label className="block text-green-600 text-center font-semibold mb-1">
-                      Stage
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Stage Name
                     </label>
                     {editIndex === index ? (
                       <input
                         type="text"
                         value={editedStageName}
                         onChange={(e) => setEditedStageName(e.target.value)}
-                        className="border shadow-sm py-1 px-4 rounded-md w-full text-center"
+                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     ) : (
-                      <span className="border shadow-sm py-1 px-4 rounded-md w-full flex items-center justify-center">
+                      <div className="bg-gray-50 px-3 py-2 rounded text-sm capitalize">
                         {stage.stage}
-                      </span>
+                      </div>
                     )}
                   </div>
-                </div>
-                {editIndex === index ? (
-                  <input
-                    type="color"
-                    value={editedColor}
-                    onChange={(e) => setEditedColor(e.target.value)}
-                    className="w-8 h-8"
-                  />
-                ) : (
-                  <div
-                    className="p-1 rounded-md my-2 w-[40%] mx-auto"
-                    style={{ backgroundColor: stage.color }}
-                  ></div>
-                )}
-                <div className="flex justify-center">
-                  {editIndex === index ? (
-                    <button
-                      onClick={handleSaveClick}
-                      className="bg-green-500 text-white text-sm py-1 px-5 rounded-md"
-                    >
-                      Save
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleEditClick(index)}
-                      className="bg-[#3CB0E1] text-sm py-1 px-5 rounded-md"
-                    >
-                      Edit
-                    </button>
-                  )}
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Sequence
+                    </label>
+                    {editIndex === index ? (
+                      <input
+                        type="number"
+                        min={1}
+                        value={editedSequence}
+                        onChange={(e) =>
+                          setEditedSequence(Number(e.target.value))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    ) : (
+                      <div className="bg-gray-50 px-3 py-2 rounded text-sm text-center">
+                        {stage.sequence}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    {editIndex === index ? (
+                      <>
+                        <button
+                          onClick={handleSaveClick}
+                          disabled={isSaving}
+                          className="flex-1 bg-green-600 text-white px-3 py-1.5 rounded text-sm hover:bg-green-700 transition-colors disabled:bg-gray-400"
+                        >
+                          {isSaving ? "Saving..." : "Save"}
+                        </button>
+                        <button
+                          onClick={() => setEditIndex(null)}
+                          className="flex-1 border border-gray-300 px-3 py-1.5 rounded text-sm hover:bg-gray-50 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleEditClick(index)}
+                          className="flex-1 bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700 transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteStage(stage.id)}
+                          className="bg-red-500 text-white px-3 py-1.5 rounded text-sm hover:bg-red-600 transition-colors"
+                        >
+                          <IoMdTrash size={16} />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
+
+          {stagesData.length === 0 && !isCreateStage && (
+            <p className="text-gray-500 text-center py-8">
+              No stages created yet
+            </p>
+          )}
         </div>
       )}
-      {/* <div className="flex justify-end">
-        <button
-          className="bg-[#3CB0E1] text-white px-4 py-2 rounded-md w-fit"
-          nextStep={nextStep}
-        >
-          Next Step
-        </button>
-      </div> */}
     </div>
   );
 }

@@ -31,7 +31,7 @@ function TransferRules({ nextStep, previousStep }) {
 
   const handleSubmit = async () => {
     const data = {
-      project_id: projectId,
+      project: projectId,
       flat_level: selectedLevel === "flat_level",
       room_level: selectedLevel === "room_level",
       checklist_level: selectedLevel === "checklist_level",

@@ -3,6 +3,17 @@ import { createSlice } from "@reduxjs/toolkit";
 const initialState = {
   user: {
     id: null,
+    user_id: null,
+    username: null,
+    first_name: null,
+    last_name: null,
+    email: null,
+    phone_number: null,
+    date_joined: null,
+    last_login: null,
+    has_access: false,
+    is_client: false,
+    superadmin: false,
   },
   organization: {
     id: null,
@@ -30,7 +41,20 @@ const userSlice = createSlice({
   reducers: {
     setUser: (state, action) => {
       console.log(action, "action");
-      state.user.id = action.payload;
+      // If action.payload is just an ID (for backward compatibility)
+      if (
+        typeof action.payload === "number" ||
+        typeof action.payload === "string"
+      ) {
+        state.user.id = action.payload;
+      } else {
+        // If action.payload is the full user object
+        state.user = { ...state.user, ...action.payload };
+      }
+    },
+    // Add a new action specifically for setting full user data
+    setUserData: (state, action) => {
+      state.user = { ...state.user, ...action.payload };
     },
     setOrganization: (state, action) => {
       if (!state.organization) {
@@ -117,6 +141,7 @@ const userSlice = createSlice({
 
 export const {
   setUser,
+  setUserData,
   setOrganization,
   setCompany,
   setProjects,

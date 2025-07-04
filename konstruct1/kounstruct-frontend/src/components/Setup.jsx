@@ -39,7 +39,7 @@ function Setup() {
     "stages",
     "tower",
     "level",
-    // "zone",
+    "zone",
     "flatType",
     "unit",
     "transferRules",
@@ -183,17 +183,21 @@ function Setup() {
             Level
           </button>
           <div className="border-t-2 border-dashed border-red-500 w-10"></div>
-          {/* <button
-          className={`p-2 text-slate-800 cursor-pointer btn ${
-            setup === "zone"
-              ? "bg-white text-blue-500 font-semibold rounded-md"
-              : ""
-          }`}
-          disabled={!selectedProjectId || !isStageData()}
-          onClick={() => setSetup("zone")}
-        >
-          Zone
-        </button> */}
+          <button
+            className={`p-2 text-slate-800 flex items-center justify-center gap-2 cursor-pointer border border-red-200 w-40 rounded-full btn whitespace-nowrap bg-white ${
+              setup === "zone"
+                ? "border border-red-500 text-blue-500 font-semibold rounded-full"
+                : ""
+            }`}
+            disabled={!selectedProjectId || !isStageData()}
+            onClick={() => setSetup("zone")}
+          >
+            <span className="bg-red-100 text-red-400 rounded-full w-6 h-6 flex items-center justify-center text-sm">
+              5
+            </span>
+            Zone
+          </button>
+
           <button
             className={`p-2 text-slate-800 flex items-center justify-center gap-2 cursor-pointer border border-red-200 w-40 rounded-full btn whitespace-nowrap bg-white ${
               setup === "flatType"
@@ -204,7 +208,7 @@ function Setup() {
             onClick={() => setSetup("flatType")}
           >
             <span className="bg-red-100 text-red-400 rounded-full w-6 h-6 flex items-center justify-center text-sm">
-              5
+              6
             </span>
             Flat Type
           </button>
@@ -219,7 +223,7 @@ function Setup() {
             onClick={() => setSetup("unit")}
           >
             <span className="bg-red-100 text-red-400 rounded-full w-6 h-6 flex items-center justify-center text-sm">
-              6
+              7
             </span>
             Units
           </button>
@@ -234,7 +238,7 @@ function Setup() {
             onClick={() => setSetup("transferRules")}
           >
             <span className="bg-red-100 text-red-400 rounded-full w-6 h-6 flex items-center justify-center text-sm">
-              7
+              8
             </span>
             Transfer Rules
           </button>

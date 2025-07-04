@@ -18,6 +18,7 @@ import Chifstep1 from "./Chifstep1";
 import Login from "./Pages/Login";
 import Configuration from "./components/Configuration";
 import Snagging from "./components/Snagging";
+import FlatMatrixTable from "./components/FlatMatrixTable";
 import ProjectDetails from "./components/Projectdetails";
 import ChecklistFloor from "./components/ChecklistFloor";
 import ChecklistPage from "./components/ChecklistPage";
@@ -48,6 +49,7 @@ const Layout = () => {
           <Route path="/config" element={<Configuration />} />
           <Route path="/project/:id" element={<ProjectDetails />} />
           <Route path="/snagging/:id" element={<Snagging />} />
+          <Route path="/Level/:id" element={<FlatMatrixTable />} />
           <Route path="/checklistfloor/:id" element={<ChecklistFloor />} />
           <Route path="/checklistpage/:id" element={<ChecklistPage />} />
           <Route path="/casetup" element={<CASetup />} />

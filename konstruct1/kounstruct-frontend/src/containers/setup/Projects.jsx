@@ -1,28 +1,23 @@
 import React, { useEffect, useState } from "react";
 import projectImage from "../../Images/Project.png";
 import AddProjectModal from "./AddProjectModal";
-import { NavLink } from "react-router-dom";
 import { getProjectDetailsById } from "../../api";
 import { useDispatch, useSelector } from "react-redux";
 import { setProjects, setSelectedProject } from "../../store/userSlice";
+import { toast } from "react-hot-toast";
 
 function Projects({ onProjectSetupComplete }) {
   const dispatch = useDispatch();
-
   const companyId = useSelector((state) => state.user.company.id);
-  // const projectsList = useSelector((state) =>
-  //   state.user.projects.length > 0 ? state.user.projects : []
-  // );
 
   const [projectData, setProjectData] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Fetch projects by company
   const projectDetails = async () => {
     try {
       if (companyId) {
-        console.log("Project Data:");
         const response = await getProjectDetailsById(companyId);
-        console.log("Project Data:", response.data.data.projects);
         if (response.data.data.projects.length > 0) {
           setProjectData(response.data.data.projects);
           dispatch(setProjects(response.data.data.projects));
@@ -36,56 +31,25 @@ function Projects({ onProjectSetupComplete }) {
     }
   };
 
-  // const getProjectDataById = async (id) => {
-  //   const response = projectData.find((project) => project.id === id);
-  //   return response;
-  // };
-
+  // When a project is added, re-fetch projects and call onProjectSetupComplete
   const addProject = async (id) => {
     await projectDetails();
-    // const project = await getProjectDataById(id);
     onProjectSetupComplete(id);
-    // console.log(project, "ADD");
   };
 
   useEffect(() => {
     if (companyId) {
-      console.log(companyId, "companyId");
       projectDetails();
       dispatch(setSelectedProject(null));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    // eslint-disable-next-line
+  }, [companyId]);
 
   return (
     <div className="w-full h-dvh rounded-md bg-white gap-4 flex items-start justify-between my-1">
-      {/* <div className="w-60 border-r p-4">
-        <div className="max-h-[450px] overflow-y-auto">
-          <NavLink
-            to="/setup"
-            className={({ isActive }) =>
-              `block px-4 py-2 rounded-lg ${
-                isActive ? "bg-gray-200 text-blue-500" : "text-gray-700"
-              }`
-            }
-          >
-            Setup
-          </NavLink>
-          <NavLink
-            to="/casetup"
-            className={({ isActive }) =>
-              `block px-4 py-2 rounded-lg ${
-                isActive ? "bg-gray-500 text-blue-500" : "text-gray-700"
-              }`
-            }
-          >
-            CA Setup
-          </NavLink>
-        </div>
-      </div> */}
       <div className="w-full p-5 rounded flex flex-col h-full">
+        {/* Project Grid */}
         <div className="grid project-grid w-full h-full overflow-y-auto">
-          {/* <pre>{JSON.stringify(projectData, null, 2)}</pre> */}
           {projectData.length > 0 &&
             projectData.map((project) => (
               <button
@@ -141,4 +105,5 @@ function Projects({ onProjectSetupComplete }) {
     </div>
   );
 }
+
 export default Projects;

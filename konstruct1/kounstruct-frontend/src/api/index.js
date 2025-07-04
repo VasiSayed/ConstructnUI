@@ -17,6 +17,24 @@ export const createUser = async (data) =>
     },
   });
 
+  // api.js
+
+export const createRoom = async (data) =>
+  projectInstance.post("/rooms/", data, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+
+export const getRoomsByProject = async (projectId) =>
+    projectInstance.get(`/rooms/by_project/?project_id=${projectId}`, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+  
+
 export const createOrganization = async (data) =>
   organnizationInstance.post("/organizations/", data, {
     headers: {
@@ -25,7 +43,7 @@ export const createOrganization = async (data) =>
   });
 
 export const createCompany = async (data) =>
-  organnizationInstance.post("/company/create-company/", data, {
+  organnizationInstance.post("/companies/", data, {
     headers: {
       "Content-Type": "application/json",
     },
@@ -38,6 +56,12 @@ export const createCompany = async (data) =>
       },
     });
 
+export const allorgantioninfototalbyUser_id = async (id) =>
+  organnizationInstance.get(`/user-orgnizationn-info/${id}`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 
 export const getUserDetailsById = async (id) =>
   axiosInstance.get(`/users/${id}`, {
@@ -46,8 +70,16 @@ export const getUserDetailsById = async (id) =>
     },
   });
 
+  
+export const createEntity = async (data) =>
+  organnizationInstance.post(`/entities/`,data, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
 export const getOrganizationDetailsById = async (id) =>
-  axiosInstance.get(`/organizations/by-user/${id}/`, {
+  organnizationInstance.get(`/organizations/by-user/${id}/`, {
     headers: {
       "Content-Type": "application/json",
     },
@@ -55,7 +87,7 @@ export const getOrganizationDetailsById = async (id) =>
 
 
 export const getCompanyDetailsById = async (id) =>
-  axiosInstance.get(
+  organnizationInstance.get(
     `/company/get-company-details-by-organization-id/?organization_id=${id}`,
     {
       headers: {
@@ -66,7 +98,7 @@ export const getCompanyDetailsById = async (id) =>
 
 export const getProjectDetailsById = async (id) => {
   console.log(id, "id project");
-  return axiosInstance.get(
+  return projectInstance.get(
     `/project/get-project-details-by-company-id/?company_id=${id}`,
     {
       headers: {
@@ -121,8 +153,14 @@ export const createStage = async (data) =>
     },
   });
 
+export const deleteStage = async (id) => projectInstance.delete(`stages/${id}/`,{
+  headers: {
+    "Content-Type": "application/json",
+  },
+})
+
 export const getStageDetailsByProjectId = async (id) =>
-  projectInstance.get(`get-stage-details-by-project-id/${id}`, {
+  projectInstance.get(`get-stage-details-by-project-id/${id}/`, {
     headers: {
       "Content-Type": "application/json",
     },
@@ -130,61 +168,116 @@ export const getStageDetailsByProjectId = async (id) =>
 
 
 export const createTower = async (data) =>
-  axiosInstance.post("/tower/create-tower/", data, {
+  projectInstance.post("/buildings/", data, {
     headers: {
       "Content-Type": "application/json",
       //   "Access-Control-Allow-Origin": "*",
     },
   });
 
-export const getTowerDetailsByProjectId = async (id) =>
-  axiosInstance.get(`/tower/get-tower-details-by-id/?project_id=${id}`, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
+  export const fetchTowersByProject = async (id) =>
+    projectInstance.get(`/buildings/by_project/${id}/`, {
+      headers: {
+        "Content-Type": "application/json",
+        //   "Access-Control-Allow-Origin": "*",
+      },
+    });
 
-export const updateTower = async (data) =>
-  axiosInstance.put("/tower/update-tower-details-by-id/", data, {
+export const DeleteTowerByid = async (id) =>
+      projectInstance.delete(`/buildings/${id}/`, {
+        headers: {
+          "Content-Type": "application/json",
+          //   "Access-Control-Allow-Origin": "*",
+        },
+      });
+
+export const getBuildingnlevel = async (id)=>
+  projectInstance.get(`buildings/with-levels/by_project/${id}/`,{
     headers: {
       "Content-Type": "application/json",
+      //   "Access-Control-Allow-Origin": "*",
     },
-  });
+  })
+
+export const updateTower = async (towerId, data) =>
+        projectInstance.patch(`/buildings/${towerId}/`, data, {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+      
+
+
+// export const getTowerDetailsByProjectId = async (id) =>
+//   axiosInstance.get(`/tower/get-tower-details-by-id/?project_id=${id}`, {
+//     headers: {
+//       "Content-Type": "application/json",
+//     },
+//   });
+
 
 export const createLevel = async (data) =>
-  axiosInstance.post("/level/create-level/", data, {
+  projectInstance.post("/levels/", data, {
     headers: {
       "Content-Type": "application/json",
     },
   });
 
 export const getLevelsByTowerId = async (id) =>
-  axiosInstance.get(`/level/get-level-details-by-tower-id/?tower_id=${id}`, {
+  projectInstance.get(`/levels/by_building/${id}`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+    
+  });
+
+
+export const getLevelsWithFlatsByBuilding = async (id) =>
+  projectInstance.get(`/levels-with-flats/${id}/`, {
     headers: {
       "Content-Type": "application/json",
     },
   });
 
-export const updateLevel = async (data) =>
-  axiosInstance.put("/level/update-level-details/", data, {
-    headers: {
-      "Content-Type": "application/json",
-    },
+export const updateLevel = async ({ id, name, building }) =>
+  projectInstance.put(`/levels/${id}/`, { name, building }, {
+    headers: { "Content-Type": "application/json" },
   });
+
 
 export const deleteLevel = async (id) =>
-  axiosInstance.delete(`/level/delete-level-details/?level_id=${id}`, {
+  projectInstance.delete(`/levels/${id}/`, {
     headers: {
       "Content-Type": "application/json",
     },
   });
 
-export const createRoom = async (data) =>
-  axiosInstance.post("/room/create-room/", data, {
+export const NestedZonenSubzone=async (data)=>{
+  projectInstance.post("buildings/with-levels-zones/bulk-create/", data, {
     headers: {
       "Content-Type": "application/json",
     },
   });
+}
+
+
+export const zonewithbluidlingwithlevel = async (id) =>
+  projectInstance.get(
+    `/buildings/with-levels-and-zones/by_project/${id}/`,
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+
+// export const createRoom = async (data) =>
+//   axiosInstance.post("/room/create-room/", data, {
+//     headers: {
+//       "Content-Type": "application/json",
+//     },
+//   });
 
 export const getRooms = async (id) =>
   axiosInstance.get(`/room/get-room-details-by-company-id/?company_id=${id}`, {
@@ -194,62 +287,26 @@ export const getRooms = async (id) =>
   });
 
 export const createFlatType = async (data) =>
-  axiosInstance.post("/flat-type/create-flat-type/", data, {
+  projectInstance.post("/flattypes/", data, {
     headers: {
       "Content-Type": "application/json",
     },
   });
 
-export const getFlatTypes = async (id) =>
-  axiosInstance.get(
-    `/flat-type/get-flat-type-details-by-project-id/?project_id=${id}`,
-    {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    }
-  );
+export const getFlatTypes = async (id, token) =>
+  projectInstance.get(`/flattypes/by_project/${id}/`, {
+    headers: {
+      "Content-Type": "application/json",
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
 
 export const updateFlatType = async (data) => {
   console.log(data, "DATA FLAT TYPE");
-  return axiosInstance.put("/flat-type/update-room-type-by-flat-type/", data, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-};
-
-export const createUnit = async (data) =>
-  axiosInstance.post("/unit/create-unit/", data, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-
-export const getUnits = async (id) =>
-  axiosInstance.get(`/unit/get-unit-details-by-project-id/?project_id=${id}`, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-
-export const updateUnit = async (data) =>
-  axiosInstance.put("/unit/update-unit-details/", data, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-
-export const createTransferRule = async (data) =>
-  axiosInstance.post("/transfer-rule/create-transfer-rule/", data, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-
-export const getTransferRules = async (id) => {
-  return axiosInstance.get(
-    `/transfer-rule/get-transfer-rule-by-project-id/?project_id=${id}`,
+  return projectInstance.put(
+    "/flat-type/update-room-type-by-flat-type/",
+    data,
     {
       headers: {
         "Content-Type": "application/json",
@@ -257,6 +314,56 @@ export const getTransferRules = async (id) => {
     }
   );
 };
+
+
+export const createUnit = async (data) =>
+  projectInstance.post("/flats/", data, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+
+export const getUnits = async (id) =>
+  projectInstance.get(`flats/by_project/${id}`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+
+export const allinfobuildingtoflat = async (id) =>
+  projectInstance.get(`projects/${id}/buildings-details/`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+
+export const updateUnit = async (data) =>
+  projectInstance.put("/flats/", data, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+
+export const createTransferRule = async (data) =>
+  projectInstance.post("/transfer-rules/", data, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+
+export const getTransferRules = async (id) => {
+  return projectInstance.get(`/transfer-rules/?project_id=${id}`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+};
+
 
 export const createChecklistCategory = async (data) =>
   axiosInstance.post("/category/create-category/", data, {
@@ -264,6 +371,7 @@ export const createChecklistCategory = async (data) =>
       "Content-Type": "application/json",
     },
   });
+
 
 export const getChecklistCategories = async (id) =>
   axiosInstance.get(
@@ -275,12 +383,14 @@ export const getChecklistCategories = async (id) =>
     }
   );
 
+
 export const createChecklistSubCategory = async (data) =>
   axiosInstance.post("/sub-category/create-sub-category/", data, {
     headers: {
       "Content-Type": "application/json",
     },
   });
+
 
 export const getChecklistSubCategories = async (id) =>
   axiosInstance.get(
@@ -292,12 +402,14 @@ export const getChecklistSubCategories = async (id) =>
     }
   );
 
+
 export const createChecklist = async (data) =>
   axiosInstance.post("/checklist-quest/create-checklist-quest/", data, {
     headers: {
       "Content-Type": "application/json",
     },
   });
+
 
 export const getChecklistDetails = async (id) =>
   axiosInstance.get(
@@ -308,6 +420,7 @@ export const getChecklistDetails = async (id) =>
       },
     }
   );
+
 
 export const createChecklistMapping = async (data) =>
   axiosInstance.post(
@@ -327,7 +440,7 @@ export const getChecklistMappingDetails = async (id) =>
   });
 
 export const createUserDetails = async (data) =>
-  axiosInstance.post("/user/create-user-details/", data, {
+  axiosInstance.post("/users/", data, {
     headers: {
       "Content-Type": "application/json",
     },
@@ -345,14 +458,11 @@ export const updateChecklist = async (data) =>
   );
 
 export const getUsersByOrganizationId = async (id) =>
-  axiosInstance.get(
-    `/user/get-user-details-by-organization-id/?organization_id=${id}`,
-    {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    }
-  );
+  organnizationInstance.get(`/user-orgnizationn-info/${id}`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 
 export const updateUserDetails = async (data) =>
   axiosInstance.put("/user/update-user-details/", data, {
@@ -370,14 +480,14 @@ export const updateUserDetails = async (data) =>
 //   });
 
 export const getProjectLevelDetails = async (id) =>
-  axiosInstance.get(`/tower/get-tower-details-by-id/?project_id=${id}`, {
+  projectInstance.get(`/buildings/by_project/${id}`, {
     headers: {
       "Content-Type": "application/json",
     },
   });
 
 export const getFloorDetails = async (id) =>
-  axiosInstance.get(`/level/get-level-details-by-tower-id/?tower_id=${id}`, {
+  projectInstance.get(`/levels/by_building/${id}`, {
     headers: {
       "Content-Type": "application/json",
     },
@@ -424,7 +534,7 @@ export const getstageDetails = async (projectId) =>
   );
 
 export const getProjectUserDetails = async (userId) =>
-  axiosInstance.get(
+  projectInstance.get(
     `/user-stage-role/get-projects-by-user/?user_id=${userId}`,
     {
       headers: {
