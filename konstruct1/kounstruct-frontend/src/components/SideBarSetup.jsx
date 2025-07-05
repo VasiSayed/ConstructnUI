@@ -12,6 +12,7 @@ function SideBarSetup() {
     { name: "CA Setup", path: "/casetup" },
     { name: "User & Role", path: "/user" },
     { name: "Checklist", path: "/Checklist" },
+    { name: "Category Sidebar", path: "/category-sidebar" },
     { name: "Escalation Setup", path: "/escalation-setup" },
     { name: "Contractors", path: "/contractors" },
     { name: "Geo Tag", path: "/geo-tag" },

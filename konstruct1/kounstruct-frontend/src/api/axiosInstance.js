@@ -22,12 +22,12 @@ const refreshToken = async () => {
   }
 };
 
-// Auth microservice
+// Auth microservice (LOGIN WILL WORK)
 const axiosInstance = axios.create({
   baseURL: `http://${LOCAL_IP}:8000/api/`,
 });
 
-// Project microservice
+// Project microservice (OTHER SERVICES - ASK FRIEND FOR PORTS)
 export const projectInstance = axios.create({
   baseURL: `http://${LOCAL_IP}:8001/api/`,
 });

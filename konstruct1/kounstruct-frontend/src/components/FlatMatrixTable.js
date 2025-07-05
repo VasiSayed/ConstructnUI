@@ -2,114 +2,88 @@ import React, { useEffect, useState } from "react";
 import { getLevelsWithFlatsByBuilding } from "../api";
 import { useParams } from "react-router-dom";
 
-function FlatMatrixTable({ towerName }) {
+function FlatMatrixTable({ towerName = "B" }) {
   const [levels, setLevels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState(null);
-  const { id } = useParams(); // <-- Get the building id from URL
-  const buildingId = id;        
+  const { id } = useParams();
 
   useEffect(() => {
-    console.log("FlatMatrixTable useEffect, buildingId:", buildingId);
-    if (!buildingId) return;
     setLoading(true);
     setApiError(null);
-
     (async () => {
       try {
-        const res = await getLevelsWithFlatsByBuilding(buildingId);
-        console.log("Levels API response:", res.data);
+        const res = await getLevelsWithFlatsByBuilding(id);
         setLevels(res.data || []);
-      } catch (err) {
+        console.log("API Levels Data:", res.data);
+      } catch {
         setApiError("Failed to fetch levels/flats.");
         setLevels([]);
       } finally {
         setLoading(false);
       }
     })();
-  }, [buildingId]);
+  }, [id]);
 
-  const maxFlats = Math.max(
-    ...levels.map((level) => (level.flats || []).length),
-    0
-  );
+  // Get the max number of flats across all levels for perfect grid alignment
+  const maxFlats = Math.max(...levels.map(l => (l.flats || []).length), 0);
 
-  if (loading) {
-    return (
-      <div className="p-8 text-lg text-gray-500">Loading flat matrix…</div>
-    );
-  }
-  if (apiError) {
-    return <div className="p-8 text-red-500">{apiError}</div>;
-  }
-  if (!levels.length) {
-    return (
-      <div className="p-8 text-gray-400">
-        No levels/flats found for this building.
-      </div>
-    );
-  }
+  if (loading) return <div>Loading...</div>;
+  if (apiError) return <div>{apiError}</div>;
+  if (!levels.length) return <div>No data</div>;
 
   return (
-    <div className="w-full py-8">
-      <div className="flex items-center mb-4">
-        <span className="text-2xl font-bold text-purple-700">
-          Tower : {towerName}
-        </span>
+    <div className="w-full py-8 px-8">
+      <div className="flex items-center mb-6">
+        <span className="text-2xl font-bold text-purple-700">Tower : {towerName}</span>
       </div>
-      <div className="bg-white shadow rounded-xl overflow-x-auto">
-        <div className="flex">
-          {/* Level names on left */}
-          <div className="flex flex-col bg-gray-50 rounded-l-xl py-4 px-6 min-w-[120px]">
+      
+      <div className="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-200 mx-4">
+        <table className="w-full">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="text-left py-5 px-8 font-medium text-gray-700 border-r border-gray-200 min-w-[140px]">
+                Level
+              </th>
+              {maxFlats > 0 && Array(maxFlats).fill(0).map((_, colIndex) => (
+                <th key={colIndex} className="text-center py-5 px-8 font-medium text-gray-700 border-r border-gray-200 last:border-r-0 min-w-[140px]">
+                  Unit {colIndex + 1}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
             {levels.map((level) => (
-              <div
-                key={level.id}
-                className="h-14 flex items-center justify-center text-lg font-medium text-gray-700 mb-2"
-                style={{ minHeight: "3rem" }}
-              >
-                {level.name}
-              </div>
-            ))}
-          </div>
-          {/* Flats grid */}
-          <div className="flex-1 w-full">
-            {levels.map((level) => (
-              <div
-                key={level.id}
-                className="flex gap-6 items-center h-14 mb-2"
-                style={{ minHeight: "3rem" }}
-              >
-                {(level.flats || []).map((flat) => (
-                  <div
-                    key={flat.id}
-                    className="bg-white border rounded text-center min-w-[100px] py-2 text-base font-medium flex flex-col items-center"
-                  >
-                    <span>
-                      {flat.number}
-                      {flat.flattype?.type_name && (
-                        <span className="text-xs text-gray-500 ml-1 align-bottom">
-                          {flat.flattype.type_name}
-                        </span>
+              <tr key={level.id} className="border-t border-gray-200">
+                <td className="py-5 px-8 font-medium text-gray-700 bg-gray-50 border-r border-gray-200">
+                  {level.name}
+                </td>
+                {Array(maxFlats).fill(0).map((_, colIndex) => {
+                  const flat = (level.flats || [])[colIndex];
+                  return (
+                    <td key={colIndex} className="py-5 px-8 text-center border-r border-gray-200 last:border-r-0">
+                      {flat ? (
+                        <div className="bg-white border border-gray-300 rounded-lg py-3 px-4 text-center shadow-sm hover:shadow-md transition-shadow">
+                          <div className="font-semibold text-gray-800 text-lg">
+                            {flat.number}
+                          </div>
+                          {flat.flattype?.type_name && (
+                            <div className="text-xs text-blue-600 mt-1 font-medium">
+                              {flat.flattype.type_name}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="bg-gray-100 border border-gray-200 rounded-lg py-3 px-4 h-16"></div>
                       )}
-                    </span>
-                  </div>
-                ))}
-                {/* If fewer flats, fill empty */}
-                {Array(maxFlats - (level.flats || []).length)
-                  .fill(0)
-                  .map((_, i) => (
-                    <div
-                      key={i}
-                      className="bg-gray-100 border rounded min-w-[100px] py-2"
-                    />
-                  ))}
-              </div>
+                    </td>
+                  );
+                })}
+              </tr>
             ))}
-          </div>
-        </div>
+          </tbody>
+        </table>
       </div>
-      {/* Debug: show JSON if needed */}
-      {/* <pre>{JSON.stringify(levels, null, 2)}</pre> */}
     </div>
   );
 }

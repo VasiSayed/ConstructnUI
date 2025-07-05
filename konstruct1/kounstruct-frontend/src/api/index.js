@@ -2,6 +2,7 @@ import axiosInstance from "./axiosInstance";
 import { projectInstance } from "./axiosInstance";
 import { organnizationInstance } from "./axiosInstance"
 
+
 export const login = async (data) =>
   axiosInstance.post("/token/", data, {
     headers: {
@@ -240,6 +241,8 @@ export const getLevelsWithFlatsByBuilding = async (id) =>
     },
   });
 
+
+
 export const updateLevel = async ({ id, name, building }) =>
   projectInstance.put(`/levels/${id}/`, { name, building }, {
     headers: { "Content-Type": "application/json" },
@@ -403,6 +406,16 @@ export const getChecklistSubCategories = async (id) =>
     }
   );
 
+  export const getCategoriesSimpleByProject = async (projectId) =>
+  projectInstance.get(`/categories-simple/?project=${projectId}`, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+  export const createCategorySimple = async (data) =>
+  projectInstance.post(`/categories-simple/`, data, {
+    headers: { "Content-Type": "application/json" },
+  });
+
 
 export const createChecklist = async (data) =>
   axiosInstance.post("/checklist-quest/create-checklist-quest/", data, {
@@ -536,7 +549,9 @@ export const getstageDetails = async (projectId) =>
 
 export const getProjectUserDetails = async (userId) =>
   projectInstance.get(
-    `/user-stage-role/get-projects-by-user/?user_id=${userId}`,
+    // `/user-stage-role/get-projects-by-user/?user_id=${userId}`,
+    `/user-stage-role/get-projects-by-user/`,
+
     {
       headers: {
         "Content-Type": "application/json",
