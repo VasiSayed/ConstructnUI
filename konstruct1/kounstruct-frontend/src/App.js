@@ -26,6 +26,7 @@ import CASetup from "./components/CASetup";
 import Header from "./components/Header";
 import Setup from "./components/Setup";
 import { Toaster } from "react-hot-toast";
+import CategoryChecklist from './components/CategoryChecklist';
 
 import { useEffect } from "react";
 import UserSetup from "./containers/setup/UserSetup";
@@ -66,6 +67,8 @@ const Layout = () => {
           <Route path="/setup" element={<Setup />} />
           <Route path="/user-setup" element={<UserSetup />} />
           <Route path="/user" element={<User />} />
+          <Route path="/category-sidebar" element={<CategoryChecklist />} />
+
           <Route path="/edit-checklist/:id" element={<EditCheckList />} />
         </Routes>
       </main>

@@ -12,7 +12,6 @@ function Unit({ nextStep, previousStep }) {
   const flatTypes =
     useSelector((state) => state.user.flatTypes[selectedProjectId]) || [];
 
-  // State structure for tower-based data
   const [buildings, setBuildings] = useState([]);
   const [selectedBuilding, setSelectedBuilding] = useState("");
   const [selectedFlatType, setSelectedFlatType] = useState("");
@@ -20,6 +19,35 @@ function Unit({ nextStep, previousStep }) {
   const [floorUnits, setFloorUnits] = useState({});
   const [editMode, setEditMode] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+
+  // Helper to pad numbers
+  const padNum = (num, len = 3) => String(num).padStart(len, "0");
+
+  // The new numbering logic:
+  const generateUnitNumber = (levels, levelId, unitIndex) => {
+    const currentLevel = levels.find((level) => level.id === levelId);
+    const levelName = currentLevel?.name?.toLowerCase() || "";
+
+    if (levelName.includes("podium")) {
+      return `P${padNum(unitIndex + 1)}`;
+    }
+    if (levelName.includes("ground")) {
+      return `G${padNum(unitIndex + 1)}`;
+    }
+    if (levelName.includes("terrace")) {
+      return `T${unitIndex + 1}`;
+    }
+    if (levelName.includes("basement")) {
+      return `B${padNum(unitIndex + 1)}`;
+    }
+    if (levelName.includes("parking")) {
+      return `PK${padNum(unitIndex + 1)}`;
+    }
+    // Default: 1001, 1002... for Floor 1; 2001... for Floor 2, etc.
+    const floorMatch = currentLevel?.name?.match(/(\d+)/);
+    const floorNumber = floorMatch ? parseInt(floorMatch[1]) : 1;
+    return String(floorNumber * 1000 + (unitIndex + 1));
+  };
 
   // Fetch building details using the existing API function
   const fetchBuildingDetails = async () => {
@@ -31,7 +59,6 @@ function Unit({ nextStep, previousStep }) {
 
       if (response.status === 200) {
         setBuildings(response.data);
-        console.log("Building details fetched:", response.data);
 
         // Auto-select first building if available
         if (response.data.length > 0) {
@@ -40,10 +67,8 @@ function Unit({ nextStep, previousStep }) {
         }
       } else {
         toast.error("Failed to fetch building details");
-        console.error("Error response:", response);
       }
     } catch (error) {
-      console.error("Error fetching building details:", error);
       toast.error("Error loading building data");
     } finally {
       setIsLoading(false);
@@ -85,14 +110,13 @@ function Unit({ nextStep, previousStep }) {
 
   useEffect(() => {
     fetchBuildingDetails();
+    // eslint-disable-next-line
   }, [selectedProjectId]);
 
-  // Get current building data
   const getCurrentBuilding = () => {
     return buildings.find((b) => b.id.toString() === selectedBuilding);
   };
 
-  // Handle building change
   const handleBuildingChange = (buildingId) => {
     setSelectedBuilding(buildingId);
     const building = buildings.find((b) => b.id.toString() === buildingId);
@@ -102,61 +126,20 @@ function Unit({ nextStep, previousStep }) {
     setFloorUnits({});
   };
 
-  // Generate unit number based on floor with special handling for unique floors
-  const generateUnitNumber = (levels, levelId, unitIndex) => {
-    // Sort levels to get consistent floor numbering
-    const sortedLevels = [...levels].sort((a, b) => {
-      // Handle special cases for basement and parking
-      if (a.name.toLowerCase().includes("basement")) return -2;
-      if (b.name.toLowerCase().includes("basement")) return 2;
-      if (a.name.toLowerCase().includes("parking")) return -1;
-      if (b.name.toLowerCase().includes("parking")) return 1;
-
-      // Extract numbers from level names for proper sorting
-      const aNum = parseInt(a.name.match(/\d+/)?.[0] || 0);
-      const bNum = parseInt(b.name.match(/\d+/)?.[0] || 0);
-      return aNum - bNum;
-    });
-
-    // Find the current level
-    const currentLevel = sortedLevels.find((level) => level.id === levelId);
-    const levelName = currentLevel.name.toLowerCase();
-
-    // Handle special unique floors
-    if (levelName.includes("parking")) {
-      // Parking: P1, P2, P3...
-      return `P${unitIndex + 1}`;
-    } else if (levelName.includes("basement")) {
-      // Basement: B1, B2, B3...
-      return `B${unitIndex + 1}`;
-    } else {
-      // Regular floors: Floor 1 = 1001+, Floor 2 = 2001+, etc.
-      const floorMatch = currentLevel.name.match(/(\d+)/);
-      const floorNumber = floorMatch ? parseInt(floorMatch[1]) : 1;
-
-      // Generate unit number: Floor 1 = 1001, 1002, etc., Floor 2 = 2001, 2002, etc.
-      const unitNumber = floorNumber * 1000 + (unitIndex + 1);
-      return String(unitNumber);
-    }
-  };
-
   // Add units to all floors
   const handleAddUnitsToAllFloors = () => {
     if (!selectedBuilding) {
       toast.error("Please select a building first.");
       return;
     }
-
     if (!unitCount || unitCount <= 0) {
       toast.error("Please enter a valid number of units.");
       return;
     }
-
     if (!selectedFlatType) {
       toast.error("Please select a flat type.");
       return;
     }
-
     const currentBuilding = getCurrentBuilding();
     const flatType = flatTypes.find(
       (ft) => ft.id.toString() === selectedFlatType
@@ -164,7 +147,6 @@ function Unit({ nextStep, previousStep }) {
 
     setFloorUnits((prev) => {
       const updatedUnits = { ...prev };
-
       currentBuilding.levels?.forEach((level) => {
         const existingUnits = prev[level.id]?.units || [];
         const newUnits = Array.from(
@@ -185,7 +167,6 @@ function Unit({ nextStep, previousStep }) {
           units: [...existingUnits, ...newUnits],
         };
       });
-
       return updatedUnits;
     });
 
@@ -293,7 +274,6 @@ function Unit({ nextStep, previousStep }) {
     const flatsToCreate = [];
     Object.entries(floorUnits).forEach(([levelId, { units }]) => {
       units.forEach((unit) => {
-        console.log('vgbjkmbhm',selectedProjectId);
         flatsToCreate.push({
           project: selectedProjectId,
           building: parseInt(selectedBuilding),
@@ -330,7 +310,6 @@ function Unit({ nextStep, previousStep }) {
       toast.error(`${errorCount} units failed to save`);
     }
   };
-  
 
   // Update existing units
   const handleUpdate = async () => {
@@ -370,7 +349,6 @@ function Unit({ nextStep, previousStep }) {
         toast.error(response.data?.message || "Failed to update units");
       }
     } catch (error) {
-      console.error("Error updating units:", error);
       toast.error("Error updating units");
     } finally {
       setIsLoading(false);
@@ -385,16 +363,13 @@ function Unit({ nextStep, previousStep }) {
         Configure Units/Area
       </h2>
 
-      {/* Loading indicator */}
       {isLoading && (
         <div className="mb-4 text-center">
           <span className="text-blue-500">Loading...</span>
         </div>
       )}
 
-      {/* Selection Controls */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        {/* Building Selection */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Select Tower:
@@ -413,7 +388,6 @@ function Unit({ nextStep, previousStep }) {
           </select>
         </div>
 
-        {/* Flat Type Selection */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Select Flat Type for All Units:
@@ -433,7 +407,6 @@ function Unit({ nextStep, previousStep }) {
           </select>
         </div>
 
-        {/* Unit Count Input */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Number of Units:
@@ -448,7 +421,6 @@ function Unit({ nextStep, previousStep }) {
           />
         </div>
 
-        {/* Add Units Button */}
         <div className="flex items-end">
           <button
             onClick={handleAddUnitsToAllFloors}
@@ -462,7 +434,6 @@ function Unit({ nextStep, previousStep }) {
         </div>
       </div>
 
-      {/* Flat Type Legend */}
       {selectedBuilding && flatTypes.length > 0 && (
         <div className="mb-6">
           <h3 className="text-sm font-medium text-gray-700 mb-3">
@@ -490,7 +461,6 @@ function Unit({ nextStep, previousStep }) {
         </div>
       )}
 
-      {/* Floors Table */}
       {selectedBuilding && currentBuilding && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">
@@ -547,7 +517,6 @@ function Unit({ nextStep, previousStep }) {
                                     }
                                   />
 
-                                  {/* Flat Type Badge */}
                                   {unitFlatType && (
                                     <span
                                       className="px-3 py-1 rounded-md text-xs font-semibold text-black"
@@ -598,7 +567,6 @@ function Unit({ nextStep, previousStep }) {
         </div>
       )}
 
-      {/* Navigation */}
       <div className="flex justify-between pt-6 border-t border-gray-200">
         <button
           className="bg-gray-500 text-white px-6 py-2.5 rounded-lg hover:bg-gray-600 transition-colors"
