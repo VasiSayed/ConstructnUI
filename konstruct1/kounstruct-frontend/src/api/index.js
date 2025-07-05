@@ -2,6 +2,7 @@ import axiosInstance from "./axiosInstance";
 import { projectInstance } from "./axiosInstance";
 import { organnizationInstance } from "./axiosInstance"
 
+
 export const login = async (data) =>
   axiosInstance.post("/token/", data, {
     headers: {
@@ -545,6 +546,29 @@ export const getProjectUserDetails = async (userId) =>
 
 export const editStage = async (data) =>
   axiosInstance.put("/stage/update-stage-details/", data, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+// ! By Prathamesh- GET 
+
+export const getProjectsByOrganization = async (organizationId) =>
+  projectInstance.get(`/projects/by_organization/${organizationId}/`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+export const getCategoryTreeByProject = async (projectId) => 
+  projectInstance.get(`/category-tree-by-project/?project=${projectId}`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+export const createUserAccessRole = async (payload) => 
+  axiosInstance.post(`/user-access-role/`, payload, {
     headers: {
       "Content-Type": "application/json",
     },
