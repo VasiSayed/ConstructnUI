@@ -1,12 +1,15 @@
 import axios from "axios";
 
-// Token refresh function (reuse for both instances)
+// ✅ Your local IP (update if needed)
+const LOCAL_IP = "192.168.1.12";
+
+// Token refresh function
 const refreshToken = async () => {
   const refresh = localStorage.getItem("REFRESH_TOKEN");
   if (!refresh) throw new Error("No refresh token available");
   try {
     const response = await axios.post(
-      "http://127.0.0.1:8000/api/token/refresh/",
+      `http://${LOCAL_IP}:8000/api/token/refresh/`,
       { refresh }
     );
     localStorage.setItem("ACCESS_TOKEN", response.data.access);
@@ -21,23 +24,23 @@ const refreshToken = async () => {
 
 // Auth microservice
 const axiosInstance = axios.create({
-  baseURL: "http://127.0.0.1:8000/api/",
+  baseURL: `http://${LOCAL_IP}:8000/api/`,
 });
 
 // Project microservice
 export const projectInstance = axios.create({
-  baseURL: "http://127.0.0.1:8001/api/",
+  baseURL: `http://${LOCAL_IP}:8001/api/`,
 });
 
 export const organnizationInstance = axios.create({
-  baseURL: "http://127.0.0.1:8002/api",
+  baseURL: `http://${LOCAL_IP}:8002/api/`,
 });
 
 export const checklistInstance = axios.create({
-  baseURL: "http://127.0.0.1:8003/api",
+  baseURL: `http://${LOCAL_IP}:8003/api/`,
 });
 
-// Attach token to every request (for both services)
+// Attach token to every request
 const attachTokenInterceptor = (instance) => {
   instance.interceptors.request.use(
     (config) => {
@@ -73,10 +76,10 @@ const attachTokenInterceptor = (instance) => {
   );
 };
 
-// Attach interceptors to both
+// Attach interceptors
 attachTokenInterceptor(axiosInstance);
 attachTokenInterceptor(projectInstance);
 attachTokenInterceptor(organnizationInstance);
-attachTokenInterceptor(checklistInstance);   
+attachTokenInterceptor(checklistInstance);
 
 export default axiosInstance;

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, {useEffect, useState } from "react";
 import { FaPlus } from "react-icons/fa";
 import { MdOutlineCancel } from "react-icons/md";
 import { useSelector } from "react-redux";
@@ -7,8 +7,23 @@ import { toast } from "react-hot-toast";
 import SideBarSetup from "../../components/SideBarSetup";
 
 function User() {
-  const userId = useSelector((state) => state.user.user.id);
-  const isClient = useSelector((state) => state.user.user.is_client) || false;
+  // const userId = useSelector((state) => state.user.user.id);
+  // const isClient = useSelector((state) => state.user.user.is_client) || false;
+  const [userData, setUserData] = useState(null);
+  
+  useEffect(() => {
+    const userString = localStorage.getItem("USER_DATA");
+    if (userString && userString !== "undefined") {
+      setUserData(JSON.parse(userString));
+    }
+  }, []);
+
+  const userIDD = userData?.user_id;
+  console.log('this isbnewww',userIDD);
+
+  const isClient = userData?.is_client;
+  console.log("htidhddhdhd", isClient);
+  
 
   const [orgInfo, setOrgInfo] = useState({});
   const [orgInfoLoading, setOrgInfoLoading] = useState(false);
@@ -32,6 +47,8 @@ function User() {
   const [availableCompanies, setAvailableCompanies] = useState([]);
   const [availableEntities, setAvailableEntities] = useState([]);
 
+
+
   const getRoleOptions = () => {
     const baseRoles = [
       { value: "Inspector", label: "Inspector" },
@@ -49,14 +66,17 @@ function User() {
   };
 
   const fetchOrgInfo = async () => {
-    if (!userId) {
+    if (!userIDD) {
       toast.error("User ID not found");
       return;
     }
     setOrgInfoLoading(true);
     try {
-      const response = await allorgantioninfototalbyUser_id(userId);
+      console.log('THissi my id',userIDD);
+      const response = await allorgantioninfototalbyUser_id(userIDD);
       setOrgInfo(response.data);
+      console.log(response.data);
+      
     } catch {
       toast.error("Failed to fetch organization info");
     } finally {
@@ -161,10 +181,11 @@ function User() {
         userApiData.company = parseInt(userDataForm.company_id);
       if (userDataForm.entity_id)
         userApiData.entity = parseInt(userDataForm.entity_id);
-      userApiData.is_manager = true; // always true, do not show checkbox
+      // userApiData.is_manager = true; 
     } else {
       userApiData.role = userDataForm.role;
     }
+
 
     try {
       const response = await createUserDetails(userApiData);
@@ -193,6 +214,25 @@ function User() {
       }
     }
   };
+
+  const userString = localStorage.getItem("USER_DATA");
+  let is_manager = false;
+  let org=null
+  if (userString && userString !== "undefined") {
+    const userData = JSON.parse(userString);
+    is_manager = !!userData.is_manager; 
+    org = userString?.org;
+  }
+
+
+  if (userString && userString !== "undefined") {
+    const userData = JSON.parse(userString);
+    org = userData.org || ""; 
+  }
+  console.log("got it", org);
+
+  
+
 
   const resetForm = () => {
     setUserDataForm({
@@ -226,6 +266,14 @@ function User() {
             <p className="text-gray-600 mt-2">
               Create and manage users for your organization
             </p>
+            {is_manager && (
+              <div className="mb-3">
+                <span className="inline-block px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm">
+                  Manager Access
+                </span>
+              </div>
+            )}
+
             {isClient && (
               <div className="mt-3">
                 <span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">

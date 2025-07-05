@@ -10,6 +10,7 @@ const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 function Tower({ nextStep, previousStep }) {
   const dispatch = useDispatch();
   const projectId = useSelector((state) => state.user.selectedProject.id);
+console.log('project id',projectId);
 
   // Form state
   const [towerData, setTowerData] = useState({
@@ -109,6 +110,8 @@ const handleEditTower = async (towerId, name) => {
     try {
       for (const tw of previewTowers) {
         const formData = new FormData();
+        console.log('full project id',projectId);
+        
         formData.append("project", projectId);
         formData.append("name", tw.name);
         await createTower(formData);

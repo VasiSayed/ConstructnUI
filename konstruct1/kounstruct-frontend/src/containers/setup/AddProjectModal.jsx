@@ -6,6 +6,8 @@ import { useSelector } from "react-redux";
 
 function AddProjectModal({ onClose, onSave }) {
   const userId = useSelector((state) => state.user.user.id);
+  console.log('got the id here',userId);
+  
 
   // Dropdown state
   const [orgOptions, setOrgOptions] = useState([]);
@@ -63,6 +65,7 @@ function AddProjectModal({ onClose, onSave }) {
       return;
     }
 
+    console.log('while ofrmmm ia ',userId);
     const formData = new FormData();
     formData.append("name", projectName);
     formData.append("created_by", userId);

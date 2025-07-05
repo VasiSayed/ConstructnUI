@@ -30,7 +30,6 @@ function Profile({ onClose }) {
       role = "User";
     }
   }
-  
 
   // Dropdown outside click
   useEffect(() => {
@@ -128,7 +127,7 @@ function Profile({ onClose }) {
                   <p className="text-sm text-gray-500">
                     Org ID: {userData?.org || "--"}
                   </p>
-                </div>  
+                </div>
               </div>
               <button className="w-full mt-3 text-blue-600 font-medium text-sm py-2 hover:bg-gray-100 rounded-md">
                 Manage Organization
