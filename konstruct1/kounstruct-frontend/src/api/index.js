@@ -565,3 +565,26 @@ export const editStage = async (data) =>
       "Content-Type": "application/json",
     },
   });
+
+// ! By Prathamesh- GET 
+
+export const getProjectsByOrganization = async (organizationId) =>
+  projectInstance.get(`/projects/by_organization/${organizationId}/`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+export const getCategoryTreeByProject = async (projectId) => 
+  projectInstance.get(`/category-tree-by-project/?project=${projectId}`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+export const createUserAccessRole = async (payload) => 
+  axiosInstance.post(`/user-access-role/`, payload, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
