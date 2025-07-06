@@ -10,26 +10,27 @@ import { createUserDetails, allorgantioninfototalbyUser_id, getCategoryTreeByPro
 function User() {
   // const userId = useSelector((state) => state.user.user.id);
   // const isClient = useSelector((state) => state.user.user.is_client) || false;
-  const [userData, setUserData] = useState(null);
-  
-  useEffect(() => {
-    const userString = localStorage.getItem("USER_DATA");
-    if (userString && userString !== "undefined") {
-      setUserData(JSON.parse(userString));
-    }
-  }, []);
+  // const [userData, setUserData] = useState(null);
 
-  const userIDD = userData?.user_id;
-  console.log('this isbnewww',userIDD);
+  // useEffect(() => {
+  //   const userString = localStorage.getItem("USER_DATA");
+  //   if (userString && userString !== "undefined") {
+  //     setUserData(JSON.parse(userString));
+  //   }
+  // }, []);
 
-  const isClient = userData?.is_client;
-  console.log("htidhddhdhd", isClient);
-  
+  // const userIDD = userData?.user_id;
+  // console.log('this isbnewww',userIDD);
+
+  // const isClient = userData?.is_client;
+  // console.log("htidhddhdhd", isClient);
 
   // Debug render count
   const renderCount = useRef(0);
   renderCount.current += 1;
 
+  // Memoize localStorage data to prevent repeated parsing
+  // Memoize localStorage data to prevent repeated parsing
   // Memoize localStorage data to prevent repeated parsing
   const userData = useMemo(() => {
     try {
@@ -42,15 +43,24 @@ function User() {
       console.error("Error parsing user data from localStorage:", error);
     }
     return {};
-  }, []); // Empty dependency array since localStorage doesn't change during component lifecycle
+  }, []);
 
-  // Memoize derived values to prevent recalculation
-  const is_manager = useMemo(() => !!userData.is_manager, [userData.is_manager]);
+  const userId = userData?.user_id;
+  const isClient = userData?.is_client;
+  const is_manager = useMemo(
+    () => !!userData.is_manager,
+    [userData.is_manager]
+  );
   const org = useMemo(() => userData.org || "", [userData.org]);
 
   // Debug logging moved to useEffect to prevent render cycle pollution
   useEffect(() => {
-    console.log(`Render #${renderCount.current} - Manager status:`, is_manager, "Org:", org);
+    console.log(
+      `Render #${renderCount.current} - Manager status:`,
+      is_manager,
+      "Org:",
+      org
+    );
   }, [is_manager, org]);
 
   const [orgInfo, setOrgInfo] = useState({});
@@ -83,7 +93,6 @@ function User() {
   const [availableBuildings, setAvailableBuildings] = useState([]);
   const [availableZones, setAvailableZones] = useState([]);
 
-
   const [orgManagerTypes, setOrgManagerTypes] = useState([]);
   const [showManagerDropdown, setShowManagerDropdown] = useState(false);
   const [selectedManagerType, setSelectedManagerType] = useState("");
@@ -101,7 +110,7 @@ function User() {
   const [selectedLevel4, setSelectedLevel4] = useState("");
   const [selectedLevel5, setSelectedLevel5] = useState("");
   const [selectedLevel6, setSelectedLevel6] = useState("");
-  
+
   // Available options for each level
   const [availableLevel1, setAvailableLevel1] = useState([]);
   const [availableLevel2, setAvailableLevel2] = useState([]);
@@ -128,42 +137,46 @@ function User() {
   }, []);
 
   // Memoize fetchCategoryTree function to prevent recreation
-  const fetchCategoryTree = useCallback(async (projectId) => {
-    if (!projectId) return;
-    
-    setCategoryLoading(true);
-    try {
-      console.log("Fetching category tree for project:", projectId);
-      const response = await getCategoryTreeByProject(projectId);
-      console.log("Category tree response:", response.data);
-      console.log("Category tree length:", response.data?.length);
-      console.log("First category:", response.data?.[0]);
-      
-      setCategoryTree(response.data || []);
-      
-      // Reset all category selections when new tree is loaded
-      resetCategorySelections();
-      
-    } catch (error) {
-      console.error("Error fetching category tree:", error);
-      setCategoryTree([]);
-      resetCategorySelections();
-      
-      if (error.response?.status === 404) {
-        toast.error("Category endpoint not found. Please check API configuration.");
-      } else if (error.response?.status === 401) {
-        toast.error("Authentication required. Please login again.");
-      } else if (error.response?.status === 400) {
-        toast.error("Invalid project selected");
-      } else if (error.code === 'ERR_NETWORK') {
-        toast.error("Network error. Please check your connection.");
-      } else {
-        toast.error("Failed to load categories for this project");
+  const fetchCategoryTree = useCallback(
+    async (projectId) => {
+      if (!projectId) return;
+
+      setCategoryLoading(true);
+      try {
+        console.log("Fetching category tree for project:", projectId);
+        const response = await getCategoryTreeByProject(projectId);
+        console.log("Category tree response:", response.data);
+        console.log("Category tree length:", response.data?.length);
+        console.log("First category:", response.data?.[0]);
+
+        setCategoryTree(response.data || []);
+
+        // Reset all category selections when new tree is loaded
+        resetCategorySelections();
+      } catch (error) {
+        console.error("Error fetching category tree:", error);
+        setCategoryTree([]);
+        resetCategorySelections();
+
+        if (error.response?.status === 404) {
+          toast.error(
+            "Category endpoint not found. Please check API configuration."
+          );
+        } else if (error.response?.status === 401) {
+          toast.error("Authentication required. Please login again.");
+        } else if (error.response?.status === 400) {
+          toast.error("Invalid project selected");
+        } else if (error.code === "ERR_NETWORK") {
+          toast.error("Network error. Please check your connection.");
+        } else {
+          toast.error("Failed to load categories for this project");
+        }
+      } finally {
+        setCategoryLoading(false);
       }
-    } finally {
-      setCategoryLoading(false);
-    }
-  }, [resetCategorySelections]);
+    },
+    [resetCategorySelections]
+  );
 
   // Memoize fetchProjectsForManager function to prevent recreation
   const fetchProjectsForManager = useCallback(async () => {
@@ -173,7 +186,7 @@ function User() {
         console.log("Fetching projects for organization:", org);
         const res = await getProjectsByOrganization(org);
         console.log("Projects API response:", res.data);
-        
+
         // The projects are directly in res.data, not res.data.projects
         let projects = [];
         if (Array.isArray(res.data)) {
@@ -181,26 +194,32 @@ function User() {
         } else if (res.data && res.data.projects) {
           projects = res.data.projects; // Projects are in a nested object
         }
-        
+
         console.log("Available projects set:", projects);
         setAvailableProjects(projects);
-        
+
         // Always show manager dropdown if user is manager and has projects
         if (is_manager && projects.length > 0) {
           setShowManagerDropdown(true);
-          setOrgManagerTypes(res.data.manager_types || ["Project Manager", "Site Manager"]); // Fallback manager types
-          console.log("Manager dropdown enabled with types:", res.data.manager_types || ["Project Manager", "Site Manager"]);
+          setOrgManagerTypes(
+            res.data.manager_types || ["Project Manager", "Site Manager"]
+          ); // Fallback manager types
+          console.log(
+            "Manager dropdown enabled with types:",
+            res.data.manager_types || ["Project Manager", "Site Manager"]
+          );
         }
-        
       } catch (err) {
         console.error("Error fetching projects:", err);
         setShowManagerDropdown(false);
         setOrgManagerTypes([]);
         setAvailableProjects([]);
-        
+
         // Better error handling for network issues
-        if (err.code === 'ERR_NETWORK') {
-          toast.error("Network connection failed. Please check your connection and try again.");
+        if (err.code === "ERR_NETWORK") {
+          toast.error(
+            "Network connection failed. Please check your connection and try again."
+          );
         } else {
           toast.error("Failed to fetch projects. Please try again later.");
         }
@@ -208,7 +227,12 @@ function User() {
         setProjectsLoading(false);
       }
     } else {
-      console.log("Not fetching projects - is_manager:", is_manager, "org:", org);
+      console.log(
+        "Not fetching projects - is_manager:",
+        is_manager,
+        "org:",
+        org
+      );
     }
   }, [is_manager, org]);
 
@@ -222,7 +246,6 @@ function User() {
 
   // Memoize getRoleOptions to prevent recreation
   const getRoleOptions = useCallback(() => {
->>>>>>> origin/prathamesh
     const baseRoles = [
       { value: "SUPERVISOR", label: "SUPERVISOR" },
       { value: "CHECKER", label: "CHECKER" },
@@ -238,7 +261,6 @@ function User() {
     return baseRoles;
   }, [isClient]);
 
-
   // Memoize fetchOrgInfo to prevent recreation
   const fetchOrgInfo = useCallback(async () => {
     if (!userId) {
@@ -247,10 +269,9 @@ function User() {
     }
     setOrgInfoLoading(true);
     try {
-      console.log('THissi my id',userIDD);
-      const response = await allorgantioninfototalbyUser_id(userIDD);
+      console.log("THissi my id", userId);
+      const response = await allorgantioninfototalbyUser_id(userId);
       setOrgInfo(response.data);
-
     } catch (error) {
       console.error("Error fetching organization info:", error);
       toast.error("Failed to fetch organization info");
@@ -264,296 +285,338 @@ function User() {
     fetchOrgInfo();
   }, [fetchOrgInfo]);
 
-  const handleOrganizationChange = useCallback(async (e) => {
-    const orgId = e.target.value;
-    setSelectedOrganization(orgId);
-    setSelectedCompany("");
-    setSelectedProject("");
-    setSelectedBuilding("");
-    setUserDataForm(prev => ({
-      ...prev,
-      organization_id: orgId,
-      company_id: "",
-      entity_id: "",
-      project_id: "",
-      building_id: "",
-      zone_id: "",
-    }));
+  const handleOrganizationChange = useCallback(
+    async (e) => {
+      const orgId = e.target.value;
+      setSelectedOrganization(orgId);
+      setSelectedCompany("");
+      setSelectedProject("");
+      setSelectedBuilding("");
+      setUserDataForm((prev) => ({
+        ...prev,
+        organization_id: orgId,
+        company_id: "",
+        entity_id: "",
+        project_id: "",
+        building_id: "",
+        zone_id: "",
+      }));
 
-    // Reset dependent dropdowns
-    setAvailableCompanies([]);
-    setAvailableEntities([]);
-    setAvailableBuildings([]);
-    setAvailableZones([]);
-
-    if (orgId && orgInfo.companies) {
-      const filteredCompanies = orgInfo.companies.filter(
-        (company) => company.organization === parseInt(orgId)
-      );
-      setAvailableCompanies(filteredCompanies);
-    }
-
-    // If user selects a different organization than their own, fetch projects for that org
-    if (orgId && is_manager && parseInt(orgId) !== parseInt(org)) {
-      setProjectsLoading(true);
-      try {
-        console.log("Fetching projects for selected organization:", orgId);
-        const res = await getProjectsByOrganization(orgId);
-        console.log("Projects API response for selected org:", res.data);
-        
-        // Handle different response structures
-        let projects = [];
-        if (Array.isArray(res.data)) {
-          projects = res.data;
-        } else if (res.data && res.data.projects) {
-          projects = res.data.projects;
-        }
-        
-        setAvailableProjects(projects);
-      } catch (err) {
-        console.error("Error fetching projects for selected org:", err);
-        setAvailableProjects([]);
-        toast.error("Failed to fetch projects for selected organization");
-      } finally {
-        setProjectsLoading(false);
-      }
-    }
-  }, [orgInfo.companies, is_manager, org]);
-
-  const handleCompanyChange = useCallback((e) => {
-    const companyId = e.target.value;
-    setSelectedCompany(companyId);
-    setUserDataForm(prev => ({
-      ...prev,
-      company_id: companyId,
-      entity_id: "",
-    }));
-    
-    if (companyId && orgInfo.entities) {
-      const filteredEntities = orgInfo.entities.filter(
-        (entity) => entity.company === parseInt(companyId)
-      );
-      setAvailableEntities(filteredEntities);
-    } else {
+      // Reset dependent dropdowns
+      setAvailableCompanies([]);
       setAvailableEntities([]);
-    }
-  }, [orgInfo.entities]);
+      setAvailableBuildings([]);
+      setAvailableZones([]);
+
+      if (orgId && orgInfo.companies) {
+        const filteredCompanies = orgInfo.companies.filter(
+          (company) => company.organization === parseInt(orgId)
+        );
+        setAvailableCompanies(filteredCompanies);
+      }
+
+      // If user selects a different organization than their own, fetch projects for that org
+      if (orgId && is_manager && parseInt(orgId) !== parseInt(org)) {
+        setProjectsLoading(true);
+        try {
+          console.log("Fetching projects for selected organization:", orgId);
+          const res = await getProjectsByOrganization(orgId);
+          console.log("Projects API response for selected org:", res.data);
+
+          // Handle different response structures
+          let projects = [];
+          if (Array.isArray(res.data)) {
+            projects = res.data;
+          } else if (res.data && res.data.projects) {
+            projects = res.data.projects;
+          }
+
+          setAvailableProjects(projects);
+        } catch (err) {
+          console.error("Error fetching projects for selected org:", err);
+          setAvailableProjects([]);
+          toast.error("Failed to fetch projects for selected organization");
+        } finally {
+          setProjectsLoading(false);
+        }
+      }
+    },
+    [orgInfo.companies, is_manager, org]
+  );
+
+  const handleCompanyChange = useCallback(
+    (e) => {
+      const companyId = e.target.value;
+      setSelectedCompany(companyId);
+      setUserDataForm((prev) => ({
+        ...prev,
+        company_id: companyId,
+        entity_id: "",
+      }));
+
+      if (companyId && orgInfo.entities) {
+        const filteredEntities = orgInfo.entities.filter(
+          (entity) => entity.company === parseInt(companyId)
+        );
+        setAvailableEntities(filteredEntities);
+      } else {
+        setAvailableEntities([]);
+      }
+    },
+    [orgInfo.entities]
+  );
 
   const handleEntityChange = useCallback((e) => {
     const entityId = e.target.value;
-    setUserDataForm(prev => ({
+    setUserDataForm((prev) => ({
       ...prev,
       entity_id: entityId,
     }));
   }, []);
 
-  const handleProjectChange = useCallback((e) => {
-    const projectId = e.target.value;
-    setSelectedProject(projectId);
-    setSelectedBuilding("");
-    setUserDataForm(prev => ({
-      ...prev,
-      project_id: projectId,
-      building_id: "",
-      zone_id: "",
-    }));
+  const handleProjectChange = useCallback(
+    (e) => {
+      const projectId = e.target.value;
+      setSelectedProject(projectId);
+      setSelectedBuilding("");
+      setUserDataForm((prev) => ({
+        ...prev,
+        project_id: projectId,
+        building_id: "",
+        zone_id: "",
+      }));
 
-    // Reset dependent dropdowns
-    setAvailableBuildings([]);
-    setAvailableZones([]);
+      // Reset dependent dropdowns
+      setAvailableBuildings([]);
+      setAvailableZones([]);
 
-    // Reset and fetch category tree for new project
-    resetCategorySelections();
-    if (projectId) {
-      fetchCategoryTree(projectId);
-    } else {
-      setCategoryTree([]);
-    }
-
-    if (projectId) {
-      const selectedProjectObj = availableProjects.find(
-        (project) => project.id === parseInt(projectId)
-      );
-      if (selectedProjectObj && selectedProjectObj.buildings) {
-        setAvailableBuildings(selectedProjectObj.buildings);
+      // Reset and fetch category tree for new project
+      resetCategorySelections();
+      if (projectId) {
+        fetchCategoryTree(projectId);
+      } else {
+        setCategoryTree([]);
       }
-    }
-  }, [availableProjects, resetCategorySelections, fetchCategoryTree]);
 
-  const handleBuildingChange = useCallback((e) => {
-    const buildingId = e.target.value;
-    setSelectedBuilding(buildingId);
-    setUserDataForm(prev => ({
-      ...prev,
-      building_id: buildingId,
-      zone_id: "",
-    }));
-
-    // Reset zones
-    setAvailableZones([]);
-
-    if (buildingId) {
-      const selectedBuildingObj = availableBuildings.find(
-        (building) => building.id === parseInt(buildingId)
-      );
-      if (selectedBuildingObj && selectedBuildingObj.zones) {
-        setAvailableZones(selectedBuildingObj.zones);
+      if (projectId) {
+        const selectedProjectObj = availableProjects.find(
+          (project) => project.id === parseInt(projectId)
+        );
+        if (selectedProjectObj && selectedProjectObj.buildings) {
+          setAvailableBuildings(selectedProjectObj.buildings);
+        }
       }
-    }
-  }, [availableBuildings]);
+    },
+    [availableProjects, resetCategorySelections, fetchCategoryTree]
+  );
+
+  const handleBuildingChange = useCallback(
+    (e) => {
+      const buildingId = e.target.value;
+      setSelectedBuilding(buildingId);
+      setUserDataForm((prev) => ({
+        ...prev,
+        building_id: buildingId,
+        zone_id: "",
+      }));
+
+      // Reset zones
+      setAvailableZones([]);
+
+      if (buildingId) {
+        const selectedBuildingObj = availableBuildings.find(
+          (building) => building.id === parseInt(buildingId)
+        );
+        if (selectedBuildingObj && selectedBuildingObj.zones) {
+          setAvailableZones(selectedBuildingObj.zones);
+        }
+      }
+    },
+    [availableBuildings]
+  );
 
   const handleZoneChange = useCallback((e) => {
     const zoneId = e.target.value;
-    setUserDataForm(prev => ({
+    setUserDataForm((prev) => ({
       ...prev,
       zone_id: zoneId,
     }));
   }, []);
 
   // Category selection handlers
-  const handleCategoryChange = useCallback((e) => {
-    const categoryId = e.target.value;
-    setSelectedCategory(categoryId);
-    
-    // Reset subsequent levels
-    setSelectedLevel1("");
-    setSelectedLevel2("");
-    setSelectedLevel3("");
-    setSelectedLevel4("");
-    setSelectedLevel5("");
-    setSelectedLevel6("");
-    setAvailableLevel2([]);
-    setAvailableLevel3([]);
-    setAvailableLevel4([]);
-    setAvailableLevel5([]);
-    setAvailableLevel6([]);
-    
-    if (categoryId) {
-      const selectedCategoryObj = categoryTree.find(cat => cat.id === parseInt(categoryId));
-      if (selectedCategoryObj && selectedCategoryObj.level1) {
-        setAvailableLevel1(selectedCategoryObj.level1);
+  const handleCategoryChange = useCallback(
+    (e) => {
+      const categoryId = e.target.value;
+      setSelectedCategory(categoryId);
+
+      // Reset subsequent levels
+      setSelectedLevel1("");
+      setSelectedLevel2("");
+      setSelectedLevel3("");
+      setSelectedLevel4("");
+      setSelectedLevel5("");
+      setSelectedLevel6("");
+      setAvailableLevel2([]);
+      setAvailableLevel3([]);
+      setAvailableLevel4([]);
+      setAvailableLevel5([]);
+      setAvailableLevel6([]);
+
+      if (categoryId) {
+        const selectedCategoryObj = categoryTree.find(
+          (cat) => cat.id === parseInt(categoryId)
+        );
+        if (selectedCategoryObj && selectedCategoryObj.level1) {
+          setAvailableLevel1(selectedCategoryObj.level1);
+        } else {
+          setAvailableLevel1([]);
+        }
       } else {
         setAvailableLevel1([]);
       }
-    } else {
-      setAvailableLevel1([]);
-    }
-  }, [categoryTree]);
+    },
+    [categoryTree]
+  );
 
-  const handleLevel1Change = useCallback((e) => {
-    const level1Id = e.target.value;
-    setSelectedLevel1(level1Id);
-    
-    // Reset subsequent levels
-    setSelectedLevel2("");
-    setSelectedLevel3("");
-    setSelectedLevel4("");
-    setSelectedLevel5("");
-    setSelectedLevel6("");
-    setAvailableLevel3([]);
-    setAvailableLevel4([]);
-    setAvailableLevel5([]);
-    setAvailableLevel6([]);
-    
-    if (level1Id) {
-      const selectedLevel1Obj = availableLevel1.find(item => item.id === parseInt(level1Id));
-      if (selectedLevel1Obj && selectedLevel1Obj.level2) {
-        setAvailableLevel2(selectedLevel1Obj.level2);
+  const handleLevel1Change = useCallback(
+    (e) => {
+      const level1Id = e.target.value;
+      setSelectedLevel1(level1Id);
+
+      // Reset subsequent levels
+      setSelectedLevel2("");
+      setSelectedLevel3("");
+      setSelectedLevel4("");
+      setSelectedLevel5("");
+      setSelectedLevel6("");
+      setAvailableLevel3([]);
+      setAvailableLevel4([]);
+      setAvailableLevel5([]);
+      setAvailableLevel6([]);
+
+      if (level1Id) {
+        const selectedLevel1Obj = availableLevel1.find(
+          (item) => item.id === parseInt(level1Id)
+        );
+        if (selectedLevel1Obj && selectedLevel1Obj.level2) {
+          setAvailableLevel2(selectedLevel1Obj.level2);
+        } else {
+          setAvailableLevel2([]);
+        }
       } else {
         setAvailableLevel2([]);
       }
-    } else {
-      setAvailableLevel2([]);
-    }
-  }, [availableLevel1]);
+    },
+    [availableLevel1]
+  );
 
-  const handleLevel2Change = useCallback((e) => {
-    const level2Id = e.target.value;
-    setSelectedLevel2(level2Id);
-    
-    // Reset subsequent levels
-    setSelectedLevel3("");
-    setSelectedLevel4("");
-    setSelectedLevel5("");
-    setSelectedLevel6("");
-    setAvailableLevel4([]);
-    setAvailableLevel5([]);
-    setAvailableLevel6([]);
-    
-    if (level2Id) {
-      const selectedLevel2Obj = availableLevel2.find(item => item.id === parseInt(level2Id));
-      if (selectedLevel2Obj && selectedLevel2Obj.level3) {
-        setAvailableLevel3(selectedLevel2Obj.level3);
+  const handleLevel2Change = useCallback(
+    (e) => {
+      const level2Id = e.target.value;
+      setSelectedLevel2(level2Id);
+
+      // Reset subsequent levels
+      setSelectedLevel3("");
+      setSelectedLevel4("");
+      setSelectedLevel5("");
+      setSelectedLevel6("");
+      setAvailableLevel4([]);
+      setAvailableLevel5([]);
+      setAvailableLevel6([]);
+
+      if (level2Id) {
+        const selectedLevel2Obj = availableLevel2.find(
+          (item) => item.id === parseInt(level2Id)
+        );
+        if (selectedLevel2Obj && selectedLevel2Obj.level3) {
+          setAvailableLevel3(selectedLevel2Obj.level3);
+        } else {
+          setAvailableLevel3([]);
+        }
       } else {
         setAvailableLevel3([]);
       }
-    } else {
-      setAvailableLevel3([]);
-    }
-  }, [availableLevel2]);
+    },
+    [availableLevel2]
+  );
 
-  const handleLevel3Change = useCallback((e) => {
-    const level3Id = e.target.value;
-    setSelectedLevel3(level3Id);
-    
-    // Reset subsequent levels
-    setSelectedLevel4("");
-    setSelectedLevel5("");
-    setSelectedLevel6("");
-    setAvailableLevel5([]);
-    setAvailableLevel6([]);
-    
-    if (level3Id) {
-      const selectedLevel3Obj = availableLevel3.find(item => item.id === parseInt(level3Id));
-      if (selectedLevel3Obj && selectedLevel3Obj.level4) {
-        setAvailableLevel4(selectedLevel3Obj.level4);
+  const handleLevel3Change = useCallback(
+    (e) => {
+      const level3Id = e.target.value;
+      setSelectedLevel3(level3Id);
+
+      // Reset subsequent levels
+      setSelectedLevel4("");
+      setSelectedLevel5("");
+      setSelectedLevel6("");
+      setAvailableLevel5([]);
+      setAvailableLevel6([]);
+
+      if (level3Id) {
+        const selectedLevel3Obj = availableLevel3.find(
+          (item) => item.id === parseInt(level3Id)
+        );
+        if (selectedLevel3Obj && selectedLevel3Obj.level4) {
+          setAvailableLevel4(selectedLevel3Obj.level4);
+        } else {
+          setAvailableLevel4([]);
+        }
       } else {
         setAvailableLevel4([]);
       }
-    } else {
-      setAvailableLevel4([]);
-    }
-  }, [availableLevel3]);
+    },
+    [availableLevel3]
+  );
 
-  const handleLevel4Change = useCallback((e) => {
-    const level4Id = e.target.value;
-    setSelectedLevel4(level4Id);
-    
-    // Reset subsequent levels
-    setSelectedLevel5("");
-    setSelectedLevel6("");
-    setAvailableLevel6([]);
-    
-    if (level4Id) {
-      const selectedLevel4Obj = availableLevel4.find(item => item.id === parseInt(level4Id));
-      if (selectedLevel4Obj && selectedLevel4Obj.level5) {
-        setAvailableLevel5(selectedLevel4Obj.level5);
+  const handleLevel4Change = useCallback(
+    (e) => {
+      const level4Id = e.target.value;
+      setSelectedLevel4(level4Id);
+
+      // Reset subsequent levels
+      setSelectedLevel5("");
+      setSelectedLevel6("");
+      setAvailableLevel6([]);
+
+      if (level4Id) {
+        const selectedLevel4Obj = availableLevel4.find(
+          (item) => item.id === parseInt(level4Id)
+        );
+        if (selectedLevel4Obj && selectedLevel4Obj.level5) {
+          setAvailableLevel5(selectedLevel4Obj.level5);
+        } else {
+          setAvailableLevel5([]);
+        }
       } else {
         setAvailableLevel5([]);
       }
-    } else {
-      setAvailableLevel5([]);
-    }
-  }, [availableLevel4]);
+    },
+    [availableLevel4]
+  );
 
-  const handleLevel5Change = useCallback((e) => {
-    const level5Id = e.target.value;
-    setSelectedLevel5(level5Id);
-    
-    // Reset subsequent levels
-    setSelectedLevel6("");
-    
-    if (level5Id) {
-      const selectedLevel5Obj = availableLevel5.find(item => item.id === parseInt(level5Id));
-      if (selectedLevel5Obj && selectedLevel5Obj.level6) {
-        setAvailableLevel6(selectedLevel5Obj.level6);
+  const handleLevel5Change = useCallback(
+    (e) => {
+      const level5Id = e.target.value;
+      setSelectedLevel5(level5Id);
+
+      // Reset subsequent levels
+      setSelectedLevel6("");
+
+      if (level5Id) {
+        const selectedLevel5Obj = availableLevel5.find(
+          (item) => item.id === parseInt(level5Id)
+        );
+        if (selectedLevel5Obj && selectedLevel5Obj.level6) {
+          setAvailableLevel6(selectedLevel5Obj.level6);
+        } else {
+          setAvailableLevel6([]);
+        }
       } else {
         setAvailableLevel6([]);
       }
-    } else {
-      setAvailableLevel6([]);
-    }
-  }, [availableLevel5]);
+    },
+    [availableLevel5]
+  );
 
   const handleLevel6Change = useCallback((e) => {
     const level6Id = e.target.value;
@@ -585,91 +648,126 @@ function User() {
     }
   }, [userDataForm, selectedCategory, isClient]);
 
-  const handleCreate = useCallback(async (e) => {
-  e.preventDefault();
-  if (!isFormValid()) {
-    toast.error("Please fill in all required fields");
-    return;
-  }
+  const handleCreate = useCallback(
+    async (e) => {
+      e.preventDefault();
+      if (!isFormValid()) {
+        toast.error("Please fill in all required fields");
+        return;
+      }
 
-  // Build the complete payload for user-access-role endpoint
-  const completePayload = {
-    user: {
-      username: userDataForm.username,
-      first_name: userDataForm.first_name,
-      last_name: userDataForm.last_name,
-      email: userDataForm.email,
-      mobile: userDataForm.mobile || null,
-      password: userDataForm.password,
-      org: userDataForm.organization_id ? parseInt(userDataForm.organization_id) : (isClient ? null : org ? parseInt(org) : null),
-      company: userDataForm.company_id ? parseInt(userDataForm.company_id) : null,
-      entity: userDataForm.entity_id ? parseInt(userDataForm.entity_id) : null,
-      is_manager: isClient ? true : is_manager
-    },
-    access: {
-      project_id: userDataForm.project_id ? parseInt(userDataForm.project_id) : null,
-      building_id: userDataForm.building_id ? parseInt(userDataForm.building_id) : null,
-      zone_id: userDataForm.zone_id ? parseInt(userDataForm.zone_id) : null,
-      active: true,
-      category: selectedCategory ? parseInt(selectedCategory) : null,
-      CategoryLevel1: selectedLevel1 ? parseInt(selectedLevel1) : null,
-      CategoryLevel2: selectedLevel2 ? parseInt(selectedLevel2) : null,
-      CategoryLevel3: selectedLevel3 ? parseInt(selectedLevel3) : null,
-      CategoryLevel4: selectedLevel4 ? parseInt(selectedLevel4) : null,
-      CategoryLevel5: selectedLevel5 ? parseInt(selectedLevel5) : null,
-      CategoryLevel6: selectedLevel6 ? parseInt(selectedLevel6) : null
-    },
-    roles: []
-  };
+      // Build the complete payload for user-access-role endpoint
+      const completePayload = {
+        user: {
+          username: userDataForm.username,
+          first_name: userDataForm.first_name,
+          last_name: userDataForm.last_name,
+          email: userDataForm.email,
+          mobile: userDataForm.mobile || null,
+          password: userDataForm.password,
+          org: userDataForm.organization_id
+            ? parseInt(userDataForm.organization_id)
+            : isClient
+            ? null
+            : org
+            ? parseInt(org)
+            : null,
+          company: userDataForm.company_id
+            ? parseInt(userDataForm.company_id)
+            : null,
+          entity: userDataForm.entity_id
+            ? parseInt(userDataForm.entity_id)
+            : null,
+          is_manager: isClient ? true : is_manager,
+        },
+        access: {
+          project_id: userDataForm.project_id
+            ? parseInt(userDataForm.project_id)
+            : null,
+          building_id: userDataForm.building_id
+            ? parseInt(userDataForm.building_id)
+            : null,
+          zone_id: userDataForm.zone_id ? parseInt(userDataForm.zone_id) : null,
+          active: true,
+          category: selectedCategory ? parseInt(selectedCategory) : null,
+          CategoryLevel1: selectedLevel1 ? parseInt(selectedLevel1) : null,
+          CategoryLevel2: selectedLevel2 ? parseInt(selectedLevel2) : null,
+          CategoryLevel3: selectedLevel3 ? parseInt(selectedLevel3) : null,
+          CategoryLevel4: selectedLevel4 ? parseInt(selectedLevel4) : null,
+          CategoryLevel5: selectedLevel5 ? parseInt(selectedLevel5) : null,
+          CategoryLevel6: selectedLevel6 ? parseInt(selectedLevel6) : null,
+        },
+        roles: [],
+      };
 
-  // Build roles array based on user type and selections
-  if (isClient) {
-    // For client users, always add Manager role
-    completePayload.roles.push({ role: "MANAGER" });
-    
-    // Add manager type if selected
-    if (selectedManagerType) {
-      completePayload.roles.push({ role: selectedManagerType.toUpperCase().replace(" ", "_") });
-    }
-  } else {
-    // For non-client users, add their selected role
-    if (userDataForm.role) {
-      completePayload.roles.push({ role: userDataForm.role.toUpperCase() });
-    }
-  }
+      // Build roles array based on user type and selections
+      if (isClient) {
+        // For client users, always add Manager role
+        completePayload.roles.push({ role: "MANAGER" });
 
-  console.log('Complete payload to send:', completePayload);
-
-  try {
-    // Use the new API endpoint
-    const response = await createUserAccessRole(completePayload);
-    
-    if (response.status === 201) {
-      toast.success(response.data.message || "User created successfully with access and roles assigned");
-      resetForm();
-    } else {
-      toast.error(response.data.message || "Failed to create user");
-    }
-  } catch (error) {
-    console.error("Error creating user with access and roles:", error);
-    if (error.response && error.response.data) {
-      const errorData = error.response.data;
-      const messages = [];
-      for (const key in errorData) {
-        if (Array.isArray(errorData[key])) {
-          messages.push(`${key}: ${errorData[key].join(", ")}`);
-        } else {
-          messages.push(`${key}: ${errorData[key]}`);
+        // Add manager type if selected
+        if (selectedManagerType) {
+          completePayload.roles.push({
+            role: selectedManagerType.toUpperCase().replace(" ", "_"),
+          });
+        }
+      } else {
+        // For non-client users, add their selected role
+        if (userDataForm.role) {
+          completePayload.roles.push({ role: userDataForm.role.toUpperCase() });
         }
       }
-      toast.error(messages.join(" | "));
-    } else {
-      toast.error("Error creating user with access and roles");
-    }
-  }
-}, [userDataForm, selectedCategory, selectedLevel1, selectedLevel2, selectedLevel3, selectedLevel4, selectedLevel5, selectedLevel6, selectedManagerType, isClient, is_manager, org, isFormValid]);
+
+      console.log("Complete payload to send:", completePayload);
+
+      try {
+        // Use the new API endpoint
+        const response = await createUserAccessRole(completePayload);
+
+        if (response.status === 201) {
+          toast.success(
+            response.data.message ||
+              "User created successfully with access and roles assigned"
+          );
+          resetForm();
+        } else {
+          toast.error(response.data.message || "Failed to create user");
+        }
+      } catch (error) {
+        console.error("Error creating user with access and roles:", error);
+        if (error.response && error.response.data) {
+          const errorData = error.response.data;
+          const messages = [];
+          for (const key in errorData) {
+            if (Array.isArray(errorData[key])) {
+              messages.push(`${key}: ${errorData[key].join(", ")}`);
+            } else {
+              messages.push(`${key}: ${errorData[key]}`);
+            }
+          }
+          toast.error(messages.join(" | "));
+        } else {
+          toast.error("Error creating user with access and roles");
+        }
+      }
+    },
+    [
+      userDataForm,
+      selectedCategory,
+      selectedLevel1,
+      selectedLevel2,
+      selectedLevel3,
+      selectedLevel4,
+      selectedLevel5,
+      selectedLevel6,
+      selectedManagerType,
+      isClient,
+      is_manager,
+      org,
+      isFormValid,
+    ]
+  );
   const resetForm = useCallback(() => {
->>>>>>> origin/prathamesh
     setUserDataForm({
       username: "",
       first_name: "",
@@ -700,7 +798,7 @@ function User() {
     setAdd(false);
     setOrgInfo({});
     setProjectsLoading(false);
-    
+
     // Reset category tree data
     setCategoryTree([]);
     setCategoryLoading(false);
@@ -712,7 +810,7 @@ function User() {
     const baseClasses = "flex-1 py-2 px-4 rounded transition duration-200";
     const validClasses = "bg-purple-700 text-white hover:bg-purple-800";
     const invalidClasses = "bg-gray-300 text-gray-500 cursor-not-allowed";
-    
+
     const isValid = isFormValid();
     return `${baseClasses} ${isValid ? validClasses : invalidClasses}`;
   }, [isFormValid]);
@@ -729,7 +827,6 @@ function User() {
               Create and manage users for your organization
             </p>
 
-
             {is_manager && (
               <div className="mb-3">
                 <span className="inline-block px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm">
@@ -737,7 +834,7 @@ function User() {
                 </span>
               </div>
             )}
-            
+
             {isClient && (
               <div className="mt-3">
                 <span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
@@ -784,15 +881,17 @@ function User() {
                     <MdOutlineCancel size={24} />
                   </button>
                 </div>
-                
+
                 {(orgInfoLoading || projectsLoading) && (
                   <div className="text-center py-4">
                     <span className="text-purple-600">
-                      {orgInfoLoading ? "Loading organizations..." : "Loading projects..."}
+                      {orgInfoLoading
+                        ? "Loading organizations..."
+                        : "Loading projects..."}
                     </span>
                   </div>
                 )}
-                
+
                 <div className="overflow-y-auto max-h-[70vh]">
                   <form className="space-y-4" onSubmit={handleCreate}>
                     {/* Username */}
@@ -806,7 +905,7 @@ function User() {
                         value={userDataForm.username}
                         placeholder="Enter Username"
                         onChange={(e) =>
-                          setUserDataForm(prev => ({
+                          setUserDataForm((prev) => ({
                             ...prev,
                             username: e.target.value,
                           }))
@@ -841,13 +940,20 @@ function User() {
                         {/* Debug info - Only show for managers */}
                         {is_manager && (
                           <div className="grid grid-cols-3 gap-3 items-center bg-yellow-50 p-2 rounded">
-                            <label className="text-sm font-medium text-end">Debug:</label>
+                            <label className="text-sm font-medium text-end">
+                              Debug:
+                            </label>
                             <div className="col-span-2 text-xs text-gray-700">
-                              <div>Manager: {is_manager ? 'Yes' : 'No'}</div>
+                              <div>Manager: {is_manager ? "Yes" : "No"}</div>
                               <div>Projects: {availableProjects.length}</div>
-                              <div>ShowDropdown: {showManagerDropdown ? 'Yes' : 'No'}</div>
+                              <div>
+                                ShowDropdown:{" "}
+                                {showManagerDropdown ? "Yes" : "No"}
+                              </div>
                               <div>Manager Types: {orgManagerTypes.length}</div>
-                              <div>Loading: {projectsLoading ? 'Yes' : 'No'}</div>
+                              <div>
+                                Loading: {projectsLoading ? "Yes" : "No"}
+                              </div>
                             </div>
                           </div>
                         )}
@@ -856,12 +962,18 @@ function User() {
                         {is_manager && selectedProject && (
                           <>
                             <div className="grid grid-cols-3 gap-3 items-center bg-blue-50 p-2 rounded">
-                              <label className="text-sm font-medium text-end">Categories:</label>
+                              <label className="text-sm font-medium text-end">
+                                Categories:
+                              </label>
                               <div className="col-span-2 text-xs text-blue-700">
                                 <div>Project: {selectedProject}</div>
-                                <div>Categories Available: {categoryTree.length}</div>
-                                <div>Loading: {categoryLoading ? 'Yes' : 'No'}</div>
-                                <div>Manager: {is_manager ? 'Yes' : 'No'}</div>
+                                <div>
+                                  Categories Available: {categoryTree.length}
+                                </div>
+                                <div>
+                                  Loading: {categoryLoading ? "Yes" : "No"}
+                                </div>
+                                <div>Manager: {is_manager ? "Yes" : "No"}</div>
                               </div>
                             </div>
 
@@ -874,16 +986,23 @@ function User() {
                                 className="col-span-2 w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
                                 value={selectedCategory}
                                 onChange={handleCategoryChange}
-                                disabled={categoryLoading || categoryTree.length === 0}
+                                disabled={
+                                  categoryLoading || categoryTree.length === 0
+                                }
                                 required
                               >
                                 <option value="">
-                                  {categoryLoading ? "Loading categories..." : 
-                                   categoryTree.length === 0 ? "No categories available" : 
-                                   `Select Category (${categoryTree.length} available)`}
+                                  {categoryLoading
+                                    ? "Loading categories..."
+                                    : categoryTree.length === 0
+                                    ? "No categories available"
+                                    : `Select Category (${categoryTree.length} available)`}
                                 </option>
                                 {categoryTree.map((category, index) => (
-                                  <option key={category.id || index} value={category.id}>
+                                  <option
+                                    key={category.id || index}
+                                    value={category.id}
+                                  >
                                     {category.name || `Category ${index + 1}`}
                                   </option>
                                 ))}
@@ -901,7 +1020,9 @@ function User() {
                                   value={selectedLevel1}
                                   onChange={handleLevel1Change}
                                 >
-                                  <option value="">Select Level 1 (Optional)</option>
+                                  <option value="">
+                                    Select Level 1 (Optional)
+                                  </option>
                                   {availableLevel1.map((item) => (
                                     <option key={item.id} value={item.id}>
                                       {item.name}
@@ -922,7 +1043,9 @@ function User() {
                                   value={selectedLevel2}
                                   onChange={handleLevel2Change}
                                 >
-                                  <option value="">Select Level 2 (Optional)</option>
+                                  <option value="">
+                                    Select Level 2 (Optional)
+                                  </option>
                                   {availableLevel2.map((item) => (
                                     <option key={item.id} value={item.id}>
                                       {item.name}
@@ -943,7 +1066,9 @@ function User() {
                                   value={selectedLevel3}
                                   onChange={handleLevel3Change}
                                 >
-                                  <option value="">Select Level 3 (Optional)</option>
+                                  <option value="">
+                                    Select Level 3 (Optional)
+                                  </option>
                                   {availableLevel3.map((item) => (
                                     <option key={item.id} value={item.id}>
                                       {item.name}
@@ -964,7 +1089,9 @@ function User() {
                                   value={selectedLevel4}
                                   onChange={handleLevel4Change}
                                 >
-                                  <option value="">Select Level 4 (Optional)</option>
+                                  <option value="">
+                                    Select Level 4 (Optional)
+                                  </option>
                                   {availableLevel4.map((item) => (
                                     <option key={item.id} value={item.id}>
                                       {item.name}
@@ -985,7 +1112,9 @@ function User() {
                                   value={selectedLevel5}
                                   onChange={handleLevel5Change}
                                 >
-                                  <option value="">Select Level 5 (Optional)</option>
+                                  <option value="">
+                                    Select Level 5 (Optional)
+                                  </option>
                                   {availableLevel5.map((item) => (
                                     <option key={item.id} value={item.id}>
                                       {item.name}
@@ -1006,7 +1135,9 @@ function User() {
                                   value={selectedLevel6}
                                   onChange={handleLevel6Change}
                                 >
-                                  <option value="">Select Level 6 (Optional)</option>
+                                  <option value="">
+                                    Select Level 6 (Optional)
+                                  </option>
                                   {availableLevel6.map((item) => (
                                     <option key={item.id} value={item.id}>
                                       {item.name}
@@ -1022,17 +1153,22 @@ function User() {
                         {is_manager && orgManagerTypes.length > 0 && (
                           <div className="grid grid-cols-3 gap-3 items-center">
                             <label className="text-sm font-medium text-end">
-                              Manager Type<span className="text-red-500">*</span>
+                              Manager Type
+                              <span className="text-red-500">*</span>
                             </label>
                             <select
                               className="col-span-2 w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
                               value={selectedManagerType}
-                              onChange={(e) => setSelectedManagerType(e.target.value)}
+                              onChange={(e) =>
+                                setSelectedManagerType(e.target.value)
+                              }
                               required
                             >
                               <option value="">Select Manager Type</option>
                               {orgManagerTypes.map((type, index) => (
-                                <option key={index} value={type}>{type}</option>
+                                <option key={index} value={type}>
+                                  {type}
+                                </option>
                               ))}
                             </select>
                           </div>
@@ -1051,10 +1187,15 @@ function User() {
                               disabled={projectsLoading}
                             >
                               <option value="">
-                                {projectsLoading ? "Loading projects..." : "Select Project (Optional)"}
+                                {projectsLoading
+                                  ? "Loading projects..."
+                                  : "Select Project (Optional)"}
                               </option>
                               {availableProjects.map((project, index) => (
-                                <option key={project.id || index} value={project.id}>
+                                <option
+                                  key={project.id || index}
+                                  value={project.id}
+                                >
                                   {project.name || `Project ${index + 1}`}
                                 </option>
                               ))}
@@ -1063,67 +1204,76 @@ function User() {
                         )}
 
                         {/* Building Dropdown (only if project selected) */}
-                        {is_manager && selectedProject && availableBuildings.length > 0 && (
-                          <div className="grid grid-cols-3 gap-3 items-center">
-                            <label className="text-sm font-medium text-end">
-                              Building
-                            </label>
-                            <select
-                              className="col-span-2 w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-                              value={selectedBuilding}
-                              onChange={handleBuildingChange}
-                            >
-                              <option value="">Select Building (Optional)</option>
-                              {availableBuildings.map((building) => (
-                                <option key={building.id} value={building.id}>
-                                  {building.name}
+                        {is_manager &&
+                          selectedProject &&
+                          availableBuildings.length > 0 && (
+                            <div className="grid grid-cols-3 gap-3 items-center">
+                              <label className="text-sm font-medium text-end">
+                                Building
+                              </label>
+                              <select
+                                className="col-span-2 w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                value={selectedBuilding}
+                                onChange={handleBuildingChange}
+                              >
+                                <option value="">
+                                  Select Building (Optional)
                                 </option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
+                                {availableBuildings.map((building) => (
+                                  <option key={building.id} value={building.id}>
+                                    {building.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
 
                         {/* Zone Dropdown (only if building selected) */}
-                        {is_manager && selectedBuilding && availableZones.length > 0 && (
-                          <div className="grid grid-cols-3 gap-3 items-center">
-                            <label className="text-sm font-medium text-end">
-                              Zone
-                            </label>
-                            <select
-                              className="col-span-2 w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-                              value={userDataForm.zone_id}
-                              onChange={handleZoneChange}
-                            >
-                              <option value="">Select Zone (Optional)</option>
-                              {availableZones.map((zone) => (
-                                <option key={zone.id} value={zone.id}>
-                                  {zone.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
+                        {is_manager &&
+                          selectedBuilding &&
+                          availableZones.length > 0 && (
+                            <div className="grid grid-cols-3 gap-3 items-center">
+                              <label className="text-sm font-medium text-end">
+                                Zone
+                              </label>
+                              <select
+                                className="col-span-2 w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                value={userDataForm.zone_id}
+                                onChange={handleZoneChange}
+                              >
+                                <option value="">Select Zone (Optional)</option>
+                                {availableZones.map((zone) => (
+                                  <option key={zone.id} value={zone.id}>
+                                    {zone.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
 
                         {/* Company */}
-                        {selectedOrganization && availableCompanies.length > 0 && (
-                          <div className="grid grid-cols-3 gap-3 items-center">
-                            <label className="text-sm font-medium text-end">
-                              Company
-                            </label>
-                            <select
-                              className="col-span-2 w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-                              value={selectedCompany}
-                              onChange={handleCompanyChange}
-                            >
-                              <option value="">Select Company (Optional)</option>
-                              {availableCompanies.map((company) => (
-                                <option key={company.id} value={company.id}>
-                                  {company.name}
+                        {selectedOrganization &&
+                          availableCompanies.length > 0 && (
+                            <div className="grid grid-cols-3 gap-3 items-center">
+                              <label className="text-sm font-medium text-end">
+                                Company
+                              </label>
+                              <select
+                                className="col-span-2 w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                value={selectedCompany}
+                                onChange={handleCompanyChange}
+                              >
+                                <option value="">
+                                  Select Company (Optional)
                                 </option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
+                                {availableCompanies.map((company) => (
+                                  <option key={company.id} value={company.id}>
+                                    {company.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
 
                         {/* Entity */}
                         {selectedCompany && availableEntities.length > 0 && (
@@ -1158,7 +1308,7 @@ function User() {
                           className="col-span-2 w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
                           value={userDataForm.role}
                           onChange={(e) =>
-                            setUserDataForm(prev => ({
+                            setUserDataForm((prev) => ({
                               ...prev,
                               role: e.target.value,
                             }))
@@ -1176,38 +1326,49 @@ function User() {
                     )}
 
                     {/* Project Dropdown for NON-CLIENT managers */}
-                    {!isClient && is_manager && availableProjects.length > 0 && (
-                      <div className="grid grid-cols-3 gap-3 items-center">
-                        <label className="text-sm font-medium text-end">
-                          Project
-                        </label>
-                        <select
-                          className="col-span-2 w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          value={selectedProject}
-                          onChange={handleProjectChange}
-                          disabled={projectsLoading}
-                        >
-                          <option value="">
-                            {projectsLoading ? "Loading projects..." : "Select Project (Optional)"}
-                          </option>
-                          {availableProjects.map((project, index) => (
-                            <option key={project.id || index} value={project.id}>
-                              {project.name || `Project ${index + 1}`}
+                    {!isClient &&
+                      is_manager &&
+                      availableProjects.length > 0 && (
+                        <div className="grid grid-cols-3 gap-3 items-center">
+                          <label className="text-sm font-medium text-end">
+                            Project
+                          </label>
+                          <select
+                            className="col-span-2 w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            value={selectedProject}
+                            onChange={handleProjectChange}
+                            disabled={projectsLoading}
+                          >
+                            <option value="">
+                              {projectsLoading
+                                ? "Loading projects..."
+                                : "Select Project (Optional)"}
                             </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
+                            {availableProjects.map((project, index) => (
+                              <option
+                                key={project.id || index}
+                                value={project.id}
+                              >
+                                {project.name || `Project ${index + 1}`}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
 
                     {/* Category Selection Section for NON-CLIENT managers */}
                     {!isClient && is_manager && selectedProject && (
                       <>
                         <div className="grid grid-cols-3 gap-3 items-center bg-blue-50 p-2 rounded">
-                          <label className="text-sm font-medium text-end">Categories:</label>
+                          <label className="text-sm font-medium text-end">
+                            Categories:
+                          </label>
                           <div className="col-span-2 text-xs text-blue-700">
                             <div>Project: {selectedProject}</div>
-                            <div>Categories Available: {categoryTree.length}</div>
-                            <div>Loading: {categoryLoading ? 'Yes' : 'No'}</div>
+                            <div>
+                              Categories Available: {categoryTree.length}
+                            </div>
+                            <div>Loading: {categoryLoading ? "Yes" : "No"}</div>
                           </div>
                         </div>
 
@@ -1220,13 +1381,17 @@ function User() {
                             className="col-span-2 w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
                             value={selectedCategory}
                             onChange={handleCategoryChange}
-                            disabled={categoryLoading || categoryTree.length === 0}
+                            disabled={
+                              categoryLoading || categoryTree.length === 0
+                            }
                             required
                           >
                             <option value="">
-                              {categoryLoading ? "Loading categories..." : 
-                               categoryTree.length === 0 ? "No categories available" : 
-                               "Select Category"}
+                              {categoryLoading
+                                ? "Loading categories..."
+                                : categoryTree.length === 0
+                                ? "No categories available"
+                                : "Select Category"}
                             </option>
                             {categoryTree.map((category) => (
                               <option key={category.id} value={category.id}>
@@ -1247,7 +1412,9 @@ function User() {
                               value={selectedLevel1}
                               onChange={handleLevel1Change}
                             >
-                              <option value="">Select Level 1 (Optional)</option>
+                              <option value="">
+                                Select Level 1 (Optional)
+                              </option>
                               {availableLevel1.map((item) => (
                                 <option key={item.id} value={item.id}>
                                   {item.name}
@@ -1268,7 +1435,9 @@ function User() {
                               value={selectedLevel2}
                               onChange={handleLevel2Change}
                             >
-                              <option value="">Select Level 2 (Optional)</option>
+                              <option value="">
+                                Select Level 2 (Optional)
+                              </option>
                               {availableLevel2.map((item) => (
                                 <option key={item.id} value={item.id}>
                                   {item.name}
@@ -1289,7 +1458,9 @@ function User() {
                               value={selectedLevel3}
                               onChange={handleLevel3Change}
                             >
-                              <option value="">Select Level 3 (Optional)</option>
+                              <option value="">
+                                Select Level 3 (Optional)
+                              </option>
                               {availableLevel3.map((item) => (
                                 <option key={item.id} value={item.id}>
                                   {item.name}
@@ -1310,7 +1481,9 @@ function User() {
                               value={selectedLevel4}
                               onChange={handleLevel4Change}
                             >
-                              <option value="">Select Level 4 (Optional)</option>
+                              <option value="">
+                                Select Level 4 (Optional)
+                              </option>
                               {availableLevel4.map((item) => (
                                 <option key={item.id} value={item.id}>
                                   {item.name}
@@ -1331,7 +1504,9 @@ function User() {
                               value={selectedLevel5}
                               onChange={handleLevel5Change}
                             >
-                              <option value="">Select Level 5 (Optional)</option>
+                              <option value="">
+                                Select Level 5 (Optional)
+                              </option>
                               {availableLevel5.map((item) => (
                                 <option key={item.id} value={item.id}>
                                   {item.name}
@@ -1352,7 +1527,9 @@ function User() {
                               value={selectedLevel6}
                               onChange={handleLevel6Change}
                             >
-                              <option value="">Select Level 6 (Optional)</option>
+                              <option value="">
+                                Select Level 6 (Optional)
+                              </option>
                               {availableLevel6.map((item) => (
                                 <option key={item.id} value={item.id}>
                                   {item.name}
@@ -1365,46 +1542,52 @@ function User() {
                     )}
 
                     {/* Building Dropdown for NON-CLIENT managers */}
-                    {!isClient && is_manager && selectedProject && availableBuildings.length > 0 && (
-                      <div className="grid grid-cols-3 gap-3 items-center">
-                        <label className="text-sm font-medium text-end">
-                          Building
-                        </label>
-                        <select
-                          className="col-span-2 w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          value={selectedBuilding}
-                          onChange={handleBuildingChange}
-                        >
-                          <option value="">Select Building (Optional)</option>
-                          {availableBuildings.map((building) => (
-                            <option key={building.id} value={building.id}>
-                              {building.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
+                    {!isClient &&
+                      is_manager &&
+                      selectedProject &&
+                      availableBuildings.length > 0 && (
+                        <div className="grid grid-cols-3 gap-3 items-center">
+                          <label className="text-sm font-medium text-end">
+                            Building
+                          </label>
+                          <select
+                            className="col-span-2 w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            value={selectedBuilding}
+                            onChange={handleBuildingChange}
+                          >
+                            <option value="">Select Building (Optional)</option>
+                            {availableBuildings.map((building) => (
+                              <option key={building.id} value={building.id}>
+                                {building.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
 
                     {/* Zone Dropdown for NON-CLIENT managers */}
-                    {!isClient && is_manager && selectedBuilding && availableZones.length > 0 && (
-                      <div className="grid grid-cols-3 gap-3 items-center">
-                        <label className="text-sm font-medium text-end">
-                          Zone
-                        </label>
-                        <select
-                          className="col-span-2 w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          value={userDataForm.zone_id}
-                          onChange={handleZoneChange}
-                        >
-                          <option value="">Select Zone (Optional)</option>
-                          {availableZones.map((zone) => (
-                            <option key={zone.id} value={zone.id}>
-                              {zone.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
+                    {!isClient &&
+                      is_manager &&
+                      selectedBuilding &&
+                      availableZones.length > 0 && (
+                        <div className="grid grid-cols-3 gap-3 items-center">
+                          <label className="text-sm font-medium text-end">
+                            Zone
+                          </label>
+                          <select
+                            className="col-span-2 w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            value={userDataForm.zone_id}
+                            onChange={handleZoneChange}
+                          >
+                            <option value="">Select Zone (Optional)</option>
+                            {availableZones.map((zone) => (
+                              <option key={zone.id} value={zone.id}>
+                                {zone.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
 
                     {/* First Name */}
                     <div className="grid grid-cols-3 gap-3 items-center">
@@ -1417,7 +1600,7 @@ function User() {
                         value={userDataForm.first_name}
                         placeholder="Enter First Name"
                         onChange={(e) =>
-                          setUserDataForm(prev => ({
+                          setUserDataForm((prev) => ({
                             ...prev,
                             first_name: e.target.value,
                           }))
@@ -1425,7 +1608,7 @@ function User() {
                         required
                       />
                     </div>
-                    
+
                     {/* Last Name */}
                     <div className="grid grid-cols-3 gap-3 items-center">
                       <label className="text-sm font-medium text-end">
@@ -1437,7 +1620,7 @@ function User() {
                         value={userDataForm.last_name}
                         placeholder="Enter Last Name"
                         onChange={(e) =>
-                          setUserDataForm(prev => ({
+                          setUserDataForm((prev) => ({
                             ...prev,
                             last_name: e.target.value,
                           }))
@@ -1445,7 +1628,7 @@ function User() {
                         required
                       />
                     </div>
-                    
+
                     {/* Email */}
                     <div className="grid grid-cols-3 gap-3 items-center">
                       <label className="text-sm font-medium text-end">
@@ -1457,7 +1640,7 @@ function User() {
                         value={userDataForm.email}
                         placeholder="Enter Email Address"
                         onChange={(e) =>
-                          setUserDataForm(prev => ({
+                          setUserDataForm((prev) => ({
                             ...prev,
                             email: e.target.value,
                           }))
@@ -1465,7 +1648,7 @@ function User() {
                         required
                       />
                     </div>
-                    
+
                     {/* Mobile */}
                     <div className="grid grid-cols-3 gap-3 items-center">
                       <label className="text-sm font-medium text-end">
@@ -1477,14 +1660,14 @@ function User() {
                         value={userDataForm.mobile}
                         placeholder="Enter Mobile Number"
                         onChange={(e) =>
-                          setUserDataForm(prev => ({
+                          setUserDataForm((prev) => ({
                             ...prev,
                             mobile: e.target.value,
                           }))
                         }
                       />
                     </div>
-                    
+
                     {/* Password */}
                     <div className="grid grid-cols-3 gap-3 items-center">
                       <label className="text-sm font-medium text-end">
@@ -1496,7 +1679,7 @@ function User() {
                         value={userDataForm.password}
                         placeholder="Enter Password"
                         onChange={(e) =>
-                          setUserDataForm(prev => ({
+                          setUserDataForm((prev) => ({
                             ...prev,
                             password: e.target.value,
                           }))
@@ -1517,9 +1700,13 @@ function User() {
                       <button
                         type="submit"
                         className={submitButtonClassName}
-                        disabled={!isFormValid() || orgInfoLoading || projectsLoading}
+                        disabled={
+                          !isFormValid() || orgInfoLoading || projectsLoading
+                        }
                       >
-                        {orgInfoLoading || projectsLoading ? "Loading..." : "Create User"}
+                        {orgInfoLoading || projectsLoading
+                          ? "Loading..."
+                          : "Create User"}
                       </button>
                     </div>
                   </form>

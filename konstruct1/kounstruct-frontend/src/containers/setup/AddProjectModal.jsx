@@ -1,13 +1,21 @@
-import React, { useState, useEffect } from "react";
+import React, {  useEffect ,useState } from "react";
 import { AiOutlineClose } from "react-icons/ai";
 import { createProject, allorgantioninfototalbyUser_id } from "../../api";
 import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
 
+
 function AddProjectModal({ onClose, onSave }) {
-  const userId = useSelector((state) => state.user.user.id);
-  console.log('got the id here',userId);
+  const [userData, setUserData] = useState(null);
+  useEffect(() => {
+    const userString = localStorage.getItem("USER_DATA");
+    if (userString && userString !== "undefined") {
+      setUserData(JSON.parse(userString));
+    }
+  }, []);
   
+  const userId = userData?.user_id; 
+  console.log("got the id here", userId);
 
   // Dropdown state
   const [orgOptions, setOrgOptions] = useState([]);

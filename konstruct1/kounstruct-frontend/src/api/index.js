@@ -1,4 +1,4 @@
-import axiosInstance from "./axiosInstance";
+import axiosInstance, { checklistInstance } from "./axiosInstance";
 import { projectInstance } from "./axiosInstance";
 import { organnizationInstance } from "./axiosInstance"
 
@@ -154,6 +154,14 @@ export const createStage = async (data) =>
     },
   });
 
+  export const GetstagebyPhaseid = async (id) =>
+    projectInstance.get(`stages/by_phase/${id}/`, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+  
 export const deleteStage = async (id) => projectInstance.delete(`stages/${id}/`,{
   headers: {
     "Content-Type": "application/json",
@@ -370,7 +378,7 @@ export const getTransferRules = async (id) => {
 
 
 export const createChecklistCategory = async (data) =>
-  axiosInstance.post("/category/create-category/", data, {
+  checklistInstance.post("/category/create-category/", data, {
     headers: {
       "Content-Type": "application/json",
     },
@@ -378,7 +386,7 @@ export const createChecklistCategory = async (data) =>
 
 
 export const getChecklistCategories = async (id) =>
-  axiosInstance.get(
+  checklistInstance.get(
     `/category/get-category-details-by-organization-id/?organization_id=${id}`,
     {
       headers: {
@@ -386,6 +394,13 @@ export const getChecklistCategories = async (id) =>
       },
     }
   );
+
+export const getchecklistbyProject = async (id) =>
+  checklistInstance.get(`checklists/?project=${id}`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 
 
 export const createChecklistSubCategory = async (data) =>
@@ -418,11 +433,36 @@ export const getChecklistSubCategories = async (id) =>
 
 
 export const createChecklist = async (data) =>
-  axiosInstance.post("/checklist-quest/create-checklist-quest/", data, {
+  checklistInstance.post("/checklists/", data, {
     headers: {
       "Content-Type": "application/json",
     },
   });
+
+
+  export const createChecklistItemOption = async (data) =>
+    checklistInstance.post("/checklists/", data, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+
+  export const createChecklistItemOPTIONSS = async (data) =>
+      checklistInstance.post("/options/", data, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+
+export const createChecklistQuestion = async (data) =>
+  checklistInstance.post("/items/", data, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+  
 
 
 export const getChecklistDetails = async (id) =>
@@ -477,6 +517,8 @@ export const getUsersByOrganizationId = async (id) =>
       "Content-Type": "application/json",
     },
   });
+
+
 
 export const updateUserDetails = async (data) =>
   axiosInstance.put("/user/update-user-details/", data, {
@@ -588,3 +630,15 @@ export const createUserAccessRole = async (payload) =>
       "Content-Type": "application/json",
     },
   });
+
+
+  export const getPhaseByPurposeId = async (purposeId) =>
+    projectInstance.get(`phases/by-purpose/${purposeId}/`, {
+      headers: { "Content-Type": "application/json" },
+    });
+  
+  export const getStageByPhaseId = async (phaseId) =>
+    projectInstance.get(`stages/by_phase/${phaseId}/`, {
+      headers: { "Content-Type": "application/json" },
+    });
+  

@@ -1,9 +1,8 @@
 import axios from "axios";
 
-// ✅ Your local IP (update if needed)
-const LOCAL_IP = "192.168.1.12";
+// const LOCAL_IP = "192.168.1.28";
+const LOCAL_IP = "192.168.0.204";
 
-// Token refresh function
 const refreshToken = async () => {
   const refresh = localStorage.getItem("REFRESH_TOKEN");
   if (!refresh) throw new Error("No refresh token available");
