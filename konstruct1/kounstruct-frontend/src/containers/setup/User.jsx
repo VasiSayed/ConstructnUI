@@ -29,21 +29,36 @@ function User() {
   const renderCount = useRef(0);
   renderCount.current += 1;
 
-  // Memoize localStorage data to prevent repeated parsing
-  // Memoize localStorage data to prevent repeated parsing
-  // Memoize localStorage data to prevent repeated parsing
-  const userData = useMemo(() => {
-    try {
-      const userString = localStorage.getItem("USER_DATA");
-      if (userString && userString !== "undefined") {
-        const parsed = JSON.parse(userString);
-        return parsed || {};
+
+// Memoize localStorage data to prevent repeated parsing
+const userData = useMemo(() => {
+  try {
+    const userString = localStorage.getItem("USER_DATA");
+    if (userString && userString !== "undefined") {
+      const parsed = JSON.parse(userString);
+      
+      // Get roles from JWT token if not in USER_DATA
+      if (!parsed.roles) {
+        try {
+          const token = localStorage.getItem('ACCESS_TOKEN');
+          if (token) {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            parsed.roles = payload.roles || [];
+          }
+        } catch (error) {
+          console.error('Error parsing token:', error);
+          parsed.roles = [];
+        }
       }
-    } catch (error) {
-      console.error("Error parsing user data from localStorage:", error);
+      
+      return parsed || {};
     }
-    return {};
-  }, []);
+
+  } catch (error) {
+    console.error("Error parsing user data from localStorage:", error);
+  }
+  return {};
+}, []); // Empty dependency array since localStorage doesn't change during component lifecyclency array since localStorage doesn't change during component lifecycle
 
   const userId = userData?.user_id;
   const isClient = userData?.is_client;
@@ -52,6 +67,20 @@ function User() {
     [userData.is_manager]
   );
   const org = useMemo(() => userData.org || "", [userData.org]);
+  // Get user role for display
+  const userRole = useMemo(() => {
+    if (userData.superadmin) {
+      return "Super Admin";
+    } else if (userData.roles && userData.roles.length > 0) {
+      return userData.roles[0]; // Use actual role from JWT token
+    } else if (userData.is_manager) {
+      return "Manager"; // Fallback
+    } else if (!userData.is_client) {
+      return "Admin";
+    } else {
+      return "User";
+    }
+  }, [userData]);
 
   // Debug logging moved to useEffect to prevent render cycle pollution
   useEffect(() => {
@@ -648,125 +677,132 @@ function User() {
     }
   }, [userDataForm, selectedCategory, isClient]);
 
-  const handleCreate = useCallback(
-    async (e) => {
-      e.preventDefault();
-      if (!isFormValid()) {
-        toast.error("Please fill in all required fields");
+
+
+  const handleCreate = useCallback(async (e) => {
+  e.preventDefault();
+  if (!isFormValid()) {
+    toast.error("Please fill in all required fields");
+    return;
+  }
+
+  // Build the complete payload for user-access-role endpoint
+  const completePayload = {
+    user: {
+      username: userDataForm.username,
+      first_name: userDataForm.first_name,
+      last_name: userDataForm.last_name,
+      email: userDataForm.email,
+      phone_number: userDataForm.mobile || "", // Backend expects 'phone_number', not 'mobile'
+      password: userDataForm.password,
+      org: userDataForm.organization_id ? parseInt(userDataForm.organization_id) : (isClient ? null : org ? parseInt(org) : null),
+      company: userDataForm.company_id ? parseInt(userDataForm.company_id) : null,
+      entity: userDataForm.entity_id ? parseInt(userDataForm.entity_id) : null,
+      is_manager: isClient ? true : is_manager,
+      is_client: isClient,
+      has_access: true
+    },
+    access: {
+      // Don't include 'user' field here - the serializer will handle linking after user creation
+      project_id: userDataForm.project_id ? parseInt(userDataForm.project_id) : null,
+      building_id: userDataForm.building_id ? parseInt(userDataForm.building_id) : null,
+      zone_id: userDataForm.zone_id ? parseInt(userDataForm.zone_id) : null,
+      flat_id: null, // Include this field as it exists in your model
+      active: true,
+      category: selectedCategory ? parseInt(selectedCategory) : null,
+      CategoryLevel1: selectedLevel1 ? parseInt(selectedLevel1) : null,
+      CategoryLevel2: selectedLevel2 ? parseInt(selectedLevel2) : null,
+      CategoryLevel3: selectedLevel3 ? parseInt(selectedLevel3) : null,
+      CategoryLevel4: selectedLevel4 ? parseInt(selectedLevel4) : null,
+      CategoryLevel5: selectedLevel5 ? parseInt(selectedLevel5) : null,
+      CategoryLevel6: selectedLevel6 ? parseInt(selectedLevel6) : null
+    },
+    roles: []
+  };
+
+  // Build roles array based on user type and selections
+  if (isClient) {
+    // For client users, use ADMIN role since that's what's available in USER_ROLE_CHOICES
+    completePayload.roles.push({ role: "ADMIN" });
+  } else {
+    // For non-client users, add their selected role
+    if (userDataForm.role) {
+      completePayload.roles.push({ role: userDataForm.role });
+    }
+  }
+
+  console.log('Complete payload to send:', completePayload);
+
+  try {
+    // Use the new API endpoint
+    const response = await createUserAccessRole(completePayload);
+    
+    if (response.status === 201) {
+      toast.success("User created successfully with access and roles assigned");
+      resetForm();
+    } else {
+      toast.error("Failed to create user");
+    }
+  } catch (error) {
+    console.error("Error creating user with access and roles:", error); 
+    console.log("Full error response:", error.response?.data); // Add this line
+    if (error.response && error.response.data) {
+      const errorData = error.response.data;
+      
+      // Handle specific error cases
+      if (errorData.user) {
+        if (errorData.user.username) {
+          toast.error("Username already exists. Please choose a different username.");
+          return;
+        }
+        if (errorData.user.email) {
+          toast.error("Email already exists. Please use a different email address.");
+          return;
+        }
+      }
+      
+      // Handle access errors
+      if (errorData.access && errorData.access.user) {
+        toast.error("Internal error: User reference issue. Please try again.");
         return;
       }
-
-      // Build the complete payload for user-access-role endpoint
-      const completePayload = {
-        user: {
-          username: userDataForm.username,
-          first_name: userDataForm.first_name,
-          last_name: userDataForm.last_name,
-          email: userDataForm.email,
-          mobile: userDataForm.mobile || null,
-          password: userDataForm.password,
-          org: userDataForm.organization_id
-            ? parseInt(userDataForm.organization_id)
-            : isClient
-            ? null
-            : org
-            ? parseInt(org)
-            : null,
-          company: userDataForm.company_id
-            ? parseInt(userDataForm.company_id)
-            : null,
-          entity: userDataForm.entity_id
-            ? parseInt(userDataForm.entity_id)
-            : null,
-          is_manager: isClient ? true : is_manager,
-        },
-        access: {
-          project_id: userDataForm.project_id
-            ? parseInt(userDataForm.project_id)
-            : null,
-          building_id: userDataForm.building_id
-            ? parseInt(userDataForm.building_id)
-            : null,
-          zone_id: userDataForm.zone_id ? parseInt(userDataForm.zone_id) : null,
-          active: true,
-          category: selectedCategory ? parseInt(selectedCategory) : null,
-          CategoryLevel1: selectedLevel1 ? parseInt(selectedLevel1) : null,
-          CategoryLevel2: selectedLevel2 ? parseInt(selectedLevel2) : null,
-          CategoryLevel3: selectedLevel3 ? parseInt(selectedLevel3) : null,
-          CategoryLevel4: selectedLevel4 ? parseInt(selectedLevel4) : null,
-          CategoryLevel5: selectedLevel5 ? parseInt(selectedLevel5) : null,
-          CategoryLevel6: selectedLevel6 ? parseInt(selectedLevel6) : null,
-        },
-        roles: [],
-      };
-
-      // Build roles array based on user type and selections
-      if (isClient) {
-        // For client users, always add Manager role
-        completePayload.roles.push({ role: "MANAGER" });
-
-        // Add manager type if selected
-        if (selectedManagerType) {
-          completePayload.roles.push({
-            role: selectedManagerType.toUpperCase().replace(" ", "_"),
-          });
-        }
-      } else {
-        // For non-client users, add their selected role
-        if (userDataForm.role) {
-          completePayload.roles.push({ role: userDataForm.role.toUpperCase() });
-        }
-      }
-
-      console.log("Complete payload to send:", completePayload);
-
-      try {
-        // Use the new API endpoint
-        const response = await createUserAccessRole(completePayload);
-
-        if (response.status === 201) {
-          toast.success(
-            response.data.message ||
-              "User created successfully with access and roles assigned"
-          );
-          resetForm();
-        } else {
-          toast.error(response.data.message || "Failed to create user");
-        }
-      } catch (error) {
-        console.error("Error creating user with access and roles:", error);
-        if (error.response && error.response.data) {
-          const errorData = error.response.data;
-          const messages = [];
-          for (const key in errorData) {
-            if (Array.isArray(errorData[key])) {
-              messages.push(`${key}: ${errorData[key].join(", ")}`);
+      
+      // Parse and display all validation errors
+      const messages = [];
+      
+      // Handle nested errors (user, access, roles)
+      Object.keys(errorData).forEach(section => {
+        if (typeof errorData[section] === 'object' && errorData[section] !== null) {
+          Object.keys(errorData[section]).forEach(field => {
+            const fieldErrors = errorData[section][field];
+            if (Array.isArray(fieldErrors)) {
+              messages.push(`${field}: ${fieldErrors.join(", ")}`);
             } else {
-              messages.push(`${key}: ${errorData[key]}`);
+              messages.push(`${field}: ${fieldErrors}`);
             }
-          }
-          toast.error(messages.join(" | "));
-        } else {
-          toast.error("Error creating user with access and roles");
+          });
+        } else if (Array.isArray(errorData[section])) {
+          messages.push(`${section}: ${errorData[section].join(", ")}`);
+        } else if (errorData[section]) {
+          messages.push(`${section}: ${errorData[section]}`);
         }
+      });
+      
+      if (messages.length > 0) {
+        toast.error(messages.join(" | "));
+      } else {
+        toast.error("Validation error occurred. Please check your input.");
       }
-    },
-    [
-      userDataForm,
-      selectedCategory,
-      selectedLevel1,
-      selectedLevel2,
-      selectedLevel3,
-      selectedLevel4,
-      selectedLevel5,
-      selectedLevel6,
-      selectedManagerType,
-      isClient,
-      is_manager,
-      org,
-      isFormValid,
-    ]
-  );
+    } else if (error.code === 'ERR_NETWORK') {
+      toast.error("Network error. Please check your connection and try again.");
+    } else {
+      toast.error("Error creating user. Please try again.");
+    }
+  }
+}, [userDataForm, selectedCategory, selectedLevel1, selectedLevel2, selectedLevel3, selectedLevel4, selectedLevel5, selectedLevel6, isClient, is_manager, org, isFormValid]);
+
+
+
   const resetForm = useCallback(() => {
     setUserDataForm({
       username: "",
@@ -830,7 +866,7 @@ function User() {
             {is_manager && (
               <div className="mb-3">
                 <span className="inline-block px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm">
-                  Manager Access (Render #{renderCount.current})
+                  {userRole} Access (Render #{renderCount.current})
                 </span>
               </div>
             )}

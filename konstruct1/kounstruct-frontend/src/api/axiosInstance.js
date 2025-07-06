@@ -1,7 +1,12 @@
 import axios from "axios";
 
+// <<<<<<< HEAD
 // const LOCAL_IP = "192.168.1.28";
 const LOCAL_IP = "192.168.0.204";
+// =======
+// // Your friend's IP address
+// const FRIEND_IP = "192.168.1.28";
+// >>>>>>> origin/prathamesh
 
 const refreshToken = async () => {
   const refresh = localStorage.getItem("REFRESH_TOKEN");
@@ -30,6 +35,20 @@ const axiosInstance = axios.create({
 export const projectInstance = axios.create({
   baseURL: `http://${LOCAL_IP}:8001/api/`,
 });
+
+// ❌ REMOVE THIS DUPLICATE INTERCEPTOR
+// projectInstance.interceptors.request.use(
+//   (config) => {
+//     const token = localStorage.getItem('ACCESS_TOKEN');
+//     if (token) {
+//       config.headers.Authorization = `Bearer ${token}`;
+//     }
+//     return config;
+//   },
+//   (error) => {
+//     return Promise.reject(error);
+//   }
+// );
 
 export const organnizationInstance = axios.create({
   baseURL: `http://${LOCAL_IP}:8002/api/`,
