@@ -18,19 +18,22 @@ function Profile({ onClose }) {
     }
   }, []);
 
+  // Updated role logic to use actual roles from JWT token
   let role = "User";
   if (userData) {
     if (userData.superadmin) {
       role = "Super Admin";
+    } else if (userData.roles && userData.roles.length > 0) {
+      // Use the actual role from the JWT token
+      role = userData.roles[0]; // Will show "SUPERVISOR", "ADMIN", etc.
     } else if (userData.is_manager) {
-      role = "Manager";
+      role = "Manager"; // Fallback if no roles found but is_manager is true
     } else if (!userData.is_client) {
       role = "Admin";
     } else {
       role = "User";
     }
   }
-  
 
   // Dropdown outside click
   useEffect(() => {

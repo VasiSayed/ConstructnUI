@@ -32,6 +32,7 @@ import UserSetup from "./containers/setup/UserSetup";
 import User from "./containers/setup/User";
 import Checklist from "./containers/setup/Checklist";
 import EditCheckList from "./containers/EditCheckList";
+import AccessibleChecklists from "./components/AccessibleChecklists";
 
 // Wrapper component to access location and conditionally render header
 const Layout = () => {
@@ -67,6 +68,8 @@ const Layout = () => {
           <Route path="/user-setup" element={<UserSetup />} />
           <Route path="/user" element={<User />} />
           <Route path="/edit-checklist/:id" element={<EditCheckList />} />
+          {/* // In your App.js Prathamesh: */}
+          <Route path="/accessible-checklists" element={<AccessibleChecklists />} />
         </Routes>
       </main>
       <Toaster position="top-right" />

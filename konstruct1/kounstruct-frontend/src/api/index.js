@@ -1,5 +1,5 @@
 import axiosInstance from "./axiosInstance";
-import { projectInstance } from "./axiosInstance";
+import { projectInstance,checklistInstance} from "./axiosInstance";
 import { organnizationInstance } from "./axiosInstance"
 
 
@@ -52,6 +52,13 @@ export const createCompany = async (data) =>
 
   export const createProject = async (data) =>
     projectInstance.post("/projects/", data, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+  export const GEtbyProjectID = async (id) =>
+    projectInstance.get(`/projects/${id}`, {  // ✅ Use the id parameter
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -540,6 +547,8 @@ export const getProjectUserDetails = async (userId) =>
     {
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem('ACCESS_TOKEN')}`,
+        
       },
     }
   );
@@ -573,3 +582,10 @@ export const createUserAccessRole = async (payload) =>
       "Content-Type": "application/json",
     },
   });
+
+export const getAccessibleChecklists = async (projectId, userId) =>
+  checklistInstance.get(`/accessible-checklists/?project_id=${projectId}&user_id=${userId}`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  })

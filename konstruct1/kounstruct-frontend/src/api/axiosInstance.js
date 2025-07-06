@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Your friend's IP address
-const FRIEND_IP = "192.168.1.12";
+const FRIEND_IP = "192.168.1.28";
 
 // Token refresh function (reuse for both instances)
 const refreshToken = async () => {
@@ -31,6 +31,20 @@ const axiosInstance = axios.create({
 export const projectInstance = axios.create({
   baseURL: `http://${FRIEND_IP}:8001/api/`,
 });
+
+// ❌ REMOVE THIS DUPLICATE INTERCEPTOR
+// projectInstance.interceptors.request.use(
+//   (config) => {
+//     const token = localStorage.getItem('ACCESS_TOKEN');
+//     if (token) {
+//       config.headers.Authorization = `Bearer ${token}`;
+//     }
+//     return config;
+//   },
+//   (error) => {
+//     return Promise.reject(error);
+//   }
+// );
 
 export const organnizationInstance = axios.create({
   baseURL: `http://${FRIEND_IP}:8002/api/`,
