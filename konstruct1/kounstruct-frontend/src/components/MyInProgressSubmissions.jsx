@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from "react";
 import SiteBarHome from "./SiteBarHome";
-import { checklistInstance } from "../api/axiosInstance"; // Adjust path if needed
+import { checklistInstance } from "../api/axiosInstance";
 
 function MyInProgressSubmissions() {
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
-  const [photoFiles, setPhotoFiles] = useState({}); // {submissionId: File}
+  const [photoFiles, setPhotoFiles] = useState({});
 
+  // Load in-progress submissions
   useEffect(() => {
     fetchSubmissions();
     // eslint-disable-next-line
@@ -38,59 +39,45 @@ function MyInProgressSubmissions() {
     return `Checklist Item #${item.checklist_item}`;
   };
 
-  // Handler to mark as done (no photo required)
-  async function markAsDone(itemId) {
-    setUpdatingId(itemId);
+  // Handler for PATCH
+  async function patchSubmission(submissionId, photoRequired) {
+    setUpdatingId(submissionId);
     setError(null);
-    try {
-      await checklistInstance.patch(`submissions/${itemId}/`, {
-        status: "COMPLETED"
-      });
-      await fetchSubmissions();
-    } catch (err) {
-      setError("Could not mark as done.");
-    } finally {
-      setUpdatingId(null);
-    }
-  }
 
-  // Handler to upload photo (for photo_required)
-  async function submitPhoto(itemId) {
-    if (!photoFiles[itemId]) {
-      setError("Please select a photo to upload.");
-      return;
-    }
-    setUpdatingId(itemId);
-    setError(null);
     try {
       const formData = new FormData();
-      formData.append("maker_photo", photoFiles[itemId]);
-      formData.append("status", "COMPLETED"); // You can remove this if not needed
-
-      await checklistInstance.patch(`submissions/${itemId}/`, formData, {
+      formData.append("submission_id", submissionId);
+      // Only attach photo if file is chosen
+      if (photoFiles[submissionId]) {
+        formData.append("maker_photo", photoFiles[submissionId]);
+      }
+      // PATCH to /patch-checklistitemsubmission/
+      await checklistInstance.patch("patch-checklistitemsubmission/", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-      // Clean up the selected file and reload
       setPhotoFiles((prev) => {
         const copy = { ...prev };
-        delete copy[itemId];
+        delete copy[submissionId];
         return copy;
       });
       await fetchSubmissions();
     } catch (err) {
-      setError("Photo upload failed.");
+      setError(
+        (err.response && err.response.data && JSON.stringify(err.response.data)) ||
+        err.message ||
+        "Update failed."
+      );
     } finally {
       setUpdatingId(null);
     }
   }
 
-  // Track file input
-  const handleFileChange = (itemId, e) => {
+  const handleFileChange = (submissionId, e) => {
     setPhotoFiles((prev) => ({
       ...prev,
-      [itemId]: e.target.files[0],
+      [submissionId]: e.target.files[0],
     }));
   };
 
@@ -141,41 +128,35 @@ function MyInProgressSubmissions() {
                 </div>
               )}
 
-              {/* Logic for photo submission */}
-              {item.photo_required ? (
-                <div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="mt-2"
-                    onChange={(e) => handleFileChange(item.id, e)}
-                    disabled={updatingId === item.id}
-                  />
-                  <button
-                    className={`mt-2 px-4 py-2 rounded text-white ${
-                      !photoFiles[item.id] || updatingId === item.id
-                        ? "bg-gray-400 cursor-not-allowed"
-                        : "bg-blue-600 hover:bg-blue-700"
-                    }`}
-                    disabled={!photoFiles[item.id] || updatingId === item.id}
-                    onClick={() => submitPhoto(item.id)}
-                  >
-                    {updatingId === item.id ? "Submitting..." : "Submit Photo"}
-                  </button>
-                </div>
-              ) : (
+              {/* If photo required: must upload photo. If not: photo optional */}
+              <div className="mt-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="mt-2"
+                  onChange={(e) => handleFileChange(item.id, e)}
+                  disabled={updatingId === item.id}
+                />
                 <button
                   className={`mt-2 px-4 py-2 rounded text-white ${
-                    updatingId === item.id
+                    (item.photo_required && !photoFiles[item.id]) || updatingId === item.id
                       ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-green-600 hover:bg-green-700"
+                      : item.photo_required
+                        ? "bg-blue-600 hover:bg-blue-700"
+                        : "bg-green-600 hover:bg-green-700"
                   }`}
-                  disabled={updatingId === item.id}
-                  onClick={() => markAsDone(item.id)}
+                  disabled={(item.photo_required && !photoFiles[item.id]) || updatingId === item.id}
+                  onClick={() => patchSubmission(item.id, item.photo_required)}
                 >
-                  {updatingId === item.id ? "Updating..." : "Mark as Done"}
+                  {updatingId === item.id
+                    ? (item.photo_required ? "Submitting..." : "Updating...")
+                    : (item.photo_required ? "Submit Photo" : "Mark as Done")}
                 </button>
-              )}
+                {/*
+                  For optional photo, you could add a second button if you want
+                  but this keeps it simple!
+                */}
+              </div>
             </li>
           ))}
         </ul>

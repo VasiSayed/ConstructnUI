@@ -29,6 +29,7 @@ import { Toaster } from "react-hot-toast";
 import CategoryChecklist from './components/CategoryChecklist';
 import MyOngoingChecklist from "./components/MyInProgressSubmissions"; // adjust the path if needed
 import MyInProgressSubmissions from "./components/MyInProgressSubmissions";
+import CheckerInbox from "./components/CheckerInbox";
 
 
 import { useEffect } from "react";
@@ -54,6 +55,8 @@ const Layout = () => {
           <Route path="/all-checklists" element={<AllChecklists />} />
           <Route path="/my-ongoing-checklist" element={<MyOngoingChecklist />} />
           <Route path="/my-inprogress-submissions" element={<MyInProgressSubmissions />} />
+          <Route path="/checker-inbox" element={<CheckerInbox />} />
+
 
           <Route path="/config" element={<Configuration />} />
           <Route path="/project/:id" element={<ProjectDetails />} />
