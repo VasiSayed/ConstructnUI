@@ -9,6 +9,8 @@ function SiteBarHome() {
     { name: "Observation", path: "/observation" },
     { name: "Schedule", path: "/schedule" },
     { name: "Attendance", path: "/attendance" },
+    { name: "My In-Progress Items", path: "/my-inprogress-submissions" }
+
   ];
 
   return (

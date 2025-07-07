@@ -13,10 +13,9 @@ const CATEGORY_LEVELS = [
     icon: "📋",
     parentKey: "project",
     parentLabel: "Project",
-    listApi: () => `/categories-simple/`, // Fetch all, filter in FE
+    listApi: () => `/categories-simple/`,
     createApi: `/categories-simple/`,
-    entryParentField: "project_name", // <- FIELD NAME TO MATCH
-    parentNameKey: "name", // project.name
+    entryParentField: "project", // id field to filter
   },
   {
     id: 2,
@@ -26,8 +25,7 @@ const CATEGORY_LEVELS = [
     parentLabel: "Category 1",
     listApi: () => `/category-level1-simple/`,
     createApi: `/category-level1-simple/`,
-    entryParentField: "category_name",
-    parentNameKey: "name",
+    entryParentField: "category",
   },
   {
     id: 3,
@@ -37,8 +35,7 @@ const CATEGORY_LEVELS = [
     parentLabel: "Category 2",
     listApi: () => `/category-level2-simple/`,
     createApi: `/category-level2-simple/`,
-    entryParentField: "category_level1_name",
-    parentNameKey: "name",
+    entryParentField: "category_level1",
   },
   {
     id: 4,
@@ -48,8 +45,7 @@ const CATEGORY_LEVELS = [
     parentLabel: "Category 3",
     listApi: () => `/category-level3-simple/`,
     createApi: `/category-level3-simple/`,
-    entryParentField: "category_level2_name",
-    parentNameKey: "name",
+    entryParentField: "category_level2",
   },
   {
     id: 5,
@@ -59,8 +55,7 @@ const CATEGORY_LEVELS = [
     parentLabel: "Category 4",
     listApi: () => `/category-level4-simple/`,
     createApi: `/category-level4-simple/`,
-    entryParentField: "category_level3_name",
-    parentNameKey: "name",
+    entryParentField: "category_level3",
   },
   {
     id: 6,
@@ -70,17 +65,14 @@ const CATEGORY_LEVELS = [
     parentLabel: "Category 5",
     listApi: () => `/category-level5-simple/`,
     createApi: `/category-level5-simple/`,
-    entryParentField: "category_level4_name",
-    parentNameKey: "name",
+    entryParentField: "category_level4",
   },
 ];
 
 function CategoryChecklist() {
   const userId = useSelector((state) => state.user.user.id);
 
-  // Project list for dropdown
   const [projects, setProjects] = useState([]);
-  // Keeps the currently selected value for each level
   const [chain, setChain] = useState({
     project: "",
     category: "",
@@ -89,7 +81,6 @@ function CategoryChecklist() {
     category_level3: "",
     category_level4: "",
   });
-  // Dropdown options for each parent
   const [options, setOptions] = useState({
     project: [],
     category: [],
@@ -98,13 +89,12 @@ function CategoryChecklist() {
     category_level3: [],
     category_level4: [],
   });
-  // Table entries for current parent
   const [entries, setEntries] = useState([]);
   const [inputValue, setInputValue] = useState("");
   const [loading, setLoading] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState(CATEGORY_LEVELS[0]);
 
-  // Fetch projects on mount
+  // Fetch all projects at mount
   useEffect(() => {
     (async () => {
       try {
@@ -117,28 +107,22 @@ function CategoryChecklist() {
     })();
   }, []);
 
-  // Helper: Reset all levels below the changed one
-  const resetBelow = (chainObj, optionsObj, fromKey) => {
-    let found = false;
-    for (const key of Object.keys(chainObj)) {
-      if (key === fromKey) {
-        found = true;
-        continue;
-      }
-      if (found) {
-        chainObj[key] = "";
-        optionsObj[key] = [];
-      }
-    }
-    return [chainObj, optionsObj];
-  };
-
-  // Reset lower chains/options/entries when level or parent changes
+  // Reset lower chains/options/entries when level changes
   useEffect(() => {
     const chainCopy = { ...chain };
     const optionsCopy = { ...options };
     let cutoff = CATEGORY_LEVELS[selectedLevel.id - 1]?.parentKey || "project";
-    resetBelow(chainCopy, optionsCopy, cutoff);
+    let found = false;
+    for (const key of Object.keys(chainCopy)) {
+      if (key === cutoff) {
+        found = true;
+        continue;
+      }
+      if (found) {
+        chainCopy[key] = "";
+        optionsCopy[key] = [];
+      }
+    }
     setChain(chainCopy);
     setOptions(optionsCopy);
     setEntries([]);
@@ -146,22 +130,29 @@ function CategoryChecklist() {
     // eslint-disable-next-line
   }, [selectedLevel]);
 
-  // When a dropdown changes, reset all lower dropdowns/options and refetch entries for the table
+  // On any dropdown parent change, reset all lower dropdowns/options and fetch new options
   const handleParentChange = (key, value) => {
     const newChain = { ...chain, [key]: value };
     const newOptions = { ...options };
-    // Reset all dropdowns/options below this key
-    resetBelow(newChain, newOptions, key);
+    let found = false;
+    for (const k of Object.keys(chain)) {
+      if (k === key) {
+        found = true;
+        continue;
+      }
+      if (found) {
+        newChain[k] = "";
+        newOptions[k] = [];
+      }
+    }
     setChain(newChain);
     setOptions(newOptions);
     setInputValue("");
   };
 
-  // Fetch parent dropdown options (for the next level) when a parent value changes
+  // Fetch child dropdown options (next level) whenever a parent in chain changes
   useEffect(() => {
-    // Don't fetch options for level 1 (project) as those are always loaded at mount
     if (selectedLevel.id === 1) return;
-    // Parent of the current level
     const prevLevelIdx = selectedLevel.id - 2;
     const prevLevel = CATEGORY_LEVELS[prevLevelIdx];
     const parentKey = prevLevel.parentKey;
@@ -171,27 +162,13 @@ function CategoryChecklist() {
       return;
     }
     setLoading(true);
-    // Fetch ALL and filter below
     projectInstance
       .get(prevLevel.listApi())
       .then((res) => {
-        // Get selected parent NAME
-        let parentName = "";
-        if (prevLevelIdx === 0) {
-          // Project
-          parentName =
-            projects.find((p) => String(p.id) === String(parentId))?.name || "";
-        } else {
-          parentName =
-            options[prevLevel.parentKey].find(
-              (p) => String(p.id) === String(parentId)
-            )?.name || "";
-        }
-        // Filter by parent name field
         const filtered =
           (res.data || []).filter(
             (item) =>
-              String(item[prevLevel.entryParentField]) === String(parentName)
+              String(item[prevLevel.entryParentField]) === String(parentId)
           );
         setOptions((prev) => ({
           ...prev,
@@ -207,54 +184,28 @@ function CategoryChecklist() {
 
   // Fetch table entries for current parent selection at this level
   useEffect(() => {
-    // Only run when the relevant parent is selected
     if (!chain[selectedLevel.parentKey]) {
       setEntries([]);
       return;
     }
     setLoading(true);
-
-    // Get parent name for this level
-    let parentName = "";
-    if (selectedLevel.id === 1) {
-      // Project
-      parentName =
-        projects.find((p) => String(p.id) === String(chain.project))?.name ||
-        "";
-    } else {
-      // For other levels, use dropdown options
-      const prevLevel = CATEGORY_LEVELS[selectedLevel.id - 2];
-      parentName =
-        options[prevLevel.parentKey].find(
-          (p) => String(p.id) === String(chain[selectedLevel.parentKey])
-        )?.name || "";
-    }
-
-    // Fetch all and filter by parent name
     projectInstance
       .get(selectedLevel.listApi())
       .then((res) => {
-        // Filter entries based on parent name field
-        const filtered = (res.data || []).filter((item) => {
-          // For top level (project), filter by project_name
-          if (selectedLevel.id === 1) {
-            return (
-              String(item.project_name) === String(parentName)
-            );
-          }
-          // For other levels, filter by parent name field
-          return (
-            String(item[selectedLevel.entryParentField]) === String(parentName)
-          );
-        });
+        // Filter by selected parent
+        const filtered = (res.data || []).filter(
+          (item) =>
+            String(item[selectedLevel.entryParentField]) ===
+            String(chain[selectedLevel.parentKey])
+        );
         setEntries(filtered);
       })
       .catch(() => setEntries([]))
       .finally(() => setLoading(false));
     // eslint-disable-next-line
-  }, [selectedLevel, chain[selectedLevel.parentKey], projects, options]);
+  }, [selectedLevel, chain[selectedLevel.parentKey]]);
 
-  // Add a new category/subcategory at current level
+  // After adding, re-fetch entries and options for that level
   const handleAdd = async (e) => {
     e.preventDefault();
     const val = inputValue.trim();
@@ -272,8 +223,7 @@ function CategoryChecklist() {
       await projectInstance.post(selectedLevel.createApi, payload);
       toast.success("Added successfully");
       setInputValue("");
-      // Refresh table entries
-      // Just re-run the effect by changing the chain state
+      // Re-fetch entries and dropdown for next level
       setChain((prev) => ({ ...prev }));
     } catch (err) {
       toast.error("API error");
@@ -281,14 +231,6 @@ function CategoryChecklist() {
     setLoading(false);
   };
 
-  // Get parent options for current level's parent dropdown
-  const getParentDropdownOptions = (levelIdx) => {
-    if (levelIdx === 0) return projects;
-    const config = CATEGORY_LEVELS[levelIdx];
-    return options[config.parentKey] || [];
-  };
-
-  // Render
   return (
     <div className="flex min-h-screen bg-[#f7f8fa]">
       <SideBarSetup />

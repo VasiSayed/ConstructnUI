@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Your friend's IP address
-const FRIEND_IP = "192.168.1.12";
+const FRIEND_IP = "192.168.1.28";
 
 // Token refresh function (reuse for both instances)
 const refreshToken = async () => {
