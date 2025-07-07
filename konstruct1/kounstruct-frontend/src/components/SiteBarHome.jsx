@@ -9,7 +9,11 @@ function SiteBarHome() {
     { name: "Observation", path: "/observation" },
     { name: "Schedule", path: "/schedule" },
     { name: "Attendance", path: "/attendance" },
-    { name: "Checklists", path: "/accessible-checklists" },
+
+    { name: "My In-Progress Items", path: "/my-inprogress-submissions" },
+    { name: "Checker Inbox", path: "/checker-inbox" },
+
+
   ];
 
   return (

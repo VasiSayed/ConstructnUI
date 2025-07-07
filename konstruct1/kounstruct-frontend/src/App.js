@@ -27,13 +27,18 @@ import Header from "./components/Header";
 import Setup from "./components/Setup";
 import { Toaster } from "react-hot-toast";
 import CategoryChecklist from './components/CategoryChecklist';
+import MyOngoingChecklist from "./components/MyInProgressSubmissions"; // adjust the path if needed
+import MyInProgressSubmissions from "./components/MyInProgressSubmissions";
+import CheckerInbox from "./components/CheckerInbox";
+
 
 import { useEffect } from "react";
 import UserSetup from "./containers/setup/UserSetup";
 import User from "./containers/setup/User";
 import Checklist from "./containers/setup/Checklist";
 import EditCheckList from "./containers/EditCheckList";
-import AccessibleChecklists from "./components/AccessibleChecklists";
+import AllChecklists from "./components/AllChecklists";
+
 
 // Wrapper component to access location and conditionally render header
 const Layout = () => {
@@ -48,6 +53,12 @@ const Layout = () => {
       <main className={!shouldHideHeader ? "mt-[65px]" : ""}>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/all-checklists" element={<AllChecklists />} />
+          <Route path="/my-ongoing-checklist" element={<MyOngoingChecklist />} />
+          <Route path="/my-inprogress-submissions" element={<MyInProgressSubmissions />} />
+          <Route path="/checker-inbox" element={<CheckerInbox />} />
+
+
           <Route path="/config" element={<Configuration />} />
           <Route path="/project/:id" element={<ProjectDetails />} />
           <Route path="/snagging/:id" element={<Snagging />} />
@@ -73,7 +84,7 @@ const Layout = () => {
 
           <Route path="/edit-checklist/:id" element={<EditCheckList />} />
           {/* // In your App.js Prathamesh: */}
-          <Route path="/accessible-checklists" element={<AccessibleChecklists />} />
+          {/* <Route path="/accessible-checklists" element={<AccessibleChecklists />} /> */}
         </Routes>
       </main>
       <Toaster position="top-right" />

@@ -172,7 +172,7 @@ const Login = () => {
       >
         <div className="rounded-md">
           <h1 className="text-3xl text-white p-2 px-10 font-semibold jersey-15-regular">
-            Construction.ai
+            ConstructWorld.ai
           </h1>
         </div>
 
