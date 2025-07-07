@@ -108,7 +108,7 @@ export const getCompanyDetailsById = async (id) =>
 export const getProjectDetailsById = async (id) => {
   console.log(id, "id project");
   return projectInstance.get(
-    `/project/get-project-details-by-company-id/?company_id=${id}`,
+    `/project/get-project-details-by-company-id/`,
     {
       headers: {
         "Content-Type": "application/json",
@@ -116,6 +116,15 @@ export const getProjectDetailsById = async (id) => {
     }
   );
 };
+
+
+export const getPRojectbyYourPErmission = async () =>
+  projectInstance.get("projects/by_user_scope/", {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
 
 export const getProjectDetails = async () =>
   projectInstance.get("/project/get-project-details/", {
@@ -597,11 +606,10 @@ export const getstageDetails = async (projectId) =>
     }
   );
 
-export const getProjectUserDetails = async (userId) =>
+export const getProjectUserDetails = async  =>
   projectInstance.get(
     // `/user-stage-role/get-projects-by-user/?user_id=${userId}`,
     `/user-stage-role/get-projects-by-user/`,
-
     {
       headers: {
         "Content-Type": "application/json",
@@ -618,7 +626,25 @@ export const editStage = async (data) =>
     },
   });
 
-// ! By Prathamesh- GET 
+
+// api.js or wherever your API calls are
+export const getProjectsByOwnership = async ({ entity_id, company_id, organization_id }) => {
+  let query = '';
+  if (entity_id) query = `entity_id=${entity_id}`;
+  else if (company_id) query = `company_id=${company_id}`;
+  else if (organization_id) query = `organization_id=${organization_id}`;
+
+  return projectInstance.get(
+    `/projects/by_ownership/?${query}`,
+    {
+      headers: {
+        "Content-Type": "application/json",
+      }
+    }
+  );
+};
+
+
 
 export const getProjectsByOrganization = async (organizationId) =>
   projectInstance.get(`/projects/by_organization/${organizationId}/`, {

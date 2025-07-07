@@ -72,9 +72,9 @@ const userData = useMemo(() => {
     if (userData.superadmin) {
       return "Super Admin";
     } else if (userData.roles && userData.roles.length > 0) {
-      return userData.roles[0]; // Use actual role from JWT token
+      return userData.roles[0];
     } else if (userData.is_manager) {
-      return "Manager"; // Fallback
+      return "Manager"; 
     } else if (!userData.is_client) {
       return "Admin";
     } else {
@@ -82,7 +82,6 @@ const userData = useMemo(() => {
     }
   }, [userData]);
 
-  // Debug logging moved to useEffect to prevent render cycle pollution
   useEffect(() => {
     console.log(
       `Render #${renderCount.current} - Manager status:`,
@@ -698,8 +697,8 @@ const userData = useMemo(() => {
       org: userDataForm.organization_id ? parseInt(userDataForm.organization_id) : (isClient ? null : org ? parseInt(org) : null),
       company: userDataForm.company_id ? parseInt(userDataForm.company_id) : null,
       entity: userDataForm.entity_id ? parseInt(userDataForm.entity_id) : null,
-      is_manager: isClient ? true : is_manager,
-      is_client: isClient,
+      is_manager: isClient ? true : false,
+      is_client: false,
       has_access: true
     },
     access: {

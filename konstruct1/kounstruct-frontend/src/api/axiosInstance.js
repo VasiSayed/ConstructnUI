@@ -1,8 +1,8 @@
 import axios from "axios";
 
 // <<<<<<< HEAD
-// const LOCAL_IP = "192.168.1.28";
-const LOCAL_IP = "192.168.0.204";
+const LOCAL_IP = "192.168.1.28";
+// const LOCAL_IP = "192.168.0.204";
 // =======
 // // Your friend's IP address
 // const FRIEND_IP = "192.168.1.28";

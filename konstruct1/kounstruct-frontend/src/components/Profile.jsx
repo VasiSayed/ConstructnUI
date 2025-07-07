@@ -7,10 +7,10 @@ import { useNavigate } from "react-router-dom";
 
 function Profile({ onClose }) {
   const [manage, setManage] = useState(false);
-  const [userData, setUserData] = useState(null);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
-
+  
+  const [userData, setUserData] = useState(null);
   useEffect(() => {
     const userString = localStorage.getItem("USER_DATA");
     if (userString && userString !== "undefined") {
@@ -21,13 +21,16 @@ function Profile({ onClose }) {
   // Updated role logic to use actual roles from JWT token
   let role = "User";
   if (userData) {
-    if (userData.superadmin) {
+    if (userData.superadmin ) {
       role = "Super Admin";
-    } else if (userData.roles && userData.roles.length > 0) {
-      // Use the actual role from the JWT token
-      role = userData.roles[0]; // Will show "SUPERVISOR", "ADMIN", etc.
+    }  else if(userData.is_staff){
+      role = "Super Admin";
+    }
+    else if (userData.roles && userData.roles.length > 0) {
+     
+      role = userData.roles[0]; 
     } else if (userData.is_manager) {
-      role = "Manager"; // Fallback if no roles found but is_manager is true
+      role = "Manager"; 
     } else if (!userData.is_client) {
       role = "Admin";
     } else {
@@ -94,12 +97,32 @@ function Profile({ onClose }) {
           </div>
         </div>
         {/* Contact Info */}
-        <div className="flex flex-col items-center text-sm text-gray-700 mt-4">
-          <div>Email: {userData?.email || "--"}</div>
-          <div>Phone: {userData?.phone_number || "--"}</div>
-          <div>Joined: {userData?.date_joined || "--"}</div>
-          {userData?.last_login && <div>Last Login: {userData.last_login}</div>}
+        {/* Contact Info */}
+        <div className="flex flex-col items-center text-base text-black mt-4">
+          <div>
+            Email:{" "}
+            <span className="font-semibold">{userData?.email || "--"}</span>
+          </div>
+          <div>
+            Phone:{" "}
+            <span className="font-semibold">
+              {userData?.phone_number || "--"}
+            </span>
+          </div>
+          <div>
+            Joined:{" "}
+            <span className="font-semibold">
+              {userData?.date_joined || "--"}
+            </span>
+          </div>
+          {userData?.last_login && (
+            <div>
+              Last Login:{" "}
+              <span className="font-semibold">{userData.last_login}</span>
+            </div>
+          )}
         </div>
+
         {/* Organization Dropdown (if needed) */}
         <div className="relative flex justify-center mt-6" ref={dropdownRef}>
           <button

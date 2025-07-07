@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import projectImage from "../Images/Project.png";
-import { getProjectUserDetails } from "../api";
+import { getProjectUserDetails, getProjectsByOwnership } from "../api";
 import toast from "react-hot-toast";
 import SiteBarHome from "./SiteBarHome";
 const Configuration = () => {
@@ -42,18 +42,64 @@ const Configuration = () => {
   //   getAllProject();
   // }, []);
 
+
+
+
   useEffect(() => {
     const getAllProject = async () => {
-      const response = await getProjectUserDetails(userId);
-      console.log(response.data);
-      if (response.status === 200) {
-        setAllProject(response.data);
-      } else {
-        toast.error(response.data.message);
+      try {
+        let response = null;
+        console.log("manager", userData?.is_manager);
+        console.log("admin", userData?.is_staff || userData?.is_superadmin);
+        
+        if (userData?.is_manager) {
+          if (userData.entity_id) {
+            response = await getProjectsByOwnership({
+              entity_id: userData.entity_id,
+            });
+          } else if (userData.company_id) {
+            response = await getProjectsByOwnership({
+              company_id: userData.company_id,
+            });
+          } else if (userData.org || userData.organization_id) {
+            // Use either org or organization_id, whichever is available
+            const orgId = userData.org || userData.organization_id;
+            response = await getProjectsByOwnership({ organization_id: orgId });
+          } else {
+            // If nothing found, fallback (optional)
+            toast.error(
+              "No entity, company, or organization found for this manager."
+            );
+            return;
+          }
+  
+        } else if (userData?.is_staff || userData?.is_superadmin) {
+          // For staff or superadmin: fetch by user
+          response = await getProjectUserDetails();
+        } else {
+          toast.error("You do not have permission to view projects.");
+          return;
+        }
+
+        if (response?.status === 200) {
+          setAllProject(response.data);
+        } else {
+          toast.error(response?.data?.message || "Failed to fetch projects.");
+        }
+      } catch (error) {
+        toast.error(
+          error?.response?.data?.message || "Error fetching projects."
+        );
       }
     };
-    getAllProject();
-  }, [userId]);
+
+    if (userData) {
+      getAllProject();
+    }
+  }, [userData]);
+  
+
+
   return (
     <div className="flex">
       <SiteBarHome />
