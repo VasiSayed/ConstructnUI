@@ -100,13 +100,20 @@ const Login = () => {
         localStorage.setItem("REFRESH_TOKEN", response.data.refresh);
         localStorage.setItem("token", response.data.access);
 
+        // Decode the JWT to get accesses
+        const tokenData = decodeJWT(response.data.access);
+        const accesses =
+          tokenData && tokenData.accesses ? tokenData.accesses : [];
+        localStorage.setItem("ACCESSES", JSON.stringify(accesses));
+        console.log("Accesses saved in localStorage:", accesses);
+
+        // ...rest of your userData code as needed...
 
         // Get user data
         let userData = null;
         if (response.data.user) {
           userData = response.data.user;
           console.log(userData);
-          
         } else {
           // fallback: decode from JWT
           const tokenData = decodeJWT(response.data.access);
@@ -120,7 +127,7 @@ const Login = () => {
               has_access: tokenData.has_access,
               is_client: tokenData.is_client,
               superadmin: tokenData.superadmin,
-              is_manager: tokenData.is_manager, 
+              is_manager: tokenData.is_manager,
               org: tokenData.org,
               company: tokenData.company,
               entity: tokenData.entity,

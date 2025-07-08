@@ -703,8 +703,8 @@ export const getMyHierarchicalVerifications = async () =>
     },
   });
 
-export const verifyChecklistItemSubmission = async (submissionId, optionId) =>
-  checklistInstance.post('/verify-checklist-item-submission/', {
-    submission_id: submissionId,
-    option_id: optionId
-  });
+  export const verifyChecklistItemSubmission = async (formData) =>
+    checklistInstance.patch("/verify-checklist-item-submission/", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  

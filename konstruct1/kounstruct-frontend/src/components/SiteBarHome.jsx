@@ -13,7 +13,7 @@ function SiteBarHome() {
     { name: "My In-Progress Items", path: "/my-inprogress-submissions" },
     { name: "Checker Inbox", path: "/checker-inbox" },
 
-    // { name: "Checklists", path: "/accessible-checklists" },
+    { name: "Checklists", path: "/accessible-checklists" },
     // { name: "My Checklists", path: "/my-checklists" },  // ← NEW
     { name: "Verifications", path: "/hierarchical-verifications" }
   ];

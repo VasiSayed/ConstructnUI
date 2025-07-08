@@ -27,14 +27,12 @@ function CheckerInbox() {
 
   // Get user/checker accesses from localStorage
   const userStr = localStorage.getItem("user");
-  let user, accesses;
-  try {
-    user = userStr ? JSON.parse(userStr) : {};
-    accesses = Array.isArray(user.accesses) ? user.accesses : [];
-  } catch (e) {
-    user = {};
-    accesses = [];
-  }
+  
+  const accessesStr = localStorage.getItem("ACCESSES");
+  const accesses = accessesStr ? JSON.parse(accessesStr) : [];
+  console.log("Current accesses:", accesses);
+  
+  
 
   // Fetch projects
   useEffect(() => {
@@ -44,11 +42,14 @@ function CheckerInbox() {
       try {
         const checkerProjects = accesses
           .filter((a) => a.active && a.roles && a.roles.includes("CHECKER"))
-          .map((a) => Number(a.project_id));
+          .map((a) => Number(a.project_id));      
         const res = await projectInstance.get("/projects/", {
           headers: { Authorization: `Bearer ${localStorage.getItem("access")}` },
         });
         const allProjects = Array.isArray(res.data) ? res.data : res.data.results;
+        console.log('all',allProjects);
+        
+        
         const filtered = allProjects.filter((p) =>
           checkerProjects.includes(p.id)
         );
@@ -125,7 +126,7 @@ function CheckerInbox() {
         "/bulk-verify-submissions/",
         { submission_ids: submissionIds },
         {
-          headers: { Authorization: `Bearer ${localStorage.getItem("access")}` },
+          headers: { Authorization:` Bearer ${localStorage.getItem("access")}` },
         }
       );
       window.alert("Assigned all submissions to yourself!");
@@ -207,7 +208,7 @@ function CheckerInbox() {
                     onClick={() => toggleExpanded(cl.id)}
                   >
                     <span role="img" aria-label="questions">
-                      👁️
+                      👁
                     </span>
                     View Questions
                   </button>

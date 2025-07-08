@@ -40,7 +40,7 @@ import EditCheckList from "./containers/EditCheckList";
 import AllChecklists from "./components/AllChecklists";
 
 
-// import AccessibleChecklists from "./components/AccessibleChecklists";
+import AccessibleChecklists from "./components/AccessibleChecklists";
 // And make sure you're importing the component:
 import HierarchicalVerifications from './components/HierarchicalVerifications'; 
 
@@ -91,7 +91,7 @@ const Layout = () => {
           <Route path="/edit-checklist/:id" element={<EditCheckList />} />
           {/* // In your App.js Prathamesh: */}
 
-          {/* <Route path="/accessible-checklists" element={<AccessibleChecklists />} /> */}
+          <Route path="/accessible-checklists" element={<AccessibleChecklists />} />
           {/* <Route path="/my-checklists" element={<MyChecklists />} /> */}
           <Route path="/hierarchical-verifications" element={<HierarchicalVerifications />} />
 
