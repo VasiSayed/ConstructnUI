@@ -9,16 +9,13 @@ function SiteBarHome() {
     { name: "Observation", path: "/observation" },
     { name: "Schedule", path: "/schedule" },
     { name: "Attendance", path: "/attendance" },
-
     { name: "My In-Progress Items", path: "/my-inprogress-submissions" },
     { name: "Checker Inbox", path: "/checker-inbox" },
-
-
   ];
 
   return (
-    <div className="fixed w-[15%] h-screen bg-[#489CE2] shadow-lg p-4">
-      <nav className="space-y-2">
+    <div className="fixed  w-[15%] h-screen bg-[#489CE2] shadow-lg p-4">
+      <nav className="space-y-2 ">
         {navItems.map((item) => (
           <NavLink
             key={item.name}

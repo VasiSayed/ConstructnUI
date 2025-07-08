@@ -42,16 +42,13 @@ const Configuration = () => {
   //   getAllProject();
   // }, []);
 
-
-
-
   useEffect(() => {
     const getAllProject = async () => {
       try {
         let response = null;
         console.log("manager", userData?.is_manager);
         console.log("admin", userData?.is_staff || userData?.is_superadmin);
-        
+
         if (userData?.is_manager) {
           if (userData.entity_id) {
             response = await getProjectsByOwnership({
@@ -72,7 +69,6 @@ const Configuration = () => {
             );
             return;
           }
-  
         } else if (userData?.is_staff || userData?.is_superadmin) {
           // For staff or superadmin: fetch by user
           response = await getProjectUserDetails();
@@ -97,8 +93,6 @@ const Configuration = () => {
       getAllProject();
     }
   }, [userData]);
-  
-
 
   return (
     <div className="flex">
