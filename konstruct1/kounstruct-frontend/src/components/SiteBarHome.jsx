@@ -10,6 +10,8 @@ function SiteBarHome() {
     { name: "Schedule", path: "/schedule" },
     { name: "Attendance", path: "/attendance" },
     { name: "Checklists", path: "/accessible-checklists" },
+    // { name: "My Checklists", path: "/my-checklists" },  // ← NEW
+    { name: "Verifications", path: "/hierarchical-verifications" }
   ];
 
   return (

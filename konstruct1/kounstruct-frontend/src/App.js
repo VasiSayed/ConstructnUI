@@ -33,6 +33,10 @@ import User from "./containers/setup/User";
 import Checklist from "./containers/setup/Checklist";
 import EditCheckList from "./containers/EditCheckList";
 import AccessibleChecklists from "./components/AccessibleChecklists";
+// And make sure you're importing the component:
+import HierarchicalVerifications from './components/HierarchicalVerifications'; 
+
+// import MyChecklists from './components/MyChecklists';
 
 // Wrapper component to access location and conditionally render header
 const Layout = () => {
@@ -70,6 +74,8 @@ const Layout = () => {
           <Route path="/edit-checklist/:id" element={<EditCheckList />} />
           {/* // In your App.js Prathamesh: */}
           <Route path="/accessible-checklists" element={<AccessibleChecklists />} />
+          {/* <Route path="/my-checklists" element={<MyChecklists />} /> */}
+          <Route path="/hierarchical-verifications" element={<HierarchicalVerifications />} />
         </Routes>
       </main>
       <Toaster position="top-right" />

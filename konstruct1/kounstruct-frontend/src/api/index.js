@@ -589,3 +589,26 @@ export const getAccessibleChecklists = async (projectId, userId) =>
       "Content-Type": "application/json",
     },
   })
+
+export const assignChecklistToUser = async (checklistId) =>
+  checklistInstance.post('/create-checklistitemsubmissions-assign/', {
+    checklist_id: checklistId
+  }, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  // Get hierarchical verifications for checker
+export const getMyHierarchicalVerifications = async () =>
+  checklistInstance.get('/my-hierarchical-verifications/', {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+export const verifyChecklistItemSubmission = async (submissionId, optionId) =>
+  checklistInstance.post('/verify-checklist-item-submission/', {
+    submission_id: submissionId,
+    option_id: optionId
+  });
