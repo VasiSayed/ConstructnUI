@@ -47,7 +47,8 @@ const Configuration = () => {
       try {
         let response = null;
         console.log("manager", userData?.is_manager);
-        console.log("admin", userData?.is_staff || userData?.is_superadmin);
+        console.log("Superadmin", userData?.is_staff || userData?.is_superadmin);
+        console.log("client", userData ? userData.is_client : null);
 
         if (userData?.is_manager) {
           if (userData.entity_id) {
@@ -69,7 +70,11 @@ const Configuration = () => {
             );
             return;
           }
-        } else if (userData?.is_staff || userData?.is_superadmin) {
+        } else if (
+          userData?.is_staff ||
+          userData?.is_superadmin ||
+          userData?.is_client
+        ) {
           // For staff or superadmin: fetch by user
           response = await getProjectUserDetails();
         } else {

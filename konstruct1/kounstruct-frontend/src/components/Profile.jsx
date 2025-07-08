@@ -9,8 +9,9 @@ function Profile({ onClose }) {
   const [manage, setManage] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
-  
+
   const [userData, setUserData] = useState(null);
+
   useEffect(() => {
     const userString = localStorage.getItem("USER_DATA");
     if (userString && userString !== "undefined") {
@@ -18,24 +19,30 @@ function Profile({ onClose }) {
     }
   }, []);
 
-  // Updated role logic to use actual roles from JWT token
+  // Extract unique roles from accesses
+  let allRoles = [];
+  if (userData?.accesses && userData.accesses.length > 0) {
+    userData.accesses.forEach((access) => {
+      if (access.roles && access.roles.length > 0) {
+        access.roles.forEach((roleObj) => {
+          if (roleObj.role && !allRoles.includes(roleObj.role)) {
+            allRoles.push(roleObj.role);
+          }
+        });
+      }
+    });
+  }
+
+  // Role logic
   let role = "User";
-  if (userData) {
-    if (userData.superadmin ) {
-      role = "Super Admin";
-    }  else if(userData.is_staff){
-      role = "Super Admin";
-    }
-    else if (userData.roles && userData.roles.length > 0) {
-     
-      role = userData.roles[0]; 
-    } else if (userData.is_manager) {
-      role = "Manager"; 
-    } else if (!userData.is_client) {
-      role = "Admin";
-    } else {
-      role = "User";
-    }
+  if (userData?.superadmin || userData?.is_staff) {
+    role = "Super Admin";
+  } else if (allRoles.length > 0) {
+    role = allRoles.join(", ");
+  } else if (userData?.is_manager) {
+    role = "Manager";
+  } else if (!userData?.is_client) {
+    role = "Admin";
   }
 
   // Dropdown outside click
@@ -75,9 +82,6 @@ function Profile({ onClose }) {
         </div>
         {/* User Info */}
         <div className="flex justify-center flex-col items-center mt-6">
-          {/* <h2 className="text-lg font-medium">
-            {userData?.first_name || ""} {userData?.last_name || ""}
-          </h2> */}
           <h3 className="text-base font-normal text-gray-500">
             {userData?.username || ""}
           </h3>
@@ -96,7 +100,25 @@ function Profile({ onClose }) {
             </span>
           </div>
         </div>
-        {/* Contact Info */}
+        {/* Show all project roles (optional, remove if not needed) */}
+        {userData?.accesses?.length > 0 && (
+          <div className="mt-2 text-center">
+            <span className="text-sm font-medium">Roles by Project:</span>
+            {userData.accesses.map((access, idx) => (
+              <div key={idx}>
+                <span className="font-bold">Project {access.project_id}:</span>
+                {access.roles.map((roleObj, j) => (
+                  <span
+                    key={j}
+                    className="ml-2 inline-block px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs"
+                  >
+                    {roleObj.role}
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
         {/* Contact Info */}
         <div className="flex flex-col items-center text-base text-black mt-4">
           <div>
@@ -123,7 +145,7 @@ function Profile({ onClose }) {
           )}
         </div>
 
-        {/* Organization Dropdown (if needed) */}
+        {/* Organization Dropdown */}
         <div className="relative flex justify-center mt-6" ref={dropdownRef}>
           <button
             onClick={() => setManage(!manage)}
@@ -168,7 +190,6 @@ function Profile({ onClose }) {
             <button
               className="hover:underline text-blue-600 font-medium"
               onClick={() => {
-                // You can trigger a modal, or navigate to account page
                 alert("Account details feature coming soon!");
               }}
             >
