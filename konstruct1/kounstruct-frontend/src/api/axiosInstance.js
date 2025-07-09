@@ -94,10 +94,9 @@ const attachTokenInterceptor = (instance) => {
   );
 };
 
-// Attach interceptors
+
 attachTokenInterceptor(axiosInstance);
 attachTokenInterceptor(projectInstance);
 attachTokenInterceptor(organnizationInstance);
 attachTokenInterceptor(checklistInstance);
-
 export default axiosInstance;

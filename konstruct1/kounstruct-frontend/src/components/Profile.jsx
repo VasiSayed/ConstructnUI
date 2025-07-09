@@ -11,22 +11,35 @@ function Profile({ onClose }) {
   const navigate = useNavigate();
 
   const [userData, setUserData] = useState(null);
+  const [accesses, setAccesses] = useState([]);
 
   useEffect(() => {
+    // Get user data
     const userString = localStorage.getItem("USER_DATA");
     if (userString && userString !== "undefined") {
       setUserData(JSON.parse(userString));
     }
+    // Get accesses data
+    const accessString = localStorage.getItem("ACCESSES");
+    if (accessString && accessString !== "undefined") {
+      try {
+        setAccesses(JSON.parse(accessString));
+      } catch (e) {
+        setAccesses([]);
+      }
+    }
   }, []);
 
-  // Extract unique roles from accesses
+  // Extract unique roles from accesses, support array of strings or objects
   let allRoles = [];
-  if (userData?.accesses && userData.accesses.length > 0) {
-    userData.accesses.forEach((access) => {
-      if (access.roles && access.roles.length > 0) {
-        access.roles.forEach((roleObj) => {
-          if (roleObj.role && !allRoles.includes(roleObj.role)) {
-            allRoles.push(roleObj.role);
+  if (Array.isArray(accesses)) {
+    accesses.forEach((access) => {
+      if (access.roles && Array.isArray(access.roles)) {
+        access.roles.forEach((role) => {
+          // Role may be a string or object
+          const roleStr = typeof role === "string" ? role : role?.role;
+          if (roleStr && !allRoles.includes(roleStr)) {
+            allRoles.push(roleStr);
           }
         });
       }
@@ -41,8 +54,8 @@ function Profile({ onClose }) {
     role = allRoles.join(", ");
   } else if (userData?.is_manager) {
     role = "Manager";
-  } else if (!userData?.is_client) {
-    role = "Admin";
+  } else if (userData?.is_client) {
+    role = "Client";
   }
 
   // Dropdown outside click
@@ -61,6 +74,7 @@ function Profile({ onClose }) {
     localStorage.removeItem("ACCESS_TOKEN");
     localStorage.removeItem("REFRESH_TOKEN");
     localStorage.removeItem("USER_DATA");
+    localStorage.removeItem("ACCESSES");
     navigate("/login");
     if (typeof onClose === "function") onClose();
   };
@@ -100,21 +114,26 @@ function Profile({ onClose }) {
             </span>
           </div>
         </div>
-        {/* Show all project roles (optional, remove if not needed) */}
-        {userData?.accesses?.length > 0 && (
+        {/* Show all project roles */}
+        {accesses?.length > 0 && (
           <div className="mt-2 text-center">
             <span className="text-sm font-medium">Roles by Project:</span>
-            {userData.accesses.map((access, idx) => (
+            {accesses.map((access, idx) => (
               <div key={idx}>
                 <span className="font-bold">Project {access.project_id}:</span>
-                {access.roles.map((roleObj, j) => (
-                  <span
-                    key={j}
-                    className="ml-2 inline-block px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs"
-                  >
-                    {roleObj.role}
-                  </span>
-                ))}
+                {access.roles &&
+                  access.roles.map((role, j) => {
+                    const roleStr =
+                      typeof role === "string" ? role : role?.role;
+                    return (
+                      <span
+                        key={j}
+                        className="ml-2 inline-block px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs"
+                      >
+                        {roleStr}
+                      </span>
+                    );
+                  })}
               </div>
             ))}
           </div>
@@ -144,7 +163,6 @@ function Profile({ onClose }) {
             </div>
           )}
         </div>
-
         {/* Organization Dropdown */}
         <div className="relative flex justify-center mt-6" ref={dropdownRef}>
           <button

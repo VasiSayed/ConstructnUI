@@ -708,3 +708,71 @@ export const getMyHierarchicalVerifications = async () =>
       headers: { "Content-Type": "multipart/form-data" },
     });
   
+
+    // by prathamesh
+
+    // Get project category user access
+export const getProjectCategoryUserAccess = async (projectId, categoryId) => {
+  console.log("Fetching user access data...", { projectId, categoryId });
+  
+  try {
+    const response = await axiosInstance.get("project-category-user-access/", {
+      params: {
+        project_id: projectId,
+        category_id: categoryId
+      },
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    
+    console.log("User access data fetched:", response.data);
+    return response.data;
+    
+  } catch (error) {
+    console.error("Error fetching user access:", error);
+    throw error;
+  }
+};
+
+
+export const sendNotificationToUsers = async (data) => {
+  console.log("Sending notification to users...", data);
+
+  try {
+    const response = await axiosInstance.post("/send-notification/", data, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    console.log("Notification sent successfully:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error sending notification:", error);
+    throw error;
+  }
+};
+
+
+// Add this function to your index.js API file
+
+export const patchChecklistRoles = async (checklistId, rolesData) => {
+  console.log("Patching checklist roles...", { checklistId, rolesData });
+  
+  try {
+    const response = await checklistInstance.patch(`/${checklistId}/patch-roles/`, {
+      roles_json: rolesData
+    }, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    
+    console.log("Checklist roles updated successfully:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error updating checklist roles:", error);
+    throw error;
+  }
+};

@@ -62,10 +62,13 @@ const userData = useMemo(() => {
 
   const userId = userData?.user_id;
   const isClient = userData?.is_client;
+  console.log(isClient,'client');
+  
   const is_manager = useMemo(
     () => !!userData.is_manager,
     [userData.is_manager]
   );
+  console.log(is_manager,'Manger');
   const org = useMemo(() => userData.org || "", [userData.org]);
   // Get user role for display
   const userRole = useMemo(() => {
@@ -226,7 +229,7 @@ const userData = useMemo(() => {
         console.log("Available projects set:", projects);
         setAvailableProjects(projects);
 
-        // Always show manager dropdown if user is manager and has projects
+     
         if (is_manager && projects.length > 0) {
           setShowManagerDropdown(true);
           setOrgManagerTypes(
@@ -652,6 +655,30 @@ const userData = useMemo(() => {
   }, []);
 
   // Memoize form validation
+  // const isFormValid = useCallback(() => {
+  //   if (isClient) {
+  //     return (
+  //       userDataForm.username &&
+  //       userDataForm.first_name &&
+  //       userDataForm.last_name &&
+  //       userDataForm.email &&
+  //       userDataForm.password &&
+  //       userDataForm.organization_id &&
+  //       selectedCategory // Category selection is mandatory
+  //     );
+  //   } else {
+  //     return (
+  //       userDataForm.username &&
+  //       userDataForm.first_name &&
+  //       userDataForm.last_name &&
+  //       userDataForm.email &&
+  //       userDataForm.password &&
+  //       userDataForm.role &&
+  //       selectedCategory // Category selection is mandatory
+  //     );
+  //   }
+  // }, [userDataForm, selectedCategory, isClient]);
+
   const isFormValid = useCallback(() => {
     if (isClient) {
       return (
@@ -660,8 +687,8 @@ const userData = useMemo(() => {
         userDataForm.last_name &&
         userDataForm.email &&
         userDataForm.password &&
-        userDataForm.organization_id &&
-        selectedCategory // Category selection is mandatory
+        userDataForm.organization_id
+        // Removed selectedCategory requirement for client users
       );
     } else {
       return (
@@ -671,7 +698,7 @@ const userData = useMemo(() => {
         userDataForm.email &&
         userDataForm.password &&
         userDataForm.role &&
-        selectedCategory // Category selection is mandatory
+        selectedCategory // Category selection is still mandatory for non-client users
       );
     }
   }, [userDataForm, selectedCategory, isClient]);
@@ -692,7 +719,7 @@ const userData = useMemo(() => {
       first_name: userDataForm.first_name,
       last_name: userDataForm.last_name,
       email: userDataForm.email,
-      phone_number: userDataForm.mobile || "", // Backend expects 'phone_number', not 'mobile'
+      phone_number: userDataForm.mobile || "", 
       password: userDataForm.password,
       org: userDataForm.organization_id ? parseInt(userDataForm.organization_id) : (isClient ? null : org ? parseInt(org) : null),
       company: userDataForm.company_id ? parseInt(userDataForm.company_id) : null,
@@ -702,7 +729,6 @@ const userData = useMemo(() => {
       has_access: true
     },
     access: {
-      // Don't include 'user' field here - the serializer will handle linking after user creation
       project_id: userDataForm.project_id ? parseInt(userDataForm.project_id) : null,
       building_id: userDataForm.building_id ? parseInt(userDataForm.building_id) : null,
       zone_id: userDataForm.zone_id ? parseInt(userDataForm.zone_id) : null,
@@ -719,12 +745,10 @@ const userData = useMemo(() => {
     roles: []
   };
 
-  // Build roles array based on user type and selections
   if (isClient) {
-    // For client users, use ADMIN role since that's what's available in USER_ROLE_CHOICES
+
     completePayload.roles.push({ role: "ADMIN" });
   } else {
-    // For non-client users, add their selected role
     if (userDataForm.role) {
       completePayload.roles.push({ role: userDataForm.role });
     }
@@ -733,7 +757,6 @@ const userData = useMemo(() => {
   console.log('Complete payload to send:', completePayload);
 
   try {
-    // Use the new API endpoint
     const response = await createUserAccessRole(completePayload);
     
     if (response.status === 201) {
@@ -1732,6 +1755,21 @@ const userData = useMemo(() => {
                       >
                         Cancel
                       </button>
+                      {/* <button
+                        type="submit"
+                        className={submitButtonClassName}
+                        disabled={
+                          isClient
+                          ? !isFormValid()
+                          : !isFormValid() ||
+                            orgInfoLoading ||
+                            projectsLoading
+                        }
+                      >
+                        {orgInfoLoading || projectsLoading
+                          ? "Loading..."
+                          : "Create User"}
+                      </button> */}
                       <button
                         type="submit"
                         className={submitButtonClassName}

@@ -8,12 +8,12 @@ import {
   GetstagebyPhaseid,
   getCategoryTreeByProject,
   createChecklistQuestion,
-  createChecklistItemOption,
+  // createChecklistItemOption,
   createChecklistItemOPTIONSS,
 } from "../../api";
 import { toast } from "react-hot-toast";
 
-const ChecklistForm = ({ setShowForm, checklist, projectOptions = [] }) => {
+const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklistCreated }) => {
   // Project and hierarchy
   const [projectId, setProjectId] = useState("");
   const [buildings, setBuildings] = useState([]);
@@ -500,8 +500,20 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [] }) => {
           }
         }
 
-        toast.success("Checklist and items created!");
+        toast.success("Checklist and items created!");  
+        // Call the callback function to show user access table
+        if (onChecklistCreated && typeof onChecklistCreated === "function") {
+          const createdChecklistData = {
+            ...checklistPayload,
+            id: checklistId,
+            project_id: parsedProjectId,    // Add this line
+            category_id: parsedCategoryId   // Add this line
+          };
+          onChecklistCreated(createdChecklistData);
+        }
+
         setShowForm(false);
+        
       } else {
         console.error("Checklist creation failed:", checklistRes);
         toast.error(checklistRes.data?.message || "Failed to create checklist");

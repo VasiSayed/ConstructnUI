@@ -5,6 +5,7 @@ import {
   Routes,
   useLocation,
 } from "react-router-dom";
+import InspectorPending from "./components/InspectorPending";
 import Home from "./Home";
 import SiteConfig from "./SiteConfig";
 import UserHome from "./UserHome";
@@ -60,10 +61,15 @@ const Layout = () => {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/all-checklists" element={<AllChecklists />} />
-          <Route path="/my-ongoing-checklist" element={<MyOngoingChecklist />} />
-          <Route path="/my-inprogress-submissions" element={<MyInProgressSubmissions />} />
+          <Route
+            path="/my-ongoing-checklist"
+            element={<MyOngoingChecklist />}
+          />
+          <Route
+            path="/my-inprogress-submissions"
+            element={<MyInProgressSubmissions />}
+          />
           <Route path="/checker-inbox" element={<CheckerInbox />} />
-
 
           <Route path="/config" element={<Configuration />} />
           <Route path="/project/:id" element={<ProjectDetails />} />
@@ -79,7 +85,7 @@ const Layout = () => {
           <Route path="/RequestManagement" element={<RequestManagement />} />
           <Route path="/CoustemerHandover" element={<CoustemerHandover />} />
           <Route path="/Chif" element={<Chif />} />
-          
+
           <Route path="/chif-setup" element={<ChifSetup />} />
           <Route path="/Chifstep1" element={<Chifstep1 />} />
           <Route path="/Checklist" element={<Checklist />} />
@@ -87,14 +93,22 @@ const Layout = () => {
           <Route path="/user-setup" element={<UserSetup />} />
           <Route path="/user" element={<User />} />
           <Route path="/category-sidebar" element={<CategoryChecklist />} />
-
+          <Route
+            path="/checker-verified-inspector-pending"
+            element={<InspectorPending />}
+          />
           <Route path="/edit-checklist/:id" element={<EditCheckList />} />
           {/* // In your App.js Prathamesh: */}
 
-          <Route path="/accessible-checklists" element={<AccessibleChecklists />} />
+          <Route
+            path="/accessible-checklists"
+            element={<AccessibleChecklists />}
+          />
           {/* <Route path="/my-checklists" element={<MyChecklists />} /> */}
-          <Route path="/hierarchical-verifications" element={<HierarchicalVerifications />} />
-
+          <Route
+            path="/hierarchical-verifications"
+            element={<HierarchicalVerifications />}
+          />
         </Routes>
       </main>
       <Toaster position="top-right" />
