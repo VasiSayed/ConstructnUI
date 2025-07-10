@@ -31,19 +31,12 @@ function SiteBarHome() {
     // { name: "Observation", path: "/observation", key: "observation" },
     // { name: "Schedule", path: "/schedule", key: "schedule" },
     // { name: "Attendance", path: "/attendance", key: "attendance" },
-    {
-      name: "My In-Progress Items",
-      path: "/my-inprogress-submissions",
-      key: "my_inprogress",
-    },
+    { name: "My In-Progress Items", path: "/my-inprogress-submissions", key: "my_inprogress",},
     { name: "Inspector", path: "/checker-verified-inspector-pending" },
-    { name: "Checker Inbox", path: "/checker-inbox", key: "checker_inbox" },
     { name: "Checklists", path: "/accessible-checklists", key: "checklists" },
-    {
-      name: "Verifications",
-      path: "/hierarchical-verifications",
-      key: "verifications",
-    },
+
+    { name: "Checker Inbox", path: "/checker-inbox", key: "checker_inbox" },
+    {name: "Verifications", path: "/hierarchical-verifications", key: "verifications", },
   ];
 
   // Filter logic based on roles
