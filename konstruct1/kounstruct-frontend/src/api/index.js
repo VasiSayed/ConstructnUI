@@ -460,7 +460,12 @@ export const createChecklist = async (data) =>
     },
   });
 
-
+  export const viewChecklist = async (checklistId) =>
+    NEWchecklistInstance.get(`/checklist-items/${checklistId}/`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("access")}`,
+      },
+    });
 
 
 

@@ -21,6 +21,9 @@ function getUserRoles() {
   }
 }
 
+const role = localStorage.getItem("USER_ROLE");
+
+
 function SiteBarHome() {
   const userRoles = getUserRoles();
 
@@ -41,6 +44,7 @@ function SiteBarHome() {
     { name: "Checklists", path: "/accessible-checklists", key: "checklists" },
 
     { name: "Checker Inbox", path: "/checker-inbox", key: "checker_inbox" },
+
     {
       name: "Verifications",
       path: "/hierarchical-verifications",
@@ -60,6 +64,16 @@ function SiteBarHome() {
       name: "PendingForMakerItems",
       path: "/Pending-For-MakerItems",
       key: "PendingForMakerItems",
+    },
+    {
+      name: "PendingSupervisorItems",
+      path: "/PendingSupervisorItems",
+      key: "PendingSupervisorItems",
+    },
+    {
+      name: "UsersManagement",
+      path: "/UsersManagement",
+      key: "UsersManagement",
     },
   ];
 

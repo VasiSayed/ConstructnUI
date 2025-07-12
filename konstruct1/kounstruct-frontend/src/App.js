@@ -33,6 +33,8 @@ import MyInProgressSubmissions from "./components/MyInProgressSubmissions";
 import CheckerInbox from "./components/CheckerInbox";
 import InitializeChecklist from "./components/InitializeChecklist";
 import PendingForMakerItems from "./components/PendingForMakerItems";
+import UsersManagement from "./components/UsersManagement";
+
 
 
 import { useEffect } from "react";
@@ -47,6 +49,7 @@ import AccessibleChecklists from "./components/AccessibleChecklists";
 // And make sure you're importing the component:
 import HierarchicalVerifications from './components/HierarchicalVerifications'; 
 import PendingInspectorChecklists from './components/PendingInspectorChecklists'
+import PendingSupervisorItems from "./components/PendingSupervisorItems";
 
 // import MyChecklists from './components/MyChecklists';
 
@@ -102,6 +105,11 @@ const Layout = () => {
             path="/Pending-For-MakerItems"
             element={<PendingForMakerItems />}
           />
+          <Route
+            path="/PendingSupervisorItems"
+            element={<PendingSupervisorItems />}
+          />
+          <Route path="/UsersManagement" element={<UsersManagement />} />
 
           <Route path="/chif-setup" element={<ChifSetup />} />
           <Route path="/Chifstep1" element={<Chifstep1 />} />
