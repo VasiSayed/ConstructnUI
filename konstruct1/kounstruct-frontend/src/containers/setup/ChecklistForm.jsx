@@ -451,7 +451,6 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
         selectedZone && selectedZone !== "" ? parseInt(selectedZone) : null,
       flat_id:
         selectedFlat && selectedFlat !== "" ? parseInt(selectedFlat) : null,
-      status: "NOT_STARTED",
       remarks: "",
     };
 
@@ -476,10 +475,9 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
           // 1. Create ChecklistItem (question)
           const itemRes = await createChecklistQuestion({
             checklist: checklistId,
-            description: q.question,
+            title: q.question,
             photo_required: q.photo_required || false,
-            sequence: i + 1,
-            status: "NOT_STARTED",
+            // sequence: i + 1,
             is_done: false,
           });
 
@@ -492,8 +490,8 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
               if (option.value && option.value.trim() !== "") {
                 await createChecklistItemOPTIONSS({
                   checklist_item: checklistItemId,
-                  label: option.value,
-                  value: option.submission,
+                  name: option.value,
+                  choice: option.submission,
                 });
               }
             }

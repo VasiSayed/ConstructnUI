@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { checklistInstance } from "../api/axiosInstance";
-import SideBarSetup from "./SideBarSetup";
+import SiteBarHome from "./SiteBarHome";
 import { toast } from "react-hot-toast";
 
 function InspectorPending() {
@@ -160,7 +160,7 @@ function InspectorPending() {
 
   return (
     <div className="flex min-h-screen bg-[#f7f8fa]">
-      <SideBarSetup />
+      <SiteBarHome />
       <div className="flex-1 ml-[16%] mr-4 my-8">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
@@ -168,7 +168,8 @@ function InspectorPending() {
               Inspector Pending Items
             </h1>
             <p className="text-[#6c6f7e] text-base md:text-lg">
-              View <b>all data</b> for checklist submissions verified by checker but pending inspection.
+              View <b>all data</b> for checklist submissions verified by checker
+              but pending inspection.
             </p>
           </div>
 
@@ -179,12 +180,14 @@ function InspectorPending() {
             </label>
             <select
               value={selectedProject}
-              onChange={e => setSelectedProject(e.target.value)}
+              onChange={(e) => setSelectedProject(e.target.value)}
               className="w-full p-4 border border-[#ececf0] rounded-lg bg-white text-[#2d3047]"
             >
               <option value="">Choose project</option>
-              {projects.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
               ))}
             </select>
           </div>
@@ -196,7 +199,8 @@ function InspectorPending() {
                 Pending Items (All Fields)
               </h2>
               <span className="text-xs text-[#8b8c97]">
-                {submissions.length} {submissions.length === 1 ? "item" : "items"}
+                {submissions.length}{" "}
+                {submissions.length === 1 ? "item" : "items"}
               </span>
             </div>
             {loading ? (
@@ -209,12 +213,14 @@ function InspectorPending() {
                 <table className="w-full text-xs md:text-sm border border-[#489CE2]">
                   <thead className="bg-[#e6f0fa] text-[#22223b] border-b-2 border-[#489CE2]">
                     <tr>
-                      {allFields.map(key => (
+                      {allFields.map((key) => (
                         <th
                           key={key}
                           className="px-2 py-2 border border-[#489CE2] font-semibold whitespace-nowrap"
                         >
-                          {key === "#" ? "#" : key.replace(/_/g, " ").toUpperCase()}
+                          {key === "#"
+                            ? "#"
+                            : key.replace(/_/g, " ").toUpperCase()}
                         </th>
                       ))}
                       <th className="px-2 py-2 border border-[#489CE2] font-semibold whitespace-nowrap">

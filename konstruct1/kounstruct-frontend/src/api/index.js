@@ -1,6 +1,10 @@
 
 import axiosInstance from "./axiosInstance";
-import { projectInstance,checklistInstance} from "./axiosInstance";
+import {
+  projectInstance,
+  checklistInstance,
+  NEWchecklistInstance,
+} from "./axiosInstance";
 import { organnizationInstance } from "./axiosInstance"
 
 
@@ -450,31 +454,26 @@ export const getChecklistSubCategories = async (id) =>
 
 
 export const createChecklist = async (data) =>
-  checklistInstance.post("/checklists/", data, {
+  NEWchecklistInstance.post("/checklists/", data, {
     headers: {
       "Content-Type": "application/json",
     },
   });
 
 
-  export const createChecklistItemOption = async (data) =>
-    checklistInstance.post("/checklists/", data, {
+
+
+
+  export const createChecklistItemOPTIONSS = async (data) =>
+    NEWchecklistInstance.post("/options/", data, {
       headers: {
         "Content-Type": "application/json",
       },
     });
 
 
-  export const createChecklistItemOPTIONSS = async (data) =>
-      checklistInstance.post("/options/", data, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-
 export const createChecklistQuestion = async (data) =>
-  checklistInstance.post("/items/", data, {
+  NEWchecklistInstance.post("/items/", data, {
     headers: {
       "Content-Type": "application/json",
     },

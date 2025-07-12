@@ -281,6 +281,7 @@ const userData = useMemo(() => {
       { value: "SUPERVISOR", label: "SUPERVISOR" },
       { value: "CHECKER", label: "CHECKER" },
       { value: "MAKER", label: "MAKER" },
+      { value: "Intializer", label: "Intializer" },
     ];
     if (isClient) {
       return [

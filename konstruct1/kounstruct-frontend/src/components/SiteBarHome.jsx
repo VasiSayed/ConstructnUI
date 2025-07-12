@@ -1,6 +1,7 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
 
+
 // Utility to extract all unique roles from accesses in localStorage
 function getUserRoles() {
   try {
@@ -31,12 +32,35 @@ function SiteBarHome() {
     // { name: "Observation", path: "/observation", key: "observation" },
     // { name: "Schedule", path: "/schedule", key: "schedule" },
     // { name: "Attendance", path: "/attendance", key: "attendance" },
-    { name: "My In-Progress Items", path: "/my-inprogress-submissions", key: "my_inprogress",},
+    {
+      name: "My In-Progress Items",
+      path: "/my-inprogress-submissions",
+      key: "my_inprogress",
+    },
     { name: "Inspector", path: "/checker-verified-inspector-pending" },
     { name: "Checklists", path: "/accessible-checklists", key: "checklists" },
 
     { name: "Checker Inbox", path: "/checker-inbox", key: "checker_inbox" },
-    {name: "Verifications", path: "/hierarchical-verifications", key: "verifications", },
+    {
+      name: "Verifications",
+      path: "/hierarchical-verifications",
+      key: "verifications",
+    },
+    {
+      name: "InitializeChecklist",
+      path: "/Initialize-Checklist",
+      key: "InitializeChecklist",
+    },
+    {
+      name: "PendingInspectorChecklists",
+      path: "/PendingInspector-Checklist",
+      key: "PendingInspectorChecklists",
+    },
+    {
+      name: "PendingForMakerItems",
+      path: "/Pending-For-MakerItems",
+      key: "PendingForMakerItems",
+    },
   ];
 
   // Filter logic based on roles

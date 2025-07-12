@@ -5,6 +5,7 @@ import { useSelector } from "react-redux";
 function SideBarSetup() {
 
   const isManager = useSelector((state) => state.user.user.is_manager);
+console.log('this is manaeger',isManager);
 
   const navItems = [
     { name: "User Setup", path: "/user-setup" },

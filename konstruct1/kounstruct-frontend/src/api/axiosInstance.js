@@ -1,12 +1,8 @@
 import axios from "axios";
 
-// <<<<<<< HEAD
 // const LOCAL_IP = "192.168.1.28";
-const LOCAL_IP = "192.168.23.214";
+const LOCAL_IP = "192.168.16.214";
 // const LOCAL_IP = "192.168.0.204";
-// // Your friend's IP address
-// const FRIEND_IP = "192.168.1.28";
-// >>>>>>> origin/prathamesh
 
 
 const refreshToken = async () => {
@@ -59,6 +55,11 @@ export const checklistInstance = axios.create({
   baseURL: `http://${LOCAL_IP}:8003/api/`,
 });
 
+
+export const NEWchecklistInstance = axios.create({
+  baseURL: `http://${LOCAL_IP}:8005/api/`,
+});
+
 // Attach token to every request
 const attachTokenInterceptor = (instance) => {
   instance.interceptors.request.use(
@@ -100,4 +101,5 @@ attachTokenInterceptor(axiosInstance);
 attachTokenInterceptor(projectInstance);
 attachTokenInterceptor(organnizationInstance);
 attachTokenInterceptor(checklistInstance);
+attachTokenInterceptor(NEWchecklistInstance);
 export default axiosInstance;
