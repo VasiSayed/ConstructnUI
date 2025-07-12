@@ -58,11 +58,12 @@ function Profile({ onClose }) {
     role = "Client";
   }
 
-  useEffect(() => {
-    if (role) {
-      localStorage.setItem("USER_ROLE", role);
-    }
-  }, [role]);
+
+
+  useEffect(()=>{
+    localStorage.setItem('ROLE',role);
+  },[role])
+
 
   // Dropdown outside click
   useEffect(() => {
@@ -81,7 +82,9 @@ function Profile({ onClose }) {
     localStorage.removeItem("REFRESH_TOKEN");
     localStorage.removeItem("USER_DATA");
     localStorage.removeItem("ACCESSES");
-    localStorage.removeItem("USER_ROLE");
+
+    localStorage.removeItem('ROLE');
+
     navigate("/login");
     if (typeof onClose === "function") onClose();
   };

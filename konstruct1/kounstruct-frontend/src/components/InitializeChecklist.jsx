@@ -242,8 +242,78 @@
 import React, { useEffect, useState } from "react";
 import SiteBarHome from "./SiteBarHome";
 import { projectInstance, NEWchecklistInstance } from "../api/axiosInstance";
+import { useTheme } from "../ThemeContext";
+
+// UTILITY: Detect if current user is Intializer
+function isInitializerRole() {
+  try {
+    const userStr = localStorage.getItem("USER_DATA");
+    if (!userStr || userStr === "undefined") return false;
+    const userData = JSON.parse(userStr);
+
+    // .role (string)
+    if (userData.role === "Intializer") return true;
+    // .roles (array of strings or objects)
+    if (Array.isArray(userData.roles)) {
+      if (
+        userData.roles.some(
+          (r) =>
+            (typeof r === "string" && r === "Intializer") ||
+            (typeof r === "object" && r && r.role === "Intializer")
+        )
+      )
+        return true;
+    }
+    // .accesses (optional, array with roles inside)
+    if (Array.isArray(userData.accesses)) {
+      for (let a of userData.accesses) {
+        if (
+          Array.isArray(a.roles) &&
+          a.roles.some(
+            (r) =>
+              (typeof r === "string" && r === "Intializer") ||
+              (typeof r === "object" && r && r.role === "Intializer")
+          )
+        )
+          return true;
+      }
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
 
 function InitializeChecklist() {
+  const { theme, toggleTheme } = useTheme();
+  const isInitializer = isInitializerRole();
+
+  const palette = theme === "dark"
+    ? {
+        pageBg: "bg-[#181820]",
+        card: "bg-[#23232e] border border-amber-400/30 shadow-lg",
+        section: "bg-[#23232e]",
+        text: "text-yellow-100",
+        textDim: "text-yellow-200",
+        border: "border-yellow-400/50",
+        select: "bg-[#191921] text-yellow-100 border-yellow-400/30",
+        button: "bg-yellow-400 hover:bg-yellow-300 text-black font-semibold",
+        input: "bg-[#23232e] text-yellow-100 border-yellow-400/30",
+        badge: "bg-yellow-800 text-yellow-200"
+      }
+    : {
+        pageBg: "bg-gray-50",
+        card: "bg-white border border-orange-200 shadow",
+        section: "bg-white",
+        text: "text-gray-800",
+        textDim: "text-gray-500",
+        border: "border-orange-300",
+        select: "bg-white text-gray-800 border-orange-300",
+        button: "bg-orange-500 hover:bg-orange-600 text-white font-semibold",
+        input: "bg-white text-gray-800 border-orange-300",
+        badge: "bg-orange-100 text-orange-700"
+      };
+
   const [projects, setProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [loadingProjects, setLoadingProjects] = useState(true);
@@ -266,11 +336,8 @@ function InitializeChecklist() {
   const [isViewingItems, setIsViewingItems] = useState(false);
 
   // Get user/checker accesses from localStorage
-  const userStr = localStorage.getItem("user");
-
   const accessesStr = localStorage.getItem("ACCESSES");
   const accesses = accessesStr ? JSON.parse(accessesStr) : [];
-  console.log("Current accesses:", accesses);
 
   // Function to refresh checklists
   const refreshChecklists = async () => {
@@ -278,8 +345,6 @@ function InitializeChecklist() {
       setChecklists([]);
       return;
     }
-
-    console.log("Fetching checklists for project:", selectedProjectId);
     setLoadingChecklists(true);
     setChecklistError(null);
     try {
@@ -292,16 +357,9 @@ function InitializeChecklist() {
           },
         }
       );
-
-      console.log("Checklists response:", res.data);
-      console.log("Is array?", Array.isArray(res.data));
-      console.log("Data length:", res.data?.length);
-
       const checklistData = Array.isArray(res.data) ? res.data : [];
-      console.log("Setting checklists:", checklistData);
       setChecklists(checklistData);
     } catch (err) {
-      console.error("Checklist fetch error:", err);
       setChecklistError("Failed to load checklists");
       setChecklists([]);
     } finally {
@@ -312,9 +370,6 @@ function InitializeChecklist() {
   // Initialize checklist function
   const handleInitializeChecklist = async (checklistId) => {
     try {
-      console.log("Initializing checklist:", checklistId);
-
-      // Hit the start-checklist API
       await NEWchecklistInstance.post(
         `/start-checklist/${checklistId}/`,
         {},
@@ -324,14 +379,9 @@ function InitializeChecklist() {
           },
         }
       );
-
-      console.log("Checklist initialized successfully:", checklistId);
       alert("Checklist initialized successfully!");
-
-      // Refresh the checklist list to remove the initialized checklist
       await refreshChecklists();
     } catch (err) {
-      console.error("Initialize checklist error:", err);
       alert("Failed to initialize checklist. Please try again.");
     }
   };
@@ -424,9 +474,9 @@ function InitializeChecklist() {
       setLoadingProjects(true);
       setError(null);
       try {
-        // Filter projects where user has access (you can modify the role filter as needed)
+        // Filter projects where user has access
         const userProjects = accesses
-          .filter((a) => a.active) // Add specific role filter here if needed
+          .filter((a) => a.active)
           .map((a) => Number(a.project_id));
 
         const res = await projectInstance.get("/projects/", {
@@ -438,7 +488,6 @@ function InitializeChecklist() {
         const allProjects = Array.isArray(res.data)
           ? res.data
           : res.data.results;
-        console.log("all projects:", allProjects);
 
         const filtered = allProjects.filter((p) => userProjects.includes(p.id));
 
@@ -457,16 +506,35 @@ function InitializeChecklist() {
     if (accesses.length > 0) {
       fetchProjects();
     }
-  }, []); // Remove userStr dependency to prevent re-renders
+    // eslint-disable-next-line
+  }, []);
 
   // Fetch checklists when project is selected
   useEffect(() => {
     refreshChecklists();
+    // eslint-disable-next-line
   }, [selectedProjectId]);
 
+  // --- THEME TOGGLE BUTTON (only for Initializer)
+  const ThemeToggle = () =>
+    isInitializer ? (
+      <button
+        className={`fixed top-5 right-7 z-50 px-4 py-2 rounded-xl shadow-md font-semibold text-sm
+        ${theme === "dark"
+          ? "bg-yellow-400 text-black hover:bg-yellow-300"
+          : "bg-gray-800 text-yellow-300 hover:bg-gray-900"}
+        transition-all duration-200`}
+        style={{ border: "2px solid #facc15" }}
+        onClick={toggleTheme}
+      >
+        {theme === "dark" ? "Light Mode" : "Dark Mode"}
+      </button>
+    ) : null;
+
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className={`flex min-h-screen ${palette.pageBg}`}>
       <SiteBarHome />
+      <ThemeToggle />
       <main className="ml-[15%] w-full p-6">
         {/* Conditional Rendering: Main View or Items View */}
         {isViewingItems ? (
@@ -635,6 +703,7 @@ function InitializeChecklist() {
                       setSelectedProjectId(Number(e.target.value))
                     }
                     disabled={projects.length === 0}
+
                   >
                     {projects.length === 0 && (
                       <option>No projects available</option>

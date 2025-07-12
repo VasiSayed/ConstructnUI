@@ -2,8 +2,32 @@ import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { createTransferRule, getTransferRules } from "../../api";
 import { toast } from "react-hot-toast";
+import { useTheme } from "../../ThemeContext";
+
+// THEME COLORS
+const COLORS = {
+  light: {
+    ORANGE: "#b54b13",
+    ORANGE_DARK: "#882c10",
+    ORANGE_LIGHT: "#ede1d3",
+    BORDER_GRAY: "#a29991",
+    TEXT_GRAY: "#29252c",
+    WHITE: "#fff",
+  },
+  dark: {
+    ORANGE: "#ffbe63",
+    ORANGE_DARK: "#f4b95e",
+    ORANGE_LIGHT: "#2b2321",
+    BORDER_GRAY: "#6f6561",
+    TEXT_GRAY: "#ece2d7",
+    WHITE: "#171214",
+  },
+};
 
 function TransferRules({ nextStep, previousStep }) {
+  const { theme } = useTheme();
+  const c = COLORS[theme === "dark" ? "dark" : "light"];
+
   const projectId = useSelector((state) => state.user.selectedProject.id);
 
   const [selectedLevel, setSelectedLevel] = useState("question_level");
@@ -11,7 +35,6 @@ function TransferRules({ nextStep, previousStep }) {
   useEffect(() => {
     const fetchTransferRules = async () => {
       const response = await getTransferRules(projectId);
-      console.log(response.data, "RESPONSE");
       if (response.status === 200) {
         const transferRule = response.data.data?.["Transfer-Rule"][0];
         if (transferRule) {
@@ -22,7 +45,6 @@ function TransferRules({ nextStep, previousStep }) {
             setSelectedLevel(matchingRule);
           }
         }
-
         toast.success(response.data.message);
       }
     };
@@ -48,96 +70,99 @@ function TransferRules({ nextStep, previousStep }) {
 
   const handleSelection = (event) => {
     setSelectedLevel(event.target.value);
-    console.log(event.target.value);
   };
-  return (
-    <div className="max-w-7xl h-dvh my-1 mx-auto p-6 bg-white rounded-lg shadow-md">
-      <div className="bg-white p-6 rounded-lg">
-        <h2 className="text-2xl font-bold mb-6 text-center text-green-700">
-          Note :
-        </h2>
 
-        <p className=" text-gray-600 mb-8 text-justify text-xl">
-          You have the option to select the transfer at Question-level /
-          Checklist-level . For Example: If you choose Question-level, the
-          moment a question has a positive answer it will be transferred to the
-          next level. If you choose to transfer at the checklist level, a
-          checklist will move to the next level only after all the Questions in
-          the checklist have marked positive.
+  return (
+    <div
+      className="max-w-3xl my-8 mx-auto px-6 py-8 rounded-2xl shadow-xl"
+      style={{
+        background: c.ORANGE_LIGHT,
+        border: `1.5px solid ${c.BORDER_GRAY}`,
+        color: c.TEXT_GRAY,
+      }}
+    >
+      <div className="p-8 rounded-2xl" style={{ background: c.WHITE }}>
+        <h2
+          className="text-2xl font-bold mb-5 text-center"
+          style={{ color: c.ORANGE_DARK }}
+        >
+          Note
+        </h2>
+        <p
+          className="mb-10 text-justify text-lg"
+          style={{ color: c.TEXT_GRAY, lineHeight: 1.7 }}
+        >
+          You have the option to select the transfer at Question-level / Checklist-level. <br />
+          <b>Example:</b> If you choose <b>Question-level</b>, the moment a question has a positive answer it will be transferred to the next level.
+          If you choose <b>Checklist-level</b>, a checklist will move to the next level only after <b>all</b> questions in the checklist have marked positive.
         </p>
 
-        <form className="mb-8">
-          <div className="flex flex-col-10 gap-4">
-            <label className="flex items-center justify-between space-x-3 py-2 border border-gray-200 rounded-md px-4">
-              <input
-                type="radio"
-                name="flat_level"
-                value="flat_level"
-                checked={selectedLevel === "flat_level"}
-                onChange={handleSelection}
-                className="form-radio h-4 w-4 text-green-600"
-              />
-              <span className="text-gray-700 text-xl">Flat Level</span>
-            </label>
-
-            <label className="flex items-center justify-between space-x-3 py-2 border border-gray-200 rounded-md px-4">
-              <input
-                type="radio"
-                name="room_level"
-                value="room_level"
-                checked={selectedLevel === "room_level"}
-                onChange={handleSelection}
-                className="form-radio h-4 w-4 text-green-600"
-              />
-              <span className="text-gray-700 text-xl">Room Level</span>
-            </label>
-
-            <label className="flex items-center justify-between space-x-3 py-2 border border-gray-200 rounded-md px-4">
-              <input
-                type="radio"
-                name="checklist_level"
-                value="checklist_level"
-                checked={selectedLevel === "checklist_level"}
-                onChange={handleSelection}
-                className="form-radio h-4 w-4 text-green-600"
-              />
-              <span className="text-gray-700 text-xl">Checklist Level</span>
-            </label>
-
-            <label className="flex items-center justify-between space-x-3 py-2 border border-gray-200 rounded-md px-4">
-              <input
-                type="radio"
-                name="question_level"
-                value="question_level"
-                checked={selectedLevel === "question_level"}
-                onChange={handleSelection}
-                className="form-radio h-4 w-4 text-green-600"
-              />
-              <span className="text-gray-700 text-xl">Question Level</span>
-            </label>
+        <form className="mb-10">
+          <div className="flex flex-col gap-5">
+            {[
+              { value: "flat_level", label: "Flat Level" },
+              { value: "room_level", label: "Room Level" },
+              { value: "checklist_level", label: "Checklist Level" },
+              { value: "question_level", label: "Question Level" },
+            ].map(({ value, label }) => (
+              <label
+                key={value}
+                className="flex items-center justify-between space-x-3 py-3 border rounded-xl px-4 cursor-pointer transition-all"
+                style={{
+                  borderColor: c.BORDER_GRAY,
+                  background: selectedLevel === value ? c.ORANGE_LIGHT : c.WHITE,
+                }}
+              >
+                <input
+                  type="radio"
+                  name="transfer-level"
+                  value={value}
+                  checked={selectedLevel === value}
+                  onChange={handleSelection}
+                  className="form-radio h-5 w-5"
+                  style={{
+                    accentColor: c.ORANGE_DARK,
+                  }}
+                />
+                <span
+                  className="text-xl"
+                  style={{
+                    color: selectedLevel === value ? c.ORANGE_DARK : c.TEXT_GRAY,
+                    fontWeight: selectedLevel === value ? 600 : 500,
+                  }}
+                >
+                  {label}
+                </span>
+              </label>
+            ))}
           </div>
         </form>
 
-        <div className="flex justify-between">
+        <div className="flex justify-between gap-5 mt-10">
           <button
-            className="bg-gray-400 text-white px-4 py-2 mt-2 rounded-md"
+            className="px-7 py-3 rounded-xl font-semibold"
+            style={{
+              background: c.BORDER_GRAY,
+              color: "#fff",
+              minWidth: 120,
+            }}
             onClick={previousStep}
+            type="button"
           >
             Previous
           </button>
           <button
             onClick={handleSubmit}
-            className="bg-[#3CB0E1] text-white px-4 py-2 rounded-md"
+            className="px-7 py-3 rounded-xl font-semibold shadow"
+            style={{
+              background: `linear-gradient(90deg, ${c.ORANGE} 70%, ${c.ORANGE_DARK} 100%)`,
+              color: "#fff",
+              minWidth: 120,
+            }}
+            type="button"
           >
             Submit
           </button>
-
-          {/* Display Success Message */}
-          {/* {successMessage && (
-            <div className="mt-4 text-green-600 font-semibold">
-              {successMessage}
-            </div>
-          )} */}
         </div>
       </div>
     </div>

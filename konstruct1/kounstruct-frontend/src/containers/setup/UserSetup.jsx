@@ -1,722 +1,956 @@
-import React, { useState, useEffect, useRef } from "react";
+import React from "react";
 import {
-  createUser,
+  Building2,
+  Building,
+  MapPin,
+  Search,
+  Plus,
+  Edit3,
+  Trash2,
+  Check,
+  ChevronRight,
+} from "lucide-react";
+import {
   createOrganization,
-  createCompany,
-  createEntity, // Add this API function
-  getUserDetailsById,
+  updateOrganization,
+  deleteOrganization,
   getOrganizationDetailsById,
+  createCompany,
   getCompanyDetailsById,
-  allorgantioninfototalbyUser_id, // Add this API function
+  createEntity,
+  allorgantioninfototalbyUser_id,
 } from "../../api";
 import { toast } from "react-hot-toast";
 import { useSelector, useDispatch } from "react-redux";
-import {
-  setCompany as setCompanyAction,
-  setOrganization as setOrganizationAction,
-} from "../../store/userSlice";
+import { setOrganization as setOrganizationAction } from "../../store/userSlice";
+import { useTheme } from "../../ThemeContext"; // Use your ThemeContext here
 
-// Debounce helper
-function debounce(func, wait) {
-  let timeout;
-  return function (...args) {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(this, args), wait);
-  };
-}
+const ORANGE = "#ea6822";
+const ORANGE_DARK = "#e44a22";
+const GOLD_GRADIENT_CSS = "linear-gradient(90deg, #fde047 60%, #facc15 100%)";
+const YELLOW_BORDER = "#facc15";
+const YELLOW_TEXT = "#783f04";
 
-const UserSetup = ({
-  onUserSetup,
-  onCompanySetup,
-  onOrganizationSetup,
-  onEntitySetup, // Add this prop
-  onNextClick,
-}) => {
+const STEPS = [
+  { key: "organization", label: "Setup Organization", icon: Building2 },
+  { key: "company", label: "Setup Company", icon: Building },
+  { key: "entity", label: "Setup Entity", icon: MapPin },
+];
+
+const UserSetup = () => {
   const dispatch = useDispatch();
   const userId = useSelector((state) => state.user.user.id);
-  const organizationId = useSelector((state) => state.user.organization.id);
 
-  const [organizationDetails, setOrganizationDetails] = useState([]);
-  const [companyDetails, setCompanyDetails] = useState([]);
-  const [entityDetails, setEntityDetails] = useState([]);
-  const [allUserInfo, setAllUserInfo] = useState({
-    organizations: [],
-    companies: [],
-    entities: [],
-  });
-  const [selectedOrgForEntity, setSelectedOrgForEntity] = useState(null);
-  const [selectedCompanyForEntity, setSelectedCompanyForEntity] =
-    useState(null);
-  const [setup, setSetup] = useState("user");
-  const [user, setUser] = useState({
-    first_name: "",
-    last_name: "",
-    user_type: "super_admin",
-    is_super_admin: true,
-  });
-  const [organization, setOrganization] = useState({
-    organization_name: "",
-  });
-  const [company, setCompany] = useState({
+  // GLOBAL THEME FROM CONTEXT
+  const { theme, toggleTheme } = useTheme();
+
+  // State
+  const [setup, setSetup] = React.useState("organization");
+  const [organizationDetails, setOrganizationDetails] = React.useState([]);
+  const [orgForm, setOrgForm] = React.useState({ organization_name: "" });
+  const [editingOrg, setEditingOrg] = React.useState(null);
+  const [editingName, setEditingName] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [selectedOrgId, setSelectedOrgId] = React.useState(null);
+  const [orgSearch, setOrgSearch] = React.useState("");
+  const [companyDetails, setCompanyDetails] = React.useState([]);
+  const [companyForm, setCompanyForm] = React.useState({
     name: "",
-    region: "",
+    entity_name: "",
     country: "",
+    state_name: "",
+    region: "",
+    zone_name: "",
     sub_domain: "",
-    contact_email: "",
   });
-  const [entity, setEntity] = useState({
+  const [entityStepOrgs, setEntityStepOrgs] = React.useState([]);
+  const [entityStepCompanies, setEntityStepCompanies] = React.useState([]);
+  const [selectedEntityOrgId, setSelectedEntityOrgId] = React.useState(null);
+  const [selectedEntityCompanyId, setSelectedEntityCompanyId] = React.useState(null);
+  const [entityForm, setEntityForm] = React.useState({
     name: "",
     state: "",
     region: "",
     zone: "",
   });
-  const [companyId, setCompanyId] = useState(null);
-  const [entityId, setEntityId] = useState(null);
 
-  // Fetch all user info for entity setup
-  const fetchAllUserInfo = async () => {
+  // API handlers
+  const fetchOrganizations = async () => {
+    try {
+      const response = await getOrganizationDetailsById(userId);
+      setOrganizationDetails(Array.isArray(response.data) ? response.data : []);
+    } catch {
+      setOrganizationDetails([]);
+    }
+  };
+  const fetchCompanies = async (orgId) => {
+    if (!orgId) return setCompanyDetails([]);
+    try {
+      const response = await getCompanyDetailsById(orgId);
+      if (response.data && response.data.data && response.data.data.company) {
+        setCompanyDetails(response.data.data.company);
+      } else setCompanyDetails([]);
+    } catch {
+      setCompanyDetails([]);
+    }
+  };
+  const fetchEntityStepInfo = async () => {
     try {
       const response = await allorgantioninfototalbyUser_id(userId);
-      setAllUserInfo(response.data);
-      console.log("All User Info:", response.data);
-    } catch (err) {
-      toast.error("Failed to fetch user information");
+      setEntityStepOrgs(Array.isArray(response.data.organizations) ? response.data.organizations : []);
+      setEntityStepCompanies(Array.isArray(response.data.companies) ? response.data.companies : []);
+    } catch {
+      setEntityStepOrgs([]);
+      setEntityStepCompanies([]);
     }
   };
 
-  // Org fetch function, used everywhere
-  const fetchOrganizationsByUser = async () => {
+  React.useEffect(() => {
+    if (setup === "organization" || setup === "company") fetchOrganizations();
+  }, [setup, userId]);
+  React.useEffect(() => {
+    if (setup === "company" && selectedOrgId) fetchCompanies(selectedOrgId);
+  }, [setup, selectedOrgId]);
+  React.useEffect(() => {
+    if (setup === "entity") fetchEntityStepInfo();
+  }, [setup, userId]);
+
+  // Organization handlers
+  const handleOrgSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
     try {
-      const response = await getOrganizationDetailsById(userId);
-      setOrganizationDetails(response.data || []);
-      console.log("API Response:", response);
-      console.log("Organizations:", response.data);
-    } catch (err) {
-      toast.error("Failed to fetch organizations");
-    }
-  };
-
-  const debouncedFetchOrganizationsByUser = useRef(
-    debounce(fetchOrganizationsByUser, 300)
-  ).current;
-
-  // Fetch orgs when setup is organization
-  useEffect(() => {
-    if (setup === "organization" && userId) {
-      debouncedFetchOrganizationsByUser();
-    }
-  }, [setup, userId]);
-
-  // Fetch orgs when setup is company (for dropdown)
-  useEffect(() => {
-    if (setup === "company" && userId) {
-      fetchOrganizationsByUser(); // Fetch immediately for dropdown
-    }
-  }, [setup, userId]);
-
-  // Fetch all info when setup is entity
-  useEffect(() => {
-    if (setup === "entity" && userId) {
-      fetchAllUserInfo();
-    }
-  }, [setup, userId]);
-
-  // Filter companies based on selected organization for entity
-  const filteredCompaniesForEntity = selectedOrgForEntity
-    ? allUserInfo.companies.filter(
-        (company) => company.organization === selectedOrgForEntity
-      )
-    : [];
-
-  // Other useEffect for loading user/org/company details
-  useEffect(() => {
-    const fetchUserDetails = async () => {
-      const response = await getUserDetailsById(userId);
-      if (!response.data.success) return;
-      if (response.status === 200) {
-        setUser({
-          first_name: response.data.data.user.first_name,
-          last_name: response.data.data.user.last_name,
-          user_type: response.data.data.user.user_type,
-          is_super_admin: response.data.data.user.is_super_admin,
-        });
-      }
-    };
-
-    const fetchOrganizationDetails = async () => {
-      const response = await getOrganizationDetailsById(userId);
-      if (!response.data.success) return;
+      const response = await createOrganization({
+        ...orgForm,
+        created_by: userId,
+        active: true,
+      });
+      toast.success("Organization added!");
+      setOrganizationDetails(prev =>
+        [{ id: response.data.id, organization_name: orgForm.organization_name }, ...prev]
+      );
+      setOrgForm({ organization_name: "" });
+      setEditingOrg(null);
+    } catch (error) {
       if (
-        response.status === 200 &&
-        response.data.data.organization.length > 0
+        error?.response?.data?.non_field_errors &&
+        error.response.data.non_field_errors[0]?.includes("must make a unique set")
       ) {
-        setOrganizationDetails(response.data.data.organization);
-
-        setOrganization({
-          organization_name:
-            response.data.data.organization[0].organization_name,
-        });
+        toast.error("This organization already exists for this user. Please select it.");
+      } else {
+        toast.error(error.response?.data?.message || "Failed to create organization.");
       }
-    };
-
-    const fetchCompanyDetails = async () => {
-      const response = await getCompanyDetailsById(organizationId);
-      if (!response.data.success) return;
-      if (response.status === 200 && response.data.data.company.length > 0) {
-        setCompanyDetails(response.data.data.company);
-        dispatch(setCompanyAction(response.data.data.company[0].id));
-        setCompanyId(response.data.data.company[0].id);
-        setCompany({
-          name: response.data.data.company[0].name,
-          region: response.data.data.company[0].region,
-          country: response.data.data.company[0].country,
-          sub_domain: response.data.data.company[0].sub_domain,
-        });
-      }
-    };
-
-    if (userId) fetchUserDetails();
-    if (userId) fetchOrganizationDetails();
-    if (organizationId) fetchCompanyDetails();
-  }, [organizationId, userId, companyId, dispatch]);
-
-  // Step change with fetch
-  const handleSetup = (val) => {
-    setSetup(val);
+    } finally {
+      setLoading(false);
+    }
   };
-
-  const handleUserChange = (e) => {
-    const { name, value } = e.target;
-    setUser({
-      ...user,
-      [name]: value,
-      is_super_admin: name === "user_type" && value === "super_admin",
-    });
+  const handleSelectOrg = (org) => {
+    setSelectedOrgId(org.id);
+    dispatch(setOrganizationAction(org.id));
   };
-
-  const handleCompanyChange = (e) => {
-    const { name, value } = e.target;
-    setCompany({
-      ...company,
-      [name]: value,
-    });
+  const handleEditOrg = (org) => {
+    setEditingOrg(org.id);
+    setEditingName(org.organization_name);
   };
-
-  const handleEntityChange = (e) => {
-    const { name, value } = e.target;
-    setEntity({
-      ...entity,
-      [name]: value,
-    });
+  const handleUpdateOrg = async (org) => {
+    if (!editingName.trim()) {
+      toast.error("Organization name cannot be empty.");
+      return;
+    }
+    try {
+      await updateOrganization(org.id, { organization_name: editingName });
+      toast.success("Organization updated!");
+      setEditingOrg(null);
+      setEditingName("");
+      setOrganizationDetails((prev) =>
+        prev.map((item) =>
+          item.id === org.id ? { ...item, organization_name: editingName } : item
+        )
+      );
+      fetchOrganizations();
+    } catch (error) {
+      toast.error("Error updating organization");
+    }
   };
-
-  const handleUserSubmit = async (e) => {
-    e.preventDefault();
-    const response = await createUser(user);
-    if (response.status === 200) {
-      onUserSetup(response.data.data.id);
-      toast.success(response.data.message);
-      setSetup("organization");
+  const handleDeleteOrg = async (org) => {
+    if (!window.confirm(`Delete organization "${org.organization_name}"? This cannot be undone!`)) return;
+    try {
+      await deleteOrganization(org.id);
+      toast.success("Organization deleted!");
+      setOrganizationDetails((prev) =>
+        prev.filter((item) => item.id !== org.id)
+      );
+      fetchOrganizations();
+    } catch (error) {
+      toast.error("Error deleting organization");
     }
   };
 
-  const handleOrganizationSubmit = async (e) => {
-    e.preventDefault();
-    const response = await createOrganization({
-      ...organization,
-      created_by: userId,
-      active: true,
-    });
-    if (response.status === 200) {
-      onOrganizationSetup && onOrganizationSetup(response.data.data.id);
-      toast.success(response.data.message);
-      setSetup("company");
-      fetchOrganizationsByUser();
-    }
-  };
-
+  // Company handlers
   const handleCompanySubmit = async (e) => {
     e.preventDefault();
-    const response = await createCompany({
-      ...company,
-      organization: organizationId,
-    });
-    if (response.status === 200) {
-      onCompanySetup(response.data.data.id);
-      toast.success(response.data.message);
+    if (!selectedOrgId) {
+      toast.error("Select organization first.");
+      return;
+    }
+    try {
+      const response = await createCompany({
+        ...companyForm,
+        organization: selectedOrgId,
+        created_by: userId,
+      });
+      if (response.status === 200 && response.data.data) {
+        toast.success(response.data.message || "Company created!");
+        setCompanyForm({
+          name: "",
+          entity_name: "",
+          country: "",
+          state_name: "",
+          region: "",
+          zone_name: "",
+          sub_domain: "",
+        });
+        setSetup("entity");
+        setSelectedEntityOrgId(selectedOrgId);
+        setSelectedEntityCompanyId(response.data.data.id);
+        fetchEntityStepInfo();
+      }
+    } catch (error) {
+      if (
+        error?.response?.data?.non_field_errors &&
+        error.response.data.non_field_errors[0]?.includes("must make a unique set")
+      ) {
+        toast.error("A company with this name already exists for the selected organization. Please use a different name or select the existing company.");
+      } else {
+        toast.error(error.response?.data?.message || "Error creating company.");
+      }
     }
   };
 
+  // Entity handlers
+  const handleEntitySubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedEntityCompanyId) {
+      toast.error("Please select a company first.");
+      return;
+    }
+    const payload = {
+      ...entityForm,
+      company: selectedEntityCompanyId,
+      created_by: userId,
+    };
+    const selectedOrg = entityStepOrgs.find((o) => o.id === selectedEntityOrgId);
+    try {
+      const response = await createEntity(payload);
+      if (response.status === 200 && response.data.success) {
+        toast.success(
+          `Setup successful! Organization: ${selectedOrg?.organization_name || ""}`
+        );
+        setEntityForm({
+          name: "",
+          state: "",
+          region: "",
+          zone: "",
+        });
+      } else {
+        toast.error(response.data.message || "Error creating entity.");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || "Unexpected error creating entity.");
+    }
+  };
+
+  // Filtering
+  const filteredCompaniesForEntity = selectedEntityOrgId
+    ? entityStepCompanies.filter((c) => c.organization === selectedEntityOrgId)
+    : [];
+  const filteredOrgs = organizationDetails.filter(org =>
+    org.organization_name.toLowerCase().includes(orgSearch.toLowerCase())
+  );
+
+  // Theme palette
+  const palette = theme === "dark"
+    ? {
+        bg: "bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800",
+        card: "bg-slate-900/70 backdrop-blur-2xl border-amber-400/40",
+        border: "#ffa95d44",
+        input: "bg-slate-800 text-amber-100 border-amber-300",
+        inputFocus: "focus:bg-slate-900 focus:ring-2 focus:ring-amber-400 focus:border-transparent",
+        accent: "from-yellow-300 to-yellow-500",
+        text: "text-white",
+        subtext: "text-amber-300",
+        btn: "bg-gradient-to-r from-yellow-300 to-yellow-500 text-yellow-900",
+        btnHover: "hover:from-yellow-200 hover:to-yellow-400",
+        icon: "text-yellow-500",
+      }
+    : {
+        bg: "",
+        card: "",
+        border: "#ea682230",
+        input: "bg-[#f8f7fa] text-[#27272f] border-[#ea6822]",
+        inputFocus: "",
+        accent: "from-[#ea6822] to-[#e44a22]",
+        text: "text-[#27272f]",
+        subtext: "text-[#ea6822]",
+        btn: "bg-gradient-to-r from-[#ea6822] to-[#e44a22] text-white",
+        btnHover: "hover:from-[#ea6822] hover:to-[#e44a22]",
+        icon: "text-[#ea6822]",
+      };
+
   return (
-    <>
-      <div className="user-setup-container ">
-        <div className="user-setup w-full">
-          <button
-            onClick={() => handleSetup("organization")}
-            className={`rounded-full px-4 py-2 ${
-              setup === "organization" ? "bg-gray-300" : "bg-white"
-            }`}
-          >
-            Setup Organization
-          </button>
-          <button
-            onClick={() => handleSetup("company")}
-            className={`rounded-full px-4 py-2 ${
-              setup === "company" ? "bg-gray-300" : "bg-white"
-            }`}
-          >
-            Setup Company
-          </button>
-          <button
-            onClick={() => handleSetup("entity")}
-            className={`rounded-full px-4 py-2 ${
-              setup === "entity" ? "bg-gray-300" : "bg-white"
-            }`}
-          >
-            Setup Entity
-          </button>
-        </div>
-        <div>
-          {setup === "user" && (
-            <form className="user-setup-form" onSubmit={handleUserSubmit}>
-              <input
-                label="First Name"
-                name="first_name"
-                value={user.first_name}
-                onChange={handleUserChange}
-                placeholder="Enter First Name"
-                className="rounded-md px-4 py-2"
-              />
-              <input
-                label="Last Name"
-                name="last_name"
-                value={user.last_name}
-                onChange={handleUserChange}
-                placeholder="Enter Last Name"
-                className="rounded-md px-4 py-2"
-              />
-              <select
-                label="user_type"
-                name="user_type"
-                value={user.user_type}
-                onChange={handleUserChange}
-                className="rounded-md px-4 py-2"
-              >
-                <option value="super_admin">Super Admin</option>
-                <option value="user">User</option>
-              </select>
+    <div className={`min-h-screen w-full flex flex-col items-center justify-center py-10 px-4 ${palette.bg}`}>
+      {/* Theme Toggle */}
+      <div className="flex justify-end w-full max-w-5xl mb-4">
+        <button
+          onClick={toggleTheme}
+          style={{
+            background: "#fff",
+            border: `1.5px solid ${theme === "dark" ? YELLOW_BORDER : ORANGE}`,
+            color: theme === "dark" ? YELLOW_BORDER : ORANGE_DARK,
+            borderRadius: 10,
+            padding: "7px 18px",
+            fontWeight: 500,
+            cursor: "pointer",
+            fontSize: 15,
+            marginRight: 0,
+            boxShadow: theme === "dark" ? "0 2px 12px #0001" : "0 1px 4px #ea682220"
+          }}
+        >
+          {theme === "light" ? "🌙 Dark Theme" : "☀️ Light Theme"}
+        </button>
+      </div>
+
+      {/* Stepper */}
+      <div className="flex items-center gap-2 justify-center w-full max-w-4xl mb-10">
+        {STEPS.map((step, idx) => {
+          const Icon = step.icon;
+          const isActive = setup === step.key;
+          const isPast = STEPS.findIndex(s => s.key === setup) > idx;
+          return (
+            <React.Fragment key={step.key}>
               <button
-                type="submit"
-                className="rounded-md px-4 py-2 bg-blue-600 text-white"
-              >
-                Submit
-              </button>
-            </form>
-          )}
-
-          {setup === "organization" && (
-            <div>
-              <form
-                className="user-setup-form"
-                onSubmit={handleOrganizationSubmit}
-              >
-                <input
-                  label="Organization Name"
-                  placeholder="Enter Organization Name"
-                  name="organization_name"
-                  value={organization.organization_name}
-                  className="rounded-md px-4 py-2"
-                  onChange={(e) =>
-                    setOrganization({
-                      ...organization,
-                      organization_name: e.target.value,
-                    })
-                  }
-                />
-                <button
-                  type="submit"
-                  className="rounded-md px-4 py-2 bg-blue-600 text-white"
-                >
-                  Submit
-                </button>
-              </form>
-
-              {/* Button list for organization selection */}
-              <ul className="organization-list mt-6">
-                {organizationDetails.map((org) => (
-                  <button
-                    key={org.id}
-                    className={`bg-white rounded-xl p-4 m-2 ${
-                      org.organization_name === organization.organization_name
-                        ? "bg-gray-300 border"
-                        : ""
-                    }`}
-                    onClick={() =>
-                      setOrganization({
-                        organization_name: org.organization_name,
-                      })
-                    }
-                  >
-                    {org.organization_name}
-                  </button>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {setup === "company" && (
-            <div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">
-                  Select Organization
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {organizationDetails.map((org) => (
-                    <button
-                      key={org.id}
-                      type="button"
-                      className={`rounded-md px-4 py-2 border ${
-                        organizationId === org.id
-                          ? "bg-gray-300 border-blue-500"
-                          : "bg-white border-gray-300"
-                      }`}
-                      onClick={() => dispatch(setOrganizationAction(org.id))}
-                    >
-                      {org.organization_name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  if (!organizationId) {
-                    toast.error("Please select an organization first.");
-                    return;
-                  }
-
-                  const payload = {
-                    organization: organizationId,
-                    name: company.name,
-                    region: company.region,
-                    country: company.country,
-                    sub_domain: company.sub_domain,
-                    contact_email: "",
-                    created_by: userId,
-                  };
-
-                  try {
-                    const response = await createCompany(payload);
-
-                    if (response.status === 200 && response.data.success) {
-                      onCompanySetup(response.data.data.id);
-                      toast.success(
-                        response.data.message || "Company created successfully!"
-                      );
-                      setCompanyId(response.data.data.id);
-                      setCompanyDetails((prev) => [
-                        ...prev,
-                        response.data.data,
-                      ]);
-                    } else {
-                      toast.error(
-                        response.data.message || "Error creating company."
-                      );
-                    }
-                  } catch (error) {
-                    console.error("Company creation error:", error);
-                    toast.error(
-                      error.response?.data?.message ||
-                        error.message ||
-                        "Unexpected error creating company."
-                    );
-                  }
+                onClick={() => setSetup(step.key)}
+                className={`group flex flex-col items-center px-4 py-2 focus:outline-none`}
+                style={{
+                  transform: isActive ? "scale(1.07)" : "scale(1)",
+                  transition: "transform 0.2s"
                 }}
-                className="user-setup-form"
               >
-                <div className="flex flex-col gap-4">
-                  <input
-                    name="name"
-                    placeholder="Enter Company Name"
-                    value={company.name}
-                    className="rounded-md px-4 py-2"
-                    onChange={handleCompanyChange}
-                  />
-                  <input
-                    name="entity_name"
-                    placeholder="Enter Entity Name"
-                    value={company.entity_name}
-                    className="rounded-md px-4 py-2"
-                    onChange={handleCompanyChange}
-                  />
+                <div
+                  className={`relative rounded-2xl flex items-center justify-center mb-2 transition-all duration-300`}
+                  style={{
+                    width: 52,
+                    height: 52,
+                    background: isActive || isPast
+                      ? (theme === "dark"
+                        ? GOLD_GRADIENT_CSS
+                        : `linear-gradient(90deg, ${ORANGE} 60%, ${ORANGE_DARK} 100%)`)
+                      : "#fff",
+                    color: isActive || isPast
+                      ? (theme === "dark" ? YELLOW_TEXT : "#fff")
+                      : ORANGE,
+                    boxShadow: isActive
+                      ? (theme === "dark" ? "0 4px 24px #fffbe01c" : "0 4px 24px #ffd7b01c")
+                      : isPast
+                        ? (theme === "dark" ? "0 2px 12px #fffbe01c" : "0 2px 12px #ffd7b01c")
+                        : "none",
+                    border: `2px solid ${isActive || isPast ? (theme === "dark" ? YELLOW_BORDER : ORANGE) : palette.border}`
+                  }}
+                >
+                  {isPast && !isActive ? (
+                    <Check className="w-7 h-7" />
+                  ) : (
+                    <Icon className="w-7 h-7" />
+                  )}
+                  {isActive && (
+                    <div className="absolute inset-0 rounded-2xl bg-white/10 animate-pulse"></div>
+                  )}
                 </div>
+                <span className="text-xs font-semibold tracking-wide"
+                  style={{
+                    color: isActive ? (theme === "dark" ? YELLOW_TEXT : ORANGE_DARK) : (isPast ? (theme === "dark" ? YELLOW_TEXT : ORANGE) : ORANGE),
+                    fontWeight: isActive ? "bold" : "normal"
+                  }}>
+                  {step.label}
+                </span>
+              </button>
+              {idx < STEPS.length - 1 && (
+                <div
+                  className="flex-1 h-1 max-w-[60px] rounded-full"
+                  style={{
+                    background: isPast
+                      ? (theme === "dark"
+                        ? `linear-gradient(90deg, #fde047 50%, #facc15 100%)`
+                        : `linear-gradient(90deg, ${ORANGE} 50%, ${ORANGE_DARK} 100%)`)
+                      : palette.border
+                  }}
+                />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
 
-                <div className="flex flex-col gap-4">
-                  <input
-                    name="country"
-                    placeholder="Enter Country"
-                    value={company.country}
-                    className="rounded-md px-4 py-2"
-                    onChange={handleCompanyChange}
-                  />
-                  <input
-                    name="state_name"
-                    placeholder="Enter State"
-                    value={company.state_name}
-                    className="rounded-md px-4 py-2"
-                    onChange={handleCompanyChange}
-                  />
-                </div>
-
-                <div className="flex flex-col gap-4">
-                  <input
-                    name="region"
-                    placeholder="Enter Region"
-                    value={company.region}
-                    className="rounded-md px-4 py-2"
-                    onChange={handleCompanyChange}
-                  />
-                  <input
-                    name="zone_name"
-                    placeholder="Enter Zone"
-                    value={company.zone_name}
-                    className="rounded-md px-4 py-2"
-                    onChange={handleCompanyChange}
-                  />
-                </div>
-
-                <div className="flex flex-col gap-4">
-                  <input
-                    name="sub_domain"
-                    placeholder="Enter Sub Domain"
-                    value={company.sub_domain}
-                    className="rounded-md px-4 py-2"
-                    onChange={handleCompanyChange}
-                  />
-                  <button
-                    type="submit"
-                    className="rounded-md px-4 py-2 bg-blue-600 text-white"
-                  >
-                    Submit
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-md px-4 py-2 bg-blue-600 text-white"
-                    onClick={() => onNextClick(companyId)}
-                  >
-                    Next
-                  </button>
-                </div>
-              </form>
-
-              <ul className="organization-list mt-6">
-                {companyDetails.map((comp) => (
-                  <button
-                    key={comp.id}
-                    className={`bg-white rounded-xl p-6 flex justify-center items-center ${
-                      comp.name === company.name
-                        ? "bg-gray-300 border border-gray-300"
-                        : ""
-                    }`}
-                    onClick={() => {
-                      setCompany({
-                        name: comp.name,
-                        entity_name: comp.entity_name || "Entity Name",
-                        country: comp.country || "India",
-                        state_name: comp.state_name || "Maharashtra",
-                        region: comp.region || "Mumbai",
-                        zone_name: comp.zone_name || "Zone 1",
-                        sub_domain: comp.sub_domain || "company.com",
-                      });
-                      setCompanyId(comp.id);
-                    }}
-                  >
-                    {comp.name}
-                  </button>
-                ))}
-              </ul>
+      {/* --- ORGANIZATION STEP --- */}
+      {setup === "organization" && (
+        <div className="flex flex-col items-center justify-center w-full">
+          <div
+            className={`shadow-2xl border rounded-3xl px-8 py-10 flex flex-col items-center w-full max-w-3xl relative overflow-hidden ${palette.card}`}
+            style={{
+              background: theme === "dark" ? "rgba(30,41,59,0.80)" : "#fff",
+              border: `1.5px solid ${palette.border}`
+            }}
+          >
+            {/* Search bar */}
+            <div className="relative w-full max-w-xl mb-8">
+              <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${palette.icon} w-5 h-5`} />
+              <input
+                type="text"
+                value={orgSearch}
+                onChange={e => setOrgSearch(e.target.value)}
+                className={`w-full rounded-2xl pl-10 pr-4 py-3 border ${palette.input} ${palette.inputFocus}`}
+                placeholder="Search organizations..."
+              />
             </div>
-          )}
-
-          {setup === "entity" && (
-            <div>
-              {/* Organization Selection */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">
-                  Select Organization
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {allUserInfo.organizations.map((org) => (
-                    <button
-                      key={org.id}
-                      type="button"
-                      className={`rounded-md px-4 py-2 border ${
-                        selectedOrgForEntity === org.id
-                          ? "bg-gray-300 border-blue-500"
-                          : "bg-white border-gray-300"
-                      }`}
-                      onClick={() => {
-                        setSelectedOrgForEntity(org.id);
-                        setSelectedCompanyForEntity(null); // Reset company selection
-                      }}
-                    >
-                      {org.organization_name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Company Selection */}
-              {selectedOrgForEntity && (
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-2">
-                    Select Company
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {filteredCompaniesForEntity.map((comp) => (
-                      <button
-                        key={comp.id}
-                        type="button"
-                        className={`rounded-md px-4 py-2 border ${
-                          selectedCompanyForEntity === comp.id
-                            ? "bg-gray-300 border-blue-500"
-                            : "bg-white border-gray-300"
-                        }`}
-                        onClick={() => setSelectedCompanyForEntity(comp.id)}
-                      >
-                        {comp.name}
-                      </button>
-                    ))}
-                  </div>
+            {/* Organization Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full mb-8 min-h-[180px]">
+              {filteredOrgs.length === 0 && orgSearch && (
+                <div className={`col-span-full text-center ${palette.subtext} text-lg py-12`}>
+                  No organizations found
                 </div>
               )}
-
-              {/* Entity Form */}
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  if (!selectedCompanyForEntity) {
-                    toast.error("Please select a company first.");
-                    return;
+              {filteredOrgs.map((org) => (
+                <div
+                  key={org.id}
+                  onClick={() => handleSelectOrg(org)}
+                  className={
+                    "relative p-4 rounded-2xl cursor-pointer transition-all duration-300 group " +
+                    (selectedOrgId === org.id
+                      ? (theme === "dark"
+                        ? "bg-gradient-to-r from-yellow-300 to-yellow-500 text-yellow-900 shadow-xl scale-105"
+                        : "bg-gradient-to-r from-[#ea6822] to-[#e44a22] text-white shadow-xl scale-105")
+                      : `${palette.card} ${palette.text} border border-amber-400 hover:bg-amber-400/10`)
                   }
-
-                  const payload = {
-                    company: selectedCompanyForEntity,
-                    name: entity.name,
-                    state: entity.state,
-                    region: entity.region,
-                    zone: entity.zone,
-                    created_by: userId,
-                  };
-
-                  try {
-                    const response = await createEntity(payload);
-
-                    if (response.status === 200 && response.data.success) {
-                      onEntitySetup && onEntitySetup(response.data.data.id);
-                      toast.success(
-                        response.data.message || "Entity created successfully!"
-                      );
-                      setEntityId(response.data.data.id);
-                      setEntityDetails((prev) => [...prev, response.data.data]);
-                      fetchAllUserInfo(); // Refresh data
-                    } else {
-                      toast.error(
-                        response.data.message || "Error creating entity."
-                      );
-                    }
-                  } catch (error) {
-                    console.error("Entity creation error:", error);
-                    toast.error(
-                      error.response?.data?.message ||
-                        error.message ||
-                        "Unexpected error creating entity."
-                    );
+                  style={
+                    selectedOrgId === org.id
+                      ? { border: `2px solid ${theme === "dark" ? YELLOW_BORDER : ORANGE}` }
+                      : { borderColor: palette.border }
                   }
-                }}
-                className="user-setup-form"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Building2 className={`w-5 h-5 ${palette.icon}`} />
+                      <span className={`font-semibold ${selectedOrgId === org.id && theme === "dark" ? "text-yellow-900" : palette.text}`}>
+                        {org.organization_name}
+                      </span>
+                    </div>
+                    {selectedOrgId === org.id && <Check className="w-5 h-5" />}
+                  </div>
+                  {selectedOrgId === org.id && (
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditOrg(org);
+                        }}
+                        className="p-1.5 rounded-lg bg-white/30 hover:bg-white/40 transition-colors"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteOrg(org);
+                        }}
+                        className="p-1.5 rounded-lg bg-white/30 hover:bg-white/40 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {/* Add New Organization Card */}
+              <div
+                onClick={() => setEditingOrg("NEW")}
+                className={`p-4 rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-300
+                  ${editingOrg === "NEW"
+                    ? (theme === "dark"
+                      ? "border-yellow-400 bg-yellow-100/10 text-yellow-400"
+                      : "border-orange-400 bg-orange-50 text-[#ea6822]")
+                    : (theme === "dark"
+                      ? "border-yellow-300 hover:border-yellow-400 hover:bg-yellow-100/10 text-yellow-400"
+                      : "border-orange-300 hover:border-orange-400 hover:bg-orange-50 text-[#ea6822]")}`}
               >
-                <div className="flex flex-col gap-4">
-                  <input
-                    name="name"
-                    placeholder="Enter Entity Name"
-                    value={entity.name}
-                    className="rounded-md px-4 py-2"
-                    onChange={handleEntityChange}
-                    required
-                  />
-                  <input
-                    name="state"
-                    placeholder="Enter State"
-                    value={entity.state}
-                    className="rounded-md px-4 py-2"
-                    onChange={handleEntityChange}
-                  />
+                <div className="flex items-center justify-center gap-3">
+                  <Plus className="w-5 h-5" />
+                  <span className="font-semibold">Add Organization</span>
                 </div>
-
-                <div className="flex flex-col gap-4">
-                  <input
-                    name="region"
-                    placeholder="Enter Region"
-                    value={entity.region}
-                    className="rounded-md px-4 py-2"
-                    onChange={handleEntityChange}
-                  />
-                  <input
-                    name="zone"
-                    placeholder="Enter Zone"
-                    value={entity.zone}
-                    className="rounded-md px-4 py-2"
-                    onChange={handleEntityChange}
-                  />
-                </div>
-
-                <div className="flex flex-col gap-4">
+              </div>
+            </div>
+            {/* Add/Edit Organization form */}
+            {editingOrg === "NEW" && (
+              <form
+                className={`w-full max-w-md flex flex-col items-center gap-4 p-6 border rounded-2xl
+                ${theme === "dark" ? "bg-slate-800 border-yellow-300" : "bg-[#fff8f2] border-orange-300"}`}
+                onSubmit={handleOrgSubmit}
+              >
+                <input
+                  name="organization_name"
+                  value={orgForm.organization_name}
+                  onChange={e => setOrgForm({ ...orgForm, organization_name: e.target.value })}
+                  placeholder="Enter organization name"
+                  className={`w-full rounded-xl px-4 py-3 border ${palette.input}`}
+                  required
+                  autoFocus
+                />
+                <div className="flex gap-3">
                   <button
                     type="submit"
-                    className="rounded-md px-4 py-2 bg-blue-600 text-white"
+                    className={`rounded-xl px-8 py-3 font-semibold ${palette.btn} ${palette.btnHover}`}
+                    disabled={loading}
                   >
-                    Submit
+                    {loading ? "Adding..." : "Add Organization"}
                   </button>
                   <button
                     type="button"
-                    className="rounded-md px-4 py-2 bg-blue-600 text-white"
-                    onClick={() => onNextClick(entityId)}
+                    className="rounded-xl px-8 py-3 border font-medium"
+                    style={{
+                      borderColor: theme === "dark" ? YELLOW_BORDER : ORANGE,
+                      color: theme === "dark" ? YELLOW_BORDER : ORANGE,
+                      background: "#fff"
+                    }}
+                    onClick={() => setEditingOrg(null)}
                   >
-                    Next
+                    Cancel
                   </button>
                 </div>
               </form>
-
-              {/* Entity List */}
-              <ul className="organization-list mt-6">
-                {allUserInfo.entities.map((ent) => (
+            )}
+            {editingOrg && editingOrg !== "NEW" && (
+              <form
+                className={`w-full max-w-md flex flex-col items-center gap-4 p-6 border rounded-2xl
+                ${theme === "dark" ? "bg-slate-800 border-yellow-300" : "bg-[#fff8f2] border-orange-300"}`}
+                onSubmit={e => {
+                  e.preventDefault();
+                  handleUpdateOrg(filteredOrgs.find(o => o.id === editingOrg));
+                }}
+              >
+                <input
+                  value={editingName}
+                  onChange={e => setEditingName(e.target.value)}
+                  className={`w-full rounded-xl px-4 py-3 border ${palette.input}`}
+                  required
+                  autoFocus
+                />
+                <div className="flex gap-3">
                   <button
-                    key={ent.id}
-                    className={`bg-white rounded-xl p-6 flex justify-center items-center ${
-                      ent.name === entity.name
-                        ? "bg-gray-300 border border-gray-300"
-                        : ""
-                    }`}
-                    onClick={() => {
-                      setEntity({
-                        name: ent.name,
-                        state: ent.state || "",
-                        region: ent.region || "",
-                        zone: ent.zone || "",
-                      });
-                      setEntityId(ent.id);
-                    }}
+                    type="submit"
+                    className={`rounded-xl px-8 py-3 font-semibold ${palette.btn} ${palette.btnHover}`}
                   >
-                    {ent.name}
+                    Save Changes
                   </button>
-                ))}
-              </ul>
-            </div>
-          )}
+                  <button
+                    type="button"
+                    className="rounded-xl px-8 py-3 border font-medium"
+                    style={{
+                      borderColor: theme === "dark" ? YELLOW_BORDER : ORANGE,
+                      color: theme === "dark" ? YELLOW_BORDER : ORANGE,
+                      background: "#fff"
+                    }}
+                    onClick={() => setEditingOrg(null)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+            {selectedOrgId && !editingOrg && (
+              <button
+                className={`mt-6 rounded-xl px-12 py-3 font-semibold flex items-center gap-2 ${palette.btn} ${palette.btnHover}`}
+                onClick={() => setSetup("company")}
+              >
+                Continue to Company Setup
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            )}
+          </div>
         </div>
-      </div>
-    </>
+      )}
+
+      {/* --- COMPANY STEP --- */}
+      {setup === "company" && (
+        <div className="flex flex-col lg:flex-row gap-8 w-full max-w-6xl">
+          {/* Left Panel */}
+          <div
+            className={`flex-1 rounded-3xl shadow-2xl p-8 border ${palette.card}`}
+            style={{
+              background: theme === "dark" ? "rgba(30,41,59,0.80)" : "#fff",
+              border: `1.5px solid ${palette.border}`
+            }}
+          >
+            <h3 className={`mb-6 font-bold text-2xl flex items-center gap-3 ${palette.text}`}>
+              <Building2 className={`w-7 h-7 ${palette.icon}`} />
+              Organizations & Companies
+            </h3>
+            {/* Organizations List */}
+            <div className="mb-8">
+              <h4 className={`text-sm font-semibold ${palette.subtext}`} style={{ textTransform: "uppercase", letterSpacing: "1.5px" }}>
+                Organizations
+              </h4>
+              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-2">
+                {organizationDetails.length === 0 ? (
+                  <div className={`text-center py-6 ${palette.subtext}`}>
+                    No organizations available
+                  </div>
+                ) : (
+                  organizationDetails.map((org, idx) => (
+                    <div
+                      key={org.id}
+                      onClick={() => handleSelectOrg(org)}
+                      className={`p-4 rounded-xl cursor-pointer transition-all duration-200
+                        ${selectedOrgId === org.id
+                          ? (theme === "dark"
+                            ? "bg-gradient-to-r from-yellow-300 to-yellow-500 text-yellow-900 shadow-lg"
+                            : "bg-gradient-to-r from-[#ea6822] to-[#e44a22] text-white shadow-lg")
+                          : `${theme === "dark"
+                            ? "bg-white/10 border border-yellow-400 text-white hover:border-yellow-300 hover:bg-yellow-400/10"
+                            : "bg-white border border-[#ea6822] text-[#27272f] hover:border-[#e44a22] hover:bg-[#fff8f2]"}`}`}
+                      style={{
+                        border: `1.5px solid ${selectedOrgId === org.id ? (theme === "dark" ? YELLOW_BORDER : ORANGE) : palette.border}`,
+                        boxShadow: selectedOrgId === org.id ? (theme === "dark" ? "0 2px 10px #fde04744" : "0 2px 10px #ea682232") : "none"
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="font-semibold text-sm">{idx + 1}</span>
+                          <Building2 className={`w-4 h-4 ${palette.icon}`} />
+                          <span className="font-medium">{org.organization_name}</span>
+                        </div>
+                        {selectedOrgId === org.id && <Check className="w-5 h-5" />}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+            {/* Companies List */}
+            <div>
+              <h4 className={`text-sm font-semibold ${palette.subtext}`} style={{ textTransform: "uppercase", letterSpacing: "1.5px" }}>
+                Companies
+              </h4>
+              <div className="space-y-2 max-h-[180px] overflow-y-auto pr-2">
+                {companyDetails.length === 0 ? (
+                  <div className={`text-center py-6 ${palette.subtext}`}>
+                    {selectedOrgId ? "No companies yet" : "Select an organization first"}
+                  </div>
+                ) : (
+                  companyDetails.map((comp, idx) => (
+                    <div
+                      key={comp.id}
+                      className={`p-4 rounded-xl
+                        ${theme === "dark"
+                          ? "bg-white/10 border border-yellow-400 text-white"
+                          : "bg-[#fff8f2] border border-[#ea6822] text-[#27272f]"}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="font-semibold text-sm" style={{ color: theme === "dark" ? YELLOW_BORDER : ORANGE }}>{idx + 1}</span>
+                        <Building className={`w-4 h-4 ${palette.icon}`} />
+                        <span className="font-medium">{comp.name}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+          {/* Company Form */}
+          <form
+            className={`flex-1 rounded-3xl shadow-2xl p-8 border ${palette.card}`}
+            style={{
+              background: theme === "dark" ? "rgba(30,41,59,0.80)" : "#fff",
+              border: `1.5px solid ${palette.border}`
+            }}
+            onSubmit={handleCompanySubmit}
+          >
+            <h3 className={`font-bold text-2xl mb-6 flex items-center gap-3 ${palette.text}`}>
+              <Building className={`w-7 h-7 ${palette.icon}`} />
+              Create New Company
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${palette.subtext}`}>Company Name *</label>
+                <input
+                  name="name"
+                  value={companyForm.name}
+                  onChange={e => setCompanyForm({ ...companyForm, name: e.target.value })}
+                  placeholder="Enter company name"
+                  className={`w-full rounded-xl px-4 py-3 border ${palette.input}`}
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${palette.subtext}`}>Entity Name</label>
+                  <input
+                    name="entity_name"
+                    value={companyForm.entity_name}
+                    onChange={e => setCompanyForm({ ...companyForm, entity_name: e.target.value })}
+                    placeholder="Entity name"
+                    className={`w-full rounded-xl px-4 py-3 border ${palette.input}`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${palette.subtext}`}>Country</label>
+                  <input
+                    name="country"
+                    value={companyForm.country}
+                    onChange={e => setCompanyForm({ ...companyForm, country: e.target.value })}
+                    placeholder="Country"
+                    className={`w-full rounded-xl px-4 py-3 border ${palette.input}`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${palette.subtext}`}>State</label>
+                  <input
+                    name="state_name"
+                    value={companyForm.state_name}
+                    onChange={e => setCompanyForm({ ...companyForm, state_name: e.target.value })}
+                    placeholder="State"
+                    className={`w-full rounded-xl px-4 py-3 border ${palette.input}`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${palette.subtext}`}>Region</label>
+                  <input
+                    name="region"
+                    value={companyForm.region}
+                    onChange={e => setCompanyForm({ ...companyForm, region: e.target.value })}
+                    placeholder="Region"
+                    className={`w-full rounded-xl px-4 py-3 border ${palette.input}`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${palette.subtext}`}>Zone</label>
+                  <input
+                    name="zone_name"
+                    value={companyForm.zone_name}
+                    onChange={e => setCompanyForm({ ...companyForm, zone_name: e.target.value })}
+                    placeholder="Zone"
+                    className={`w-full rounded-xl px-4 py-3 border ${palette.input}`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${palette.subtext}`}>Sub Domain</label>
+                  <input
+                    name="sub_domain"
+                    value={companyForm.sub_domain}
+                    onChange={e => setCompanyForm({ ...companyForm, sub_domain: e.target.value })}
+                    placeholder="Sub domain"
+                    className={`w-full rounded-xl px-4 py-3 border ${palette.input}`}
+                  />
+                </div>
+              </div>
+            </div>
+            <button
+              type="submit"
+              className={`w-full mt-8 rounded-xl px-6 py-4 font-semibold flex items-center justify-center gap-2 ${palette.btn} ${palette.btnHover}`}
+            >
+              Create Company & Continue
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* --- ENTITY STEP --- */}
+      {setup === "entity" && (
+        <div className="flex flex-col lg:flex-row gap-8 w-full max-w-6xl">
+          {/* Left Panel */}
+          <div
+            className={`flex-1 rounded-3xl shadow-2xl p-8 border ${palette.card}`}
+            style={{
+              background: theme === "dark" ? "rgba(30,41,59,0.80)" : "#fff",
+              border: `1.5px solid ${palette.border}`
+            }}
+          >
+            <h3 className={`mb-6 font-bold text-2xl flex items-center gap-3 ${palette.text}`}>
+              <MapPin className={`w-7 h-7 ${palette.icon}`} />
+              Select Organization & Company
+            </h3>
+            {/* Organizations */}
+            <div className="mb-8">
+              <h4 className={`text-sm font-semibold mb-4 ${palette.subtext}`} style={{ textTransform: "uppercase", letterSpacing: "1.5px" }}>
+                Select Organization
+              </h4>
+              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-2">
+                {entityStepOrgs.length === 0 ? (
+                  <div className={`text-center py-6 ${palette.subtext}`}>
+                    No organizations available
+                  </div>
+                ) : (
+                  entityStepOrgs.map((org, idx) => (
+                    <div
+                      key={org.id}
+                      onClick={() => {
+                        setSelectedEntityOrgId(org.id);
+                        setSelectedEntityCompanyId(null);
+                      }}
+                      className={`p-4 rounded-xl cursor-pointer transition-all duration-200
+                        ${selectedEntityOrgId === org.id
+                          ? (theme === "dark"
+                            ? "bg-gradient-to-r from-yellow-300 to-yellow-500 text-yellow-900 shadow-lg"
+                            : "bg-gradient-to-r from-[#ea6822] to-[#e44a22] text-white shadow-lg")
+                          : `${theme === "dark"
+                            ? "bg-white/10 border border-yellow-400 text-white hover:border-yellow-300 hover:bg-yellow-400/10"
+                            : "bg-white border border-[#ea6822] text-[#27272f] hover:border-[#e44a22] hover:bg-[#fff8f2]"}`}`}
+                      style={{
+                        border: `1.5px solid ${selectedEntityOrgId === org.id ? (theme === "dark" ? YELLOW_BORDER : ORANGE) : palette.border}`,
+                        boxShadow: selectedEntityOrgId === org.id ? (theme === "dark" ? "0 2px 10px #fde04744" : "0 2px 10px #ea682232") : "none"
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="font-semibold text-sm">{idx + 1}</span>
+                          <Building2 className={`w-4 h-4 ${palette.icon}`} />
+                          <span className="font-medium">{org.organization_name}</span>
+                        </div>
+                        {selectedEntityOrgId === org.id && <Check className="w-5 h-5" />}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+            {/* Companies */}
+            {selectedEntityOrgId && (
+              <div>
+                <h4 className={`text-sm font-semibold mb-4 ${palette.subtext}`} style={{ textTransform: "uppercase", letterSpacing: "1.5px" }}>
+                  Select Company
+                </h4>
+                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-2">
+                  {filteredCompaniesForEntity.length === 0 ? (
+                    <div className={`text-center py-6 ${palette.subtext}`}>
+                      No companies available
+                    </div>
+                  ) : (
+                    filteredCompaniesForEntity.map((comp, idx) => (
+                      <div
+                        key={comp.id}
+                        onClick={() => setSelectedEntityCompanyId(comp.id)}
+                        className={`p-4 rounded-xl cursor-pointer transition-all duration-200
+                          ${selectedEntityCompanyId === comp.id
+                            ? (theme === "dark"
+                              ? "bg-gradient-to-r from-yellow-300 to-yellow-500 text-yellow-900 shadow-lg"
+                              : "bg-gradient-to-r from-[#ea6822] to-[#e44a22] text-white shadow-lg")
+                            : `${theme === "dark"
+                              ? "bg-white/10 border border-yellow-400 text-white hover:border-yellow-300 hover:bg-yellow-400/10"
+                              : "bg-white border border-[#ea6822] text-[#27272f] hover:border-[#e44a22] hover:bg-[#fff8f2]"}`}`}
+                        style={{
+                          border: `1.5px solid ${selectedEntityCompanyId === comp.id ? (theme === "dark" ? YELLOW_BORDER : ORANGE) : palette.border}`,
+                          boxShadow: selectedEntityCompanyId === comp.id ? (theme === "dark" ? "0 2px 10px #fde04744" : "0 2px 10px #ea682232") : "none"
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="font-semibold text-sm">{idx + 1}</span>
+                            <Building className={`w-4 h-4 ${palette.icon}`} />
+                            <span className="font-medium">{comp.name}</span>
+                          </div>
+                          {selectedEntityCompanyId === comp.id && <Check className="w-5 h-5" />}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+          {/* Entity Form */}
+          <form
+            className={`flex-1 rounded-3xl shadow-2xl p-8 border ${palette.card}`}
+            style={{
+              background: theme === "dark" ? "rgba(30,41,59,0.80)" : "#fff",
+              border: `1.5px solid ${palette.border}`
+            }}
+            onSubmit={handleEntitySubmit}
+          >
+            <h3 className={`font-bold text-2xl mb-6 flex items-center gap-3 ${palette.text}`}>
+              <MapPin className={`w-7 h-7 ${palette.icon}`} />
+              Create New Entity
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${palette.subtext}`}>Entity Name *</label>
+                <input
+                  name="name"
+                  value={entityForm.name}
+                  onChange={e => setEntityForm({ ...entityForm, name: e.target.value })}
+                  placeholder="Enter entity name"
+                  className={`w-full rounded-xl px-4 py-3 border ${palette.input}`}
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${palette.subtext}`}>State</label>
+                  <input
+                    name="state"
+                    value={entityForm.state}
+                    onChange={e => setEntityForm({ ...entityForm, state: e.target.value })}
+                    placeholder="State"
+                    className={`w-full rounded-xl px-4 py-3 border ${palette.input}`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${palette.subtext}`}>Region</label>
+                  <input
+                    name="region"
+                    value={entityForm.region}
+                    onChange={e => setEntityForm({ ...entityForm, region: e.target.value })}
+                    placeholder="Region"
+                    className={`w-full rounded-xl px-4 py-3 border ${palette.input}`}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className={`block text-sm font-medium mb-2 ${palette.subtext}`}>Zone</label>
+                  <input
+                    name="zone"
+                    value={entityForm.zone}
+                    onChange={e => setEntityForm({ ...entityForm, zone: e.target.value })}
+                    placeholder="Zone"
+                    className={`w-full rounded-xl px-4 py-3 border ${palette.input}`}
+                  />
+                </div>
+              </div>
+              {selectedEntityCompanyId && (
+                <div className="mt-6 p-4 rounded-xl"
+                  style={{
+                    background: theme === "dark" ? "#fffbe014" : "#fff8f2",
+                    border: `1.5px solid ${theme === "dark" ? YELLOW_BORDER : ORANGE}`
+                  }}
+                >
+                  <p className={`text-sm ${palette.subtext}`}>
+                    <span className="font-semibold">Selected: </span>
+                    {entityStepOrgs.find(o => o.id === selectedEntityOrgId)?.organization_name} →
+                    {" "}
+                    {filteredCompaniesForEntity.find(c => c.id === selectedEntityCompanyId)?.name}
+                  </p>
+                </div>
+              )}
+            </div>
+            <button
+              type="submit"
+              className={`w-full mt-8 rounded-xl px-6 py-4 font-semibold flex items-center justify-center gap-2 ${palette.btn} ${palette.btnHover}`}
+              disabled={!selectedEntityCompanyId}
+            >
+              <Check className="w-5 h-5" />
+              Complete Setup
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
   );
 };
 

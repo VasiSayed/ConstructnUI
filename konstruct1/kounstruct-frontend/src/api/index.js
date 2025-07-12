@@ -780,3 +780,73 @@ export const patchChecklistRoles = async (checklistId, rolesData) => {
     throw error;
   }
 };
+
+
+
+
+// ORGANIZATION PATCH & DELETE
+export const updateOrganization = async (id, data) =>
+  organnizationInstance.patch(`/organizations/${id}/`, data, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const deleteOrganization = async (id) =>
+  organnizationInstance.delete(`/organizations/${id}/`, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+// COMPANY PATCH & DELETE
+export const updateCompany = async (id, data) =>
+  organnizationInstance.patch(`/companies/${id}/`, data, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const deleteCompany = async (id) =>
+  organnizationInstance.delete(`/companies/${id}/`, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+// ENTITY PATCH & DELETE
+export const updateEntity = async (id, data) =>
+  organnizationInstance.patch(`/entities/${id}/`, data, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const deleteEntity = async (id) =>
+  organnizationInstance.delete(`/entities/${id}/`, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+
+
+export const editPurpose = (purposeId, payload) => {
+  return projectInstance.patch(`/purposes/${purposeId}/`, payload, {
+    headers: { "Content-Type": "application/json" }
+  });
+};
+
+export const deletePurpose = (purposeId) => {
+  return projectInstance.delete(`/purposes/${purposeId}/`, {
+    headers: { "Content-Type": "application/json" }
+  });
+};
+
+
+export const editPhase = (phaseId, payload) => {
+  return projectInstance.patch(`/phases/${phaseId}/`, payload, {
+    headers: { "Content-Type": "application/json" }
+  });
+};
+
+export const deletePhase = (phaseId) => {
+  return projectInstance.delete(`/phases/${phaseId}/`, {
+    headers: { "Content-Type": "application/json" }
+  });
+};
+
+
+export const patchStage = (id, payload) => {
+  return projectInstance.patch(`/stages/${id}/`, payload, {
+    headers: { "Content-Type": "application/json" }
+  });
+};

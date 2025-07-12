@@ -15,7 +15,9 @@ import CoustemerHandover from "./CoustemerHandover";
 import Chif from "./Chif";
 import ChifSetup from "./ChifSetup";
 import Chifstep1 from "./Chifstep1";
-// import Checklist from "./Checklist";
+import { ThemeProvider } from "./ThemeContext";   // <-- ThemeProvider here!
+
+// ... (all your imports as before)
 import Login from "./Pages/Login";
 import Configuration from "./components/Configuration";
 import Snagging from "./components/Snagging";
@@ -28,7 +30,7 @@ import Header from "./components/Header";
 import Setup from "./components/Setup";
 import { Toaster } from "react-hot-toast";
 import CategoryChecklist from './components/CategoryChecklist';
-import MyOngoingChecklist from "./components/MyInProgressSubmissions"; // adjust the path if needed
+import MyOngoingChecklist from "./components/MyInProgressSubmissions";
 import MyInProgressSubmissions from "./components/MyInProgressSubmissions";
 import CheckerInbox from "./components/CheckerInbox";
 import InitializeChecklist from "./components/InitializeChecklist";
@@ -36,27 +38,19 @@ import PendingForMakerItems from "./components/PendingForMakerItems";
 import UsersManagement from "./components/UsersManagement";
 
 
-
-import { useEffect } from "react";
 import UserSetup from "./containers/setup/UserSetup";
 import User from "./containers/setup/User";
 import Checklist from "./containers/setup/Checklist";
 import EditCheckList from "./containers/EditCheckList";
 import AllChecklists from "./components/AllChecklists";
 
-
 import AccessibleChecklists from "./components/AccessibleChecklists";
-// And make sure you're importing the component:
 import HierarchicalVerifications from './components/HierarchicalVerifications'; 
 import PendingInspectorChecklists from './components/PendingInspectorChecklists'
 import PendingSupervisorItems from "./components/PendingSupervisorItems";
 
-// import MyChecklists from './components/MyChecklists';
-
-// Wrapper component to access location and conditionally render header
 const Layout = () => {
   const location = useLocation();
-
   const hideHeaderOnPaths = ["/login"];
   const shouldHideHeader = hideHeaderOnPaths.includes(location.pathname);
 
@@ -67,14 +61,8 @@ const Layout = () => {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/all-checklists" element={<AllChecklists />} />
-          <Route
-            path="/my-ongoing-checklist"
-            element={<MyOngoingChecklist />}
-          />
-          <Route
-            path="/my-inprogress-submissions"
-            element={<MyInProgressSubmissions />}
-          />
+          <Route path="/my-ongoing-checklist" element={<MyOngoingChecklist />} />
+          <Route path="/my-inprogress-submissions" element={<MyInProgressSubmissions />} />
           <Route path="/checker-inbox" element={<CheckerInbox />} />
 
           <Route path="/config" element={<Configuration />} />
@@ -92,24 +80,15 @@ const Layout = () => {
           <Route path="/CoustemerHandover" element={<CoustemerHandover />} />
           <Route path="/Chif" element={<Chif />} />
 
-          <Route
-            path="/Initialize-Checklist"
-            element={<InitializeChecklist />}
-          />
 
-          <Route
-            path="/PendingInspector-Checklist"
-            element={<PendingInspectorChecklists />}
-          />
-          <Route
-            path="/Pending-For-MakerItems"
-            element={<PendingForMakerItems />}
-          />
           <Route
             path="/PendingSupervisorItems"
             element={<PendingSupervisorItems />}
           />
           <Route path="/UsersManagement" element={<UsersManagement />} />
+          <Route path="/Initialize-Checklist" element={<InitializeChecklist />} />
+          <Route path="/PendingInspector-Checklist" element={<PendingInspectorChecklists />} />
+          <Route path="/Pending-For-MakerItems" element={<PendingForMakerItems />} />
 
           <Route path="/chif-setup" element={<ChifSetup />} />
           <Route path="/Chifstep1" element={<Chifstep1 />} />
@@ -118,22 +97,10 @@ const Layout = () => {
           <Route path="/user-setup" element={<UserSetup />} />
           <Route path="/user" element={<User />} />
           <Route path="/category-sidebar" element={<CategoryChecklist />} />
-          <Route
-            path="/checker-verified-inspector-pending"
-            element={<InspectorPending />}
-          />
+          <Route path="/checker-verified-inspector-pending" element={<InspectorPending />} />
           <Route path="/edit-checklist/:id" element={<EditCheckList />} />
-          {/* // In your App.js Prathamesh: */}
-
-          <Route
-            path="/accessible-checklists"
-            element={<AccessibleChecklists />}
-          />
-          {/* <Route path="/my-checklists" element={<MyChecklists />} /> */}
-          <Route
-            path="/hierarchical-verifications"
-            element={<HierarchicalVerifications />}
-          />
+          <Route path="/accessible-checklists" element={<AccessibleChecklists />} />
+          <Route path="/hierarchical-verifications" element={<HierarchicalVerifications />} />
         </Routes>
       </main>
       <Toaster position="top-right" />
@@ -143,9 +110,11 @@ const Layout = () => {
 
 function App() {
   return (
-    <Router>
-      <Layout />
-    </Router>
+    <ThemeProvider>
+      <Router>
+        <Layout />
+      </Router>
+    </ThemeProvider>
   );
 }
 
