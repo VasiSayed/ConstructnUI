@@ -1,11 +1,13 @@
-import React, {  useEffect ,useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AiOutlineClose } from "react-icons/ai";
 import { createProject, allorgantioninfototalbyUser_id } from "../../api";
 import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
-
+import { useTheme } from "../../ThemeContext"; // THEME!
 
 function AddProjectModal({ onClose, onSave }) {
+  const { theme } = useTheme();
+
   const [userData, setUserData] = useState(null);
   useEffect(() => {
     const userString = localStorage.getItem("USER_DATA");
@@ -13,9 +15,7 @@ function AddProjectModal({ onClose, onSave }) {
       setUserData(JSON.parse(userString));
     }
   }, []);
-  
-  const userId = userData?.user_id; 
-  console.log("got the id here", userId);
+  const userId = userData?.user_id;
 
   // Dropdown state
   const [orgOptions, setOrgOptions] = useState([]);
@@ -31,13 +31,11 @@ function AddProjectModal({ onClose, onSave }) {
   const [isSaved, setIsSaved] = useState(false);
   const [image, setImage] = useState("");
 
-  // Fetch all orgs/companies/entities on open
   useEffect(() => {
     const fetchUserOrgs = async () => {
       try {
         if (userId) {
           const resp = await allorgantioninfototalbyUser_id(userId);
-          console.log("API Response:", resp.data); // Debug log
           setOrgOptions(resp.data.organizations || []);
           setCompanyOptions(resp.data.companies || []);
           setEntityOptions(resp.data.entities || []);
@@ -59,7 +57,6 @@ function AddProjectModal({ onClose, onSave }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!projectName) {
       toast.error("Project name is required");
       return;
@@ -72,26 +69,21 @@ function AddProjectModal({ onClose, onSave }) {
       toast.error("Please select a company");
       return;
     }
-
-    console.log('while ofrmmm ia ',userId);
     const formData = new FormData();
     formData.append("name", projectName);
     formData.append("created_by", userId);
     formData.append("organization_id", selectedOrg);
     formData.append("company_id", selectedCompany);
     if (selectedEntity) formData.append("entity_id", selectedEntity);
-
     if (!useDefaultImage && image) {
       formData.append("image", image);
     }
-
     try {
       const res = await createProject(formData);
       toast.success("Project created!");
       onSave(res.data.id || res.data.data?.id);
       setIsSaved(true);
     } catch (error) {
-      console.error("Full error:", error);
       toast.error(
         error.response?.data?.message ||
           error.response?.data?.detail ||
@@ -102,10 +94,8 @@ function AddProjectModal({ onClose, onSave }) {
     }
   };
 
-  // Fixed filtering logic
   const filteredCompanies = selectedOrg
     ? companyOptions.filter((comp) => {
-        // Check multiple possible field names for organization reference
         return (
           String(comp.organization_id) === String(selectedOrg) ||
           String(comp.organization) === String(selectedOrg) ||
@@ -116,7 +106,6 @@ function AddProjectModal({ onClose, onSave }) {
 
   const filteredEntities = selectedCompany
     ? entityOptions.filter((ent) => {
-        // Check multiple possible field names for company reference
         return (
           String(ent.company_id) === String(selectedCompany) ||
           String(ent.company) === String(selectedCompany) ||
@@ -125,39 +114,60 @@ function AddProjectModal({ onClose, onSave }) {
       })
     : [];
 
-  // Debug logs to help identify the correct field names
-  useEffect(() => {
-    if (companyOptions.length > 0) {
-      console.log("Sample company object:", companyOptions[0]);
-    }
-    if (entityOptions.length > 0) {
-      console.log("Sample entity object:", entityOptions[0]);
-    }
-  }, [companyOptions, entityOptions]);
+  // Palette
+  const palette = theme === "dark"
+    ? {
+        modal: "bg-[#22232a] border border-amber-400/30 text-white",
+        title: "text-yellow-300",
+        label: "text-yellow-200",
+        input: "bg-[#2c2c34] text-yellow-50 border-yellow-300",
+        inputFocus: "focus:bg-[#23232e] focus:border-yellow-400 focus:ring-yellow-300",
+        select: "bg-[#2c2c34] text-yellow-50 border-yellow-300",
+        selectFocus: "focus:bg-[#23232e] focus:border-yellow-400 focus:ring-yellow-300",
+        fileBtn: "file:bg-yellow-100 file:text-yellow-700 hover:file:bg-yellow-200",
+        buttonMain: "bg-yellow-400 hover:bg-yellow-300 text-yellow-900",
+        buttonAlt: "bg-[#23232e] text-yellow-100 hover:bg-[#191921]",
+        borderColor: "border-yellow-400",
+        close: "text-yellow-300 hover:text-yellow-200",
+        selectPlaceholder: "text-gray-400"
+      }
+    : {
+        modal: "bg-white border border-gray-200 text-gray-900",
+        title: "text-[#ea6822]",
+        label: "text-gray-700",
+        input: "bg-white text-gray-900 border-gray-300",
+        inputFocus: "focus:border-blue-500 focus:ring-blue-200",
+        select: "bg-white text-gray-900 border-gray-300",
+        selectFocus: "focus:border-blue-500 focus:ring-blue-200",
+        fileBtn: "file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100",
+        buttonMain: "bg-blue-600 hover:bg-blue-700 text-white",
+        buttonAlt: "bg-gray-100 text-gray-700 hover:bg-gray-200",
+        borderColor: "border-gray-300",
+        close: "text-gray-600 hover:text-gray-900",
+        selectPlaceholder: "text-gray-400"
+      };
 
   return (
     <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex justify-center items-center z-50">
-      <div className="bg-white p-6 rounded-xl shadow-2xl w-11/12 max-w-2xl relative">
+      <div className={`p-6 rounded-xl shadow-2xl w-11/12 max-w-2xl relative transition-all duration-200 ${palette.modal}`}>
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className={`absolute top-4 right-4 p-2 rounded-lg transition-colors ${palette.close}`}
         >
-          <AiOutlineClose className="text-xl text-gray-600 hover:text-gray-900" />
+          <AiOutlineClose className="text-xl" />
         </button>
-
-        <h2 className="text-2xl font-bold mb-6 text-gray-800">
+        <h2 className={`text-2xl font-bold mb-6 ${palette.title}`}>
           Add New Project
         </h2>
-
         {/* Dropdowns stepwise */}
         <div className="space-y-4 mb-6">
           {/* Organization Dropdown */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className={`block text-sm font-medium mb-2 ${palette.label}`}>
               Organization <span className="text-red-500">*</span>
             </label>
             <select
-              className="w-full rounded-lg px-4 py-3 border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
+              className={`w-full rounded-lg px-4 py-3 border ${palette.select} ${palette.selectFocus}`}
               value={selectedOrg}
               onChange={(e) => {
                 setSelectedOrg(e.target.value);
@@ -165,7 +175,7 @@ function AddProjectModal({ onClose, onSave }) {
                 setSelectedEntity("");
               }}
             >
-              <option value="">Select Organization</option>
+              <option value="" className={palette.selectPlaceholder}>Select Organization</option>
               {orgOptions.map((org) => (
                 <option key={org.id} value={org.id}>
                   {org.organization_name || org.name}
@@ -174,21 +184,21 @@ function AddProjectModal({ onClose, onSave }) {
             </select>
           </div>
 
-          {/* Company Dropdown - only if org selected */}
+          {/* Company Dropdown */}
           {selectedOrg && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className={`block text-sm font-medium mb-2 ${palette.label}`}>
                 Company <span className="text-red-500">*</span>
               </label>
               <select
-                className="w-full rounded-lg px-4 py-3 border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
+                className={`w-full rounded-lg px-4 py-3 border ${palette.select} ${palette.selectFocus}`}
                 value={selectedCompany}
                 onChange={(e) => {
                   setSelectedCompany(e.target.value);
                   setSelectedEntity("");
                 }}
               >
-                <option value="">Select Company</option>
+                <option value="" className={palette.selectPlaceholder}>Select Company</option>
                 {filteredCompanies.length > 0 ? (
                   filteredCompanies.map((comp) => (
                     <option key={comp.id} value={comp.id}>
@@ -196,26 +206,24 @@ function AddProjectModal({ onClose, onSave }) {
                     </option>
                   ))
                 ) : (
-                  <option disabled>
-                    No companies found for this organization
-                  </option>
+                  <option disabled>No companies found for this organization</option>
                 )}
               </select>
             </div>
           )}
 
-          {/* Entity Dropdown - only if company selected */}
+          {/* Entity Dropdown */}
           {selectedCompany && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className={`block text-sm font-medium mb-2 ${palette.label}`}>
                 Entity <span className="text-gray-400">(Optional)</span>
               </label>
               <select
-                className="w-full rounded-lg px-4 py-3 border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
+                className={`w-full rounded-lg px-4 py-3 border ${palette.select} ${palette.selectFocus}`}
                 value={selectedEntity}
                 onChange={(e) => setSelectedEntity(e.target.value)}
               >
-                <option value="">Select Entity (Optional)</option>
+                <option value="" className={palette.selectPlaceholder}>Select Entity (Optional)</option>
                 {filteredEntities.length > 0 ? (
                   filteredEntities.map((ent) => (
                     <option key={ent.id} value={ent.id}>
@@ -229,23 +237,21 @@ function AddProjectModal({ onClose, onSave }) {
             </div>
           )}
         </div>
-
         {/* Project name and image section */}
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className={`block text-sm font-medium mb-2 ${palette.label}`}>
             Project Name <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
             value={projectName}
             onChange={(e) => setProjectName(e.target.value)}
-            className="w-full rounded-lg px-4 py-3 border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
+            className={`w-full rounded-lg px-4 py-3 border ${palette.input} ${palette.inputFocus}`}
             placeholder="Enter project name"
           />
         </div>
-
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
+          <label className={`block text-sm font-medium mb-3 ${palette.label}`}>
             Project Image
           </label>
           <div className="space-y-3">
@@ -254,28 +260,26 @@ function AddProjectModal({ onClose, onSave }) {
                 type="radio"
                 checked={useDefaultImage}
                 onChange={() => setUseDefaultImage(true)}
-                className="mr-2 text-blue-600 focus:ring-blue-500"
+                className="mr-2"
               />
-              <span className="text-gray-700">Use Default Image</span>
+              <span>Use Default Image</span>
             </label>
-
             <label className="flex items-center cursor-pointer">
               <input
                 type="radio"
                 checked={!useDefaultImage}
                 onChange={() => setUseDefaultImage(false)}
-                className="mr-2 text-blue-600 focus:ring-blue-500"
+                className="mr-2"
               />
-              <span className="text-gray-700">Upload Custom Image</span>
+              <span>Upload Custom Image</span>
             </label>
           </div>
-
           {!useDefaultImage && (
             <input
               type="file"
               accept="image/*"
               onChange={handleChange}
-              className="mt-3 w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              className={`mt-3 w-full text-sm ${palette.fileBtn}`}
             />
           )}
           {image && !useDefaultImage && (
@@ -286,26 +290,23 @@ function AddProjectModal({ onClose, onSave }) {
             />
           )}
         </div>
-
         <div className="flex gap-4 justify-end">
           <button
             onClick={onClose}
-            className="px-6 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+            className={`px-6 py-3 rounded-lg border ${palette.borderColor} ${palette.buttonAlt}`}
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
-            className="px-6 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+            className={`px-6 py-3 rounded-lg ${palette.buttonMain}`}
             disabled={!projectName || !selectedOrg || !selectedCompany}
           >
             Save Project
           </button>
         </div>
-
-        {/* Show selected hierarchy for clarity */}
         {(selectedOrg || selectedCompany || selectedEntity) && (
-          <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-600">
+          <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-600 dark:bg-[#292929] dark:text-amber-200">
             <span className="font-medium">Selected: </span>
             {selectedOrg &&
               orgOptions.find((o) => o.id === selectedOrg)?.organization_name}

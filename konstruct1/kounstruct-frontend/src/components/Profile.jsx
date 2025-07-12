@@ -58,6 +58,12 @@ function Profile({ onClose }) {
     role = "Client";
   }
 
+
+  useEffect(()=>{
+    localStorage.setItem('ROLE',role);
+  },[role])
+
+
   // Dropdown outside click
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -75,6 +81,8 @@ function Profile({ onClose }) {
     localStorage.removeItem("REFRESH_TOKEN");
     localStorage.removeItem("USER_DATA");
     localStorage.removeItem("ACCESSES");
+    localStorage.removeItem('ROLE');
+
     navigate("/login");
     if (typeof onClose === "function") onClose();
   };

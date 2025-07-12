@@ -1,13 +1,40 @@
 import React, { useEffect, useState } from "react";
-import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
+import { Eye, EyeOff, Building2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import Image from "../Images/image.png";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import { login } from "../api";
-import { setUserData } from "../store/userSlice"; // Import the action
-import { ToastContainer } from "react-toastify";
+import { setUserData } from "../store/userSlice";
 import "react-toastify/dist/ReactToastify.css";
+import Bg1 from "../Images/image.jpg";
+import Bg2 from "../Images/image1.jpg";
+import Bg3 from "../Images/image2.jpg";
+
+// Carousel Config
+const BG_IMAGES = [Bg1, Bg2, Bg3];
+const BG_INTERVAL = 7000;
+
+// --- Extract Primary Role from User Data ---
+function extractPrimaryRole(userData) {
+  if (!userData) return "User";
+  if (userData.role) return userData.role;
+  if (Array.isArray(userData.roles) && userData.roles.length > 0) {
+    const r = userData.roles[0];
+    return typeof r === "string" ? r : r.role;
+  }
+  if (Array.isArray(userData.accesses) && userData.accesses.length > 0) {
+    for (const access of userData.accesses) {
+      if (Array.isArray(access.roles) && access.roles.length > 0) {
+        const r = access.roles[0];
+        return typeof r === "string" ? r : r.role;
+      }
+    }
+  }
+  if (userData.superadmin) return "Super Admin";
+  if (userData.is_manager) return "Manager";
+  if (userData.is_client === false) return "Admin";
+  return "User";
+}
 
 const Login = () => {
   const navigate = useNavigate();
@@ -17,10 +44,21 @@ const Login = () => {
     username: "",
     password: "",
   });
-  const [password, showPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [page, setPage] = useState("login");
   const [isLoading, setIsLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [bgIndex, setBgIndex] = useState(0);
 
+  // Carousel logic
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setBgIndex((prev) => (prev + 1) % BG_IMAGES.length);
+    }, BG_INTERVAL);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Handle field changes
   const onChange = (e) => {
     setFormData((prev) => ({
       ...prev,
@@ -28,39 +66,7 @@ const Login = () => {
     }));
   };
 
-  useEffect(() => {
-    // Check both old and new token keys for backward compatibility
-    const token =
-      localStorage.getItem("TOKEN") || localStorage.getItem("ACCESS_TOKEN");
-
-    if (token) {
-      // If token exists, try to restore user data from token
-      const tokenData = decodeJWT(token);
-      if (tokenData) {
-        dispatch(
-          setUserData({
-            id: tokenData.user_id,
-            user_id: tokenData.user_id,
-            username: tokenData.username,
-            email: tokenData.email,
-            phone_number: tokenData.phone_number,
-            has_access: tokenData.has_access,
-            is_client: tokenData.is_client,
-            superadmin: tokenData.superadmin,
-            is_manager:tokenData.is_manager
-          })
-        );
-      }
-      navigate("/dashboard");
-      toast.success("You are already logged in!");
-    }
-  }, [navigate, dispatch]);
-
-  const togglePassword = () => {
-    showPassword(!password);
-  };
-
-  // Decode JWT function
+  // JWT decode helper
   const decodeJWT = (token) => {
     try {
       const base64Url = token.split(".")[1];
@@ -78,14 +84,44 @@ const Login = () => {
     }
   };
 
+  // Check for existing session on mount
+  useEffect(() => {
+    const token =
+      localStorage.getItem("TOKEN") || localStorage.getItem("ACCESS_TOKEN");
+    if (token) {
+      const tokenData = decodeJWT(token);
+      if (tokenData) {
+        dispatch(
+          setUserData({
+            id: tokenData.user_id,
+            user_id: tokenData.user_id,
+            username: tokenData.username,
+            email: tokenData.email,
+            phone_number: tokenData.phone_number,
+            has_access: tokenData.has_access,
+            is_client: tokenData.is_client,
+            superadmin: tokenData.superadmin,
+            is_manager: tokenData.is_manager,
+          })
+        );
+        // Also set role from tokenData if possible
+        const role = extractPrimaryRole(tokenData);
+        localStorage.setItem("ROLE", role);
+      }
+      navigate("/dashboard");
+      toast.success("You are already logged in!");
+    }
+  }, [navigate, dispatch]);
+
+  const togglePassword = () => setShowPassword((prev) => !prev);
+
+  // --- LOGIN HANDLER ---
   const handleLogin = async (e) => {
     e.preventDefault();
-
     if (!formData.username || !formData.password) {
       toast.error("Please fill in all fields");
       return;
     }
-
     setIsLoading(true);
 
     try {
@@ -95,51 +131,46 @@ const Login = () => {
       });
 
       if (response.status === 200) {
-        // Save tokens
         localStorage.setItem("ACCESS_TOKEN", response.data.access);
         localStorage.setItem("REFRESH_TOKEN", response.data.refresh);
         localStorage.setItem("token", response.data.access);
 
-        // Decode the JWT to get accesses
+        // Set ACCESSES (for sidebars)
         const tokenData = decodeJWT(response.data.access);
-        const accesses =
-          tokenData && tokenData.accesses ? tokenData.accesses : [];
+        const accesses = tokenData && tokenData.accesses ? tokenData.accesses : [];
         localStorage.setItem("ACCESSES", JSON.stringify(accesses));
-        console.log("Accesses saved in localStorage:", accesses);
 
-        // ...rest of your userData code as needed...
-
-        // Get user data
+        // Prepare userData for redux & storage
         let userData = null;
         if (response.data.user) {
           userData = response.data.user;
-          console.log(userData);
-        } else {
-          // fallback: decode from JWT
-          const tokenData = decodeJWT(response.data.access);
-          if (tokenData) {
-            userData = {
-              id: tokenData.user_id,
-              user_id: tokenData.user_id,
-              username: tokenData.username,
-              email: tokenData.email,
-              phone_number: tokenData.phone_number,
-              has_access: tokenData.has_access,
-              is_client: tokenData.is_client,
-              superadmin: tokenData.superadmin,
-              is_manager: tokenData.is_manager,
-              org: tokenData.org,
-              company: tokenData.company,
-              entity: tokenData.entity,
-            };
-          }
+        } else if (tokenData) {
+          userData = {
+            id: tokenData.user_id,
+            user_id: tokenData.user_id,
+            username: tokenData.username,
+            email: tokenData.email,
+            phone_number: tokenData.phone_number,
+            has_access: tokenData.has_access,
+            is_client: tokenData.is_client,
+            superadmin: tokenData.superadmin,
+            is_manager: tokenData.is_manager,
+            org: tokenData.org,
+            company: tokenData.company,
+            entity: tokenData.entity,
+            role: tokenData.role,
+            roles: tokenData.roles,
+            accesses: tokenData.accesses,
+          };
         }
 
         if (userData) {
           dispatch(setUserData(userData));
           localStorage.setItem("USER_DATA", JSON.stringify(userData));
+          // --- SET THE PRIMARY ROLE ---
+          const role = extractPrimaryRole(userData);
+          localStorage.setItem("ROLE", role);
         }
-        console.log(userData);
 
         toast.success("Logged in successfully!");
         navigate("/dashboard");
@@ -147,8 +178,6 @@ const Login = () => {
         toast.error("Invalid credentials.");
       }
     } catch (error) {
-      console.error("Login Error:", error);
-
       if (error.response?.status === 401) {
         toast.error("Invalid username or password");
       } else if (error.response?.status === 400) {
@@ -162,145 +191,162 @@ const Login = () => {
       setIsLoading(false);
     }
   };
-  
 
   return (
-    <>
-      <ToastContainer position="top-right" autoClose={3000} />
+    <div
+      className="h-screen relative flex items-center justify-center transition-all duration-1000"
+      style={{
+        backgroundImage: `url(${BG_IMAGES[bgIndex]})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        transition: "background-image 1s ease-in-out",
+      }}
+    >
+      <div className="absolute inset-0 bg-black/50 z-0"></div>
+      {/* Login Card */}
       <div
-        className="h-screen relative"
+        className="relative z-10 w-full max-w-md mx-4 md:w-[420px] rounded-2xl p-8 md:p-10 shadow-2xl border border-white/20"
         style={{
-          backgroundImage: `url(${Image})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          background: "blur",
-          opacity: 0.9,
+          background: "rgba(255,255,255,0.18)",
+          boxShadow:
+            "0 8px 32px 0 rgba(31, 38, 135, 0.23), 0 1.5px 2.5px 0 rgba(234,104,34,0.04)",
+          backdropFilter: "blur(18px)",
+          WebkitBackdropFilter: "blur(18px)",
         }}
       >
-        <div className="rounded-md">
-          <h1 className="text-3xl text-white p-2 px-10 font-semibold jersey-15-regular">
-            ConstructWorld.ai
+        {/* Logo and Title */}
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <div className="w-14 h-14 bg-amber-500 rounded-xl flex items-center justify-center shadow-lg">
+              <Building2 className="w-8 h-8 text-slate-800" />
+            </div>
+          </div>
+          <h1 className="text-2xl md:text-3xl font-bold text-[#ea6822] mb-1 tracking-wider">
+            KONSTRUCT.WORLD
           </h1>
         </div>
 
-        <div className="flex justify-center h-[90vh] items-center">
-          <div className="bg-white border-2 border-white w-[30rem] rounded-xl max-h-full p-5 shadow-2xl">
-            <h1 className="text-2xl font-semibold text-center mb-4">Login</h1>
-
-            <form
-              onSubmit={handleLogin}
-              className="m-2 flex flex-col gap-4 w-full"
-            >
-              {/* Username Field */}
-              <div className="flex flex-col gap-2 mx-5">
-                <label htmlFor="username" className="font-medium">
-                  Username:
-                </label>
-                <input
-                  type="text"
-                  name="username"
-                  id="username"
-                  className="rounded-sm p-2 px-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter username"
-                  onChange={onChange}
-                  value={formData.username}
-                  disabled={isLoading}
-                  required
-                />
-              </div>
-
-              {/* Password Field */}
-              {page === "login" && (
-                <div className="flex flex-col gap-2 relative mx-5">
-                  <label htmlFor="password" className="font-medium">
-                    Password:
-                  </label>
-                  <input
-                    name="password"
-                    id="password"
-                    className="rounded-sm p-2 px-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="**********"
-                    type={password ? "text" : "password"}
-                    onChange={onChange}
-                    value={formData.password}
-                    disabled={isLoading}
-                    required
-                  />
-                  <div className="p-1 rounded-full absolute top-10 right-2 cursor-pointer">
-                    {password ? (
-                      <AiFillEye
-                        onClick={togglePassword}
-                        className="text-gray-600"
-                      />
-                    ) : (
-                      <AiFillEyeInvisible
-                        onClick={togglePassword}
-                        className="text-gray-600"
-                      />
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Remember Me */}
-              <div className="mx-5 flex gap-2 items-center">
+        {page === "login" && (
+          <form className="space-y-6" onSubmit={handleLogin}>
+            <div>
+              <input
+                type="text"
+                name="username"
+                id="username"
+                className="w-full px-4 py-3 bg-white/70 rounded-lg text-slate-800 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all"
+                placeholder="Username"
+                onChange={onChange}
+                value={formData.username}
+                disabled={isLoading}
+                required
+                style={{ backdropFilter: "blur(5px)", WebkitBackdropFilter: "blur(5px)" }}
+              />
+            </div>
+            <div className="relative">
+              <input
+                name="password"
+                id="password"
+                className="w-full px-4 py-3 bg-white/70 rounded-lg text-slate-800 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all pr-12"
+                placeholder="Password"
+                type={showPassword ? "text" : "password"}
+                onChange={onChange}
+                value={formData.password}
+                disabled={isLoading}
+                required
+                style={{ backdropFilter: "blur(5px)", WebkitBackdropFilter: "blur(5px)" }}
+              />
+              <button
+                type="button"
+                onClick={togglePassword}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-800 focus:outline-none"
+                tabIndex={-1}
+              >
+                {showPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+              </button>
+            </div>
+            {/* Remember Me & Terms */}
+            <div className="space-y-3">
+              <label className="flex items-center space-x-2 cursor-pointer">
                 <input
                   type="checkbox"
-                  id="remember"
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300 text-amber-500 focus:ring-amber-500"
                 />
-                <label htmlFor="remember" className="text-sm">
-                  Remember Me
-                </label>
-              </div>
-
-              {/* Buttons */}
-              <div className="flex justify-center gap-4 w-full">
-                {page === "login" && (
-                  <button
-                    type="submit"
-                    className={`px-6 py-2 bg-black text-white rounded-md text-lg font-semibold transition-colors ${
-                      isLoading
-                        ? "opacity-50 cursor-not-allowed"
-                        : "hover:bg-gray-800"
-                    }`}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Logging in..." : "Login"}
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => setPage(page === "sso" ? "login" : "sso")}
-                  className="px-6 py-2 border-2 border-black text-black rounded-md text-lg font-medium hover:bg-gray-100 transition-colors"
-                  disabled={isLoading}
-                >
-                  {page === "sso" ? "Submit" : "SSO"}
-                </button>
-              </div>
-
-              {/* Switch to Login from SSO */}
-              {page === "sso" && (
-                <p
-                  className="text-center cursor-pointer hover:text-blue-400 transition-colors"
-                  onClick={() => setPage("login")}
-                >
-                  Back to Login
-                </p>
+                <span className="text-sm text-black-700">Remember me</span>
+              </label>
+              <p className="text-xs text-black-600 text-center leading-relaxed">
+                By clicking Log in you are accepting our{" "}
+                <span className="text-sky-500 hover:text-sky-700 underline cursor-pointer">
+                  Privacy Policy
+                </span>{" "}
+                & agree to the{" "}
+                <span className="text-sky-500 hover:text-sky-700 underline cursor-pointer">
+                  Terms & Conditions
+                </span>
+                .
+              </p>
+            </div>
+            <button
+              type="submit"
+              className={`w-full py-3 bg-amber-500 text-slate-800 rounded-lg font-semibold text-lg transition-all duration-300 ${
+                isLoading
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-amber-400 hover:shadow-lg transform hover:-translate-y-0.5"
+              }`}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-slate-800" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Logging in...
+                </span>
+              ) : (
+                "LOGIN"
               )}
-            </form>
+            </button>
+            <div className="text-center">
+              <span className="text-sm text-black-500 hover:text-slate-700 cursor-pointer">
+                Forgot Password?
+              </span>
+            </div>
+          </form>
+        )}
 
-            {/* Loading indicator */}
-            {isLoading && (
-              <div className="text-center mt-4">
-                <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-black"></div>
-              </div>
-            )}
+        {page === "sso" && (
+          <div className="space-y-6">
+            <div className="text-center text-[#ea6822] mb-6">
+              <h2 className="text-xl font-semibold">SSO Login</h2>
+              <p className="text-sm text-gray-500 mt-2">Single Sign-On authentication</p>
+            </div>
+            <button
+              onClick={() => setPage("login")}
+              className="w-full py-3 bg-amber-500 text-slate-800 rounded-lg font-semibold text-lg hover:bg-amber-400 transition-all"
+            >
+              Back to Login
+            </button>
           </div>
-        </div>
+        )}
+
+        {page === "login" && (
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => setPage("sso")}
+              className="text-sm text-black-500 hover:text-[#ea6822] transition-colors"
+              disabled={isLoading}
+            >
+              Login with SSO
+            </button>
+          </div>
+        )}
       </div>
-    </>
+      <ToastContainer position="top-center" />
+    </div>
   );
 };
 
