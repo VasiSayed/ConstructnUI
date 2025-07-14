@@ -1,29 +1,52 @@
 import React, { useEffect, useState } from "react";
 import SiteBarHome from "./SiteBarHome";
 import { projectInstance, NEWchecklistInstance } from "../api/axiosInstance";
+import { useTheme } from "../ThemeContext";
+
+// THEME-AWARE PALETTE
+const getPalette = (theme) => ({
+  bg: theme === "dark" ? "bg-[#181826]" : "bg-gray-50",
+  card: theme === "dark" ? "bg-[#23232e] border border-yellow-900 shadow" : "bg-white border border-purple-100 shadow",
+  cardAlt: theme === "dark" ? "bg-yellow-900/20 border border-yellow-900" : "bg-purple-50 border border-purple-200",
+  cardBlue: theme === "dark" ? "bg-blue-900/10 border border-blue-800" : "bg-blue-50 border border-blue-100",
+  text: theme === "dark" ? "text-yellow-100" : "text-gray-900",
+  textHead: theme === "dark" ? "text-yellow-400" : "text-purple-700",
+  textDim: theme === "dark" ? "text-yellow-300/80" : "text-gray-600",
+  button: theme === "dark" ? "bg-yellow-700 hover:bg-yellow-600 text-yellow-100" : "bg-purple-600 hover:bg-purple-700 text-white",
+  buttonAlt: theme === "dark" ? "bg-yellow-900 hover:bg-yellow-800 text-yellow-200" : "bg-gray-600 hover:bg-gray-700 text-white",
+  badge: theme === "dark" ? "bg-yellow-900 text-yellow-300" : "bg-purple-100 text-purple-700",
+  badgeBlue: theme === "dark" ? "bg-blue-900 text-blue-300" : "bg-blue-100 text-blue-700",
+  border: theme === "dark" ? "border-yellow-700" : "border-purple-200",
+  input: theme === "dark" ? "bg-[#181826] text-yellow-100 border-yellow-900" : "bg-white text-gray-800 border-gray-300",
+  status: {
+    pending: theme === "dark" ? "bg-yellow-900 text-yellow-300" : "bg-purple-100 text-purple-700",
+    inspector: theme === "dark" ? "bg-orange-900 text-orange-300" : "bg-orange-100 text-orange-700",
+    completed: theme === "dark" ? "bg-green-900 text-green-300" : "bg-green-100 text-green-700",
+    progress: theme === "dark" ? "bg-blue-900 text-blue-300" : "bg-blue-100 text-blue-700",
+    default: theme === "dark" ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-700",
+  },
+});
 
 function PendingSupervisorItems() {
+  const { theme } = useTheme();
+  const palette = getPalette(theme);
+
   const [projects, setProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [error, setError] = useState(null);
 
-  // Supervisor items state
   const [supervisorItems, setSupervisorItems] = useState([]);
   const [loadingItems, setLoadingItems] = useState(false);
   const [itemsError, setItemsError] = useState(null);
 
-  // Status filter state
   const [statusFilter, setStatusFilter] = useState("all");
-
-  // Navigation state for single page navigation
-  const [currentView, setCurrentView] = useState("items"); // 'items' | 'details'
+  const [currentView, setCurrentView] = useState("items");
   const [selectedItem, setSelectedItem] = useState(null);
 
-  // Item states for submission
   const [itemStates, setItemStates] = useState({});
 
-  // Get user/supervisor accesses from localStorage
+  // ACCESS
   const accessesStr = localStorage.getItem("ACCESSES");
   const accesses = accessesStr ? JSON.parse(accessesStr) : [];
 
@@ -47,17 +70,16 @@ function PendingSupervisorItems() {
     setItemStates((prev) => ({ ...prev, ...newStates }));
   };
 
-  // Combine and filter items
+  // Items combine and filter
   const allItems = supervisorItems.pending_for_me || [];
   const availableItems = supervisorItems.available_for_me || [];
   const combinedItems = [...allItems, ...availableItems];
-
   const filteredItems =
     statusFilter === "all"
       ? combinedItems
       : combinedItems.filter((item) => item.status === statusFilter);
 
-  // Status options for filter (supervisor-relevant statuses)
+  // Filter options
   const statusOptions = [
     { value: "all", label: "All Statuses" },
     { value: "pending_for_supervisor", label: "Pending for Supervisor" },
@@ -65,19 +87,19 @@ function PendingSupervisorItems() {
     { value: "completed", label: "Completed" },
   ];
 
-  // Get status badge color
+  // Status color
   const getStatusColor = (status) => {
     switch (status) {
       case "pending_for_supervisor":
-        return "bg-purple-100 text-purple-700";
+        return palette.status.pending;
       case "pending_for_inspector":
-        return "bg-orange-100 text-orange-700";
+        return palette.status.inspector;
       case "completed":
-        return "bg-green-100 text-green-700";
+        return palette.status.completed;
       case "in_progress":
-        return "bg-blue-100 text-blue-700";
+        return palette.status.progress;
       default:
-        return "bg-gray-100 text-gray-700";
+        return palette.status.default;
     }
   };
 
@@ -95,7 +117,6 @@ function PendingSupervisorItems() {
       setSupervisorItems([]);
       return;
     }
-
     setLoadingItems(true);
     setItemsError(null);
     try {
@@ -103,19 +124,13 @@ function PendingSupervisorItems() {
         params: { project_id: selectedProjectId },
         headers: { Authorization: `Bearer ${localStorage.getItem("access")}` },
       });
-
-      console.log("Supervisor API Response:", res.data);
-
       setSupervisorItems(res.data);
-
-      // Initialize states for all items
       const allItems = [
         ...(res.data.pending_for_me || []),
         ...(res.data.available_for_me || []),
       ];
       initializeItemStates(allItems);
     } catch (err) {
-      console.error("Supervisor items fetch error:", err);
       setItemsError("Failed to load supervisor items");
       setSupervisorItems([]);
     } finally {
@@ -132,19 +147,15 @@ function PendingSupervisorItems() {
         const userProjects = accesses
           .filter((a) => a.active)
           .map((a) => Number(a.project_id));
-
         const res = await projectInstance.get("/projects/", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("access")}`,
           },
         });
-
         const allProjects = Array.isArray(res.data)
           ? res.data
           : res.data.results || [];
-
         const filtered = allProjects.filter((p) => userProjects.includes(p.id));
-
         setProjects(filtered);
         if (filtered.length > 0 && !selectedProjectId) {
           setSelectedProjectId(filtered[0].id);
@@ -156,10 +167,10 @@ function PendingSupervisorItems() {
         setLoadingProjects(false);
       }
     }
-
     if (accesses.length > 0) {
       fetchProjects();
     }
+    // eslint-disable-next-line
   }, []);
 
   // Fetch supervisor items when project changes
@@ -167,25 +178,23 @@ function PendingSupervisorItems() {
     fetchSupervisorItems();
     setCurrentView("items");
     setSelectedItem(null);
+    // eslint-disable-next-line
   }, [selectedProjectId]);
 
-  // Navigate to item details
+  // Navigation
   const navigateToItem = (item) => {
     setSelectedItem(item);
     setCurrentView("details");
   };
-
-  // Go back to main view
   const handleGoBack = () => {
     setCurrentView("items");
     setSelectedItem(null);
   };
 
-  // Handle item selection (Yes/No) - Dynamic from API options
+  // Option select/remarks/photo
   const handleItemSelection = (itemId, option, item) => {
     const currentState = itemStates[itemId];
     const isDeselecting = currentState?.optionId === option.id;
-
     setItemStates((prev) => ({
       ...prev,
       [itemId]: {
@@ -195,8 +204,6 @@ function PendingSupervisorItems() {
       },
     }));
   };
-
-  // Handle photo upload
   const handlePhotoUpload = (itemId, file) => {
     if (file) {
       const reader = new FileReader();
@@ -213,8 +220,6 @@ function PendingSupervisorItems() {
       reader.readAsDataURL(file);
     }
   };
-
-  // Remove photo
   const removePhoto = (itemId) => {
     setItemStates((prev) => ({
       ...prev,
@@ -225,8 +230,6 @@ function PendingSupervisorItems() {
       },
     }));
   };
-
-  // Handle remarks change
   const handleRemarksChange = (itemId, remarks) => {
     setItemStates((prev) => ({
       ...prev,
@@ -237,44 +240,29 @@ function PendingSupervisorItems() {
     }));
   };
 
-  // Submit individual item (supervisor decision)
+  // Submit individual item
   const submitItem = async (itemId) => {
     const itemState = itemStates[itemId];
-    const item = filteredItems.find((i) => i.id === itemId);
-
-    // Validation
     if (!itemState?.optionId) {
       setItemStates((prev) => ({
         ...prev,
-        [itemId]: {
-          ...prev[itemId],
-          error: "Please select an option",
-        },
+        [itemId]: { ...prev[itemId], error: "Please select an option" },
       }));
       return;
     }
-
-    // Start submitting
     setItemStates((prev) => ({
       ...prev,
-      [itemId]: {
-        ...prev[itemId],
-        isSubmitting: true,
-        error: null,
-      },
+      [itemId]: { ...prev[itemId], isSubmitting: true, error: null },
     }));
-
     try {
       const formData = new FormData();
       formData.append("checklist_item_id", itemId);
       formData.append("role", "supervisor");
       formData.append("option_id", itemState.optionId);
       formData.append("check_remark", itemState.remarks || "");
-      if (itemState.photoFile) {
-        formData.append("check_photo", itemState.photoFile);
-      }
+      if (itemState.photoFile) formData.append("check_photo", itemState.photoFile);
 
-      const response = await NEWchecklistInstance.patch(
+      await NEWchecklistInstance.patch(
         "/Decsion-makeing-forSuer-Inspector/",
         formData,
         {
@@ -284,10 +272,6 @@ function PendingSupervisorItems() {
           },
         }
       );
-
-      console.log("Supervisor submission response:", response.data);
-
-      // Success
       setItemStates((prev) => ({
         ...prev,
         [itemId]: {
@@ -297,25 +281,20 @@ function PendingSupervisorItems() {
           error: null,
         },
       }));
-
-      // Refresh the list
       await fetchSupervisorItems();
     } catch (error) {
-      console.error("Submit error:", error);
       setItemStates((prev) => ({
         ...prev,
         [itemId]: {
           ...prev[itemId],
           isSubmitting: false,
-          error:
-            error.response?.data?.detail ||
-            "Failed to submit. Please try again.",
+          error: error.response?.data?.detail || "Failed to submit. Please try again.",
         },
       }));
     }
   };
 
-  // Get statistics
+  // Stats
   const getStats = () => {
     const assigned = supervisorItems.pending_for_me?.length || 0;
     const available = supervisorItems.available_for_me?.length || 0;
@@ -326,7 +305,6 @@ function PendingSupervisorItems() {
     const submitted = Object.values(itemStates).filter(
       (s) => s.submitted
     ).length;
-
     return {
       total,
       assigned,
@@ -339,39 +317,35 @@ function PendingSupervisorItems() {
 
   const stats = getStats();
 
+  // --- COMPONENT RENDER ---
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className={`flex min-h-screen ${palette.bg}`}>
       <SiteBarHome />
       <main className="ml-[15%] w-full p-6">
-        {/* Conditional Rendering: Main View or Item Details */}
         {currentView === "items" ? (
-          // MAIN VIEW (Project Selection, Filters, Items)
           <div>
-            <h2 className="text-2xl font-bold mb-6">
+            <h2 className={`text-2xl font-bold mb-6 ${palette.textHead}`}>
               Supervisor - Pending Items Review
             </h2>
-
-            {/* Project Selection and Info - Side by Side */}
+            {/* Project Selection and Info */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
               {/* Project Dropdown */}
-              <div className="bg-white rounded-lg shadow p-4">
-                <label className="block mb-2 font-semibold text-gray-700">
+              <div className={`${palette.card} rounded-lg p-4`}>
+                <label className={`block mb-2 font-semibold ${palette.textHead}`}>
                   Select Project:
                 </label>
                 {loadingProjects ? (
                   <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                    <span className="text-gray-600">Loading projects...</span>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-400 mr-2"></div>
+                    <span className={palette.textDim}>Loading projects...</span>
                   </div>
                 ) : error ? (
                   <p className="text-red-500 text-sm">{error}</p>
                 ) : (
                   <select
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full p-3 rounded-lg border-2 ${palette.input} focus:ring-2 focus:ring-purple-500 focus:border-transparent`}
                     value={selectedProjectId}
-                    onChange={(e) =>
-                      setSelectedProjectId(Number(e.target.value))
-                    }
+                    onChange={(e) => setSelectedProjectId(Number(e.target.value))}
                     disabled={projects.length === 0}
                   >
                     {projects.length === 0 && (
@@ -385,34 +359,31 @@ function PendingSupervisorItems() {
                   </select>
                 )}
               </div>
-
               {/* Selected Project Info */}
               {selectedProjectId && (
-                <div className="bg-white rounded-lg shadow p-4">
-                  <h3 className="font-semibold text-gray-700 mb-2">
+                <div className={`${palette.card} rounded-lg p-4`}>
+                  <h3 className={`font-semibold mb-2 ${palette.text}`}>
                     Selected Project Details:
                   </h3>
-                  <div className="text-sm text-gray-600">
+                  <div className={`text-sm ${palette.textDim}`}>
                     <p>
-                      <span className="font-medium">ID:</span>{" "}
-                      {selectedProjectId}
+                      <span className="font-medium">ID:</span> {selectedProjectId}
                     </p>
                     <p>
                       <span className="font-medium">Name:</span>{" "}
-                      {projects.find((p) => p.id === selectedProjectId)?.name ||
-                        "N/A"}
+                      {projects.find((p) => p.id === selectedProjectId)?.name || "N/A"}
                     </p>
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2">
-                    <div className="text-sm bg-purple-100 rounded-lg px-3 py-2">
+                    <div className="text-sm bg-purple-100 dark:bg-yellow-900/30 rounded-lg px-3 py-2">
                       <span className="font-medium">Assigned: </span>
-                      <span className="text-purple-600 font-bold">
+                      <span className="text-purple-600 dark:text-yellow-400 font-bold">
                         {stats.assigned}
                       </span>
                     </div>
-                    <div className="text-sm bg-blue-100 rounded-lg px-3 py-2">
+                    <div className="text-sm bg-blue-100 dark:bg-blue-900/20 rounded-lg px-3 py-2">
                       <span className="font-medium">Available: </span>
-                      <span className="text-blue-600 font-bold">
+                      <span className="text-blue-600 dark:text-blue-400 font-bold">
                         {stats.available}
                       </span>
                     </div>
@@ -420,12 +391,9 @@ function PendingSupervisorItems() {
                 </div>
               )}
             </div>
-
-            {/* Status Filter Section */}
-            <div className="bg-white rounded-lg shadow p-6 mb-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Filter by Status
-              </h3>
+            {/* Status Filter */}
+            <div className={`${palette.card} rounded-lg shadow p-6 mb-6`}>
+              <h3 className={`text-lg font-semibold mb-4 ${palette.text}`}>Filter by Status</h3>
               <div className="flex flex-wrap gap-3">
                 {statusOptions.map((option) => (
                   <button
@@ -433,7 +401,9 @@ function PendingSupervisorItems() {
                     onClick={() => setStatusFilter(option.value)}
                     className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                       statusFilter === option.value
-                        ? "bg-purple-600 text-white shadow-md"
+                        ? `${palette.button} shadow-md`
+                        : theme === "dark"
+                        ? "bg-[#181826] text-yellow-200 border border-yellow-900"
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}
                   >
@@ -442,42 +412,38 @@ function PendingSupervisorItems() {
                 ))}
               </div>
               {statusFilter !== "all" && (
-                <p className="text-sm text-gray-600 mt-2">
+                <p className={`text-sm mt-2 ${palette.textDim}`}>
                   Currently showing:{" "}
-                  {
-                    statusOptions.find((opt) => opt.value === statusFilter)
-                      ?.label
-                  }
+                  {statusOptions.find((opt) => opt.value === statusFilter)?.label}
                 </p>
               )}
             </div>
-
             {/* Main Content */}
             {loadingItems ? (
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className={`${palette.card} rounded-lg shadow p-6`}>
                 <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-3"></div>
-                  <span className="text-gray-600">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mr-3"></div>
+                  <span className={palette.textDim}>
                     Loading supervisor items...
                   </span>
                 </div>
               </div>
             ) : itemsError ? (
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className={`${palette.card} rounded-lg shadow p-6`}>
                 <div className="text-center py-8">
                   <p className="text-red-500 mb-2">{itemsError}</p>
                   <button
                     onClick={fetchSupervisorItems}
-                    className="text-blue-600 hover:text-blue-800 font-medium"
+                    className="text-purple-600 dark:text-yellow-300 hover:text-purple-800 font-medium"
                   >
                     Try Again
                   </button>
                 </div>
               </div>
             ) : filteredItems.length === 0 ? (
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className={`${palette.card} rounded-lg shadow p-6`}>
                 <div className="text-center py-8">
-                  <p className="text-gray-600">
+                  <p className={palette.textDim}>
                     {statusFilter === "all"
                       ? "No supervisor items for this project."
                       : `No items found with status: ${
@@ -490,14 +456,12 @@ function PendingSupervisorItems() {
               </div>
             ) : (
               <div className="space-y-6">
-                {/* Assigned Items Section */}
                 {supervisorItems.pending_for_me &&
                   supervisorItems.pending_for_me.length > 0 && (
-                    <div className="bg-white rounded-lg shadow">
-                      <div className="px-6 py-4 border-b bg-purple-50">
-                        <h3 className="text-lg font-semibold text-purple-800 flex items-center gap-2">
-                          👤 Assigned to Me (
-                          {supervisorItems.pending_for_me.length})
+                    <div className={`${palette.cardAlt} rounded-lg shadow`}>
+                      <div className="px-6 py-4 border-b bg-purple-50 dark:bg-yellow-900/30">
+                        <h3 className="text-lg font-semibold text-purple-800 dark:text-yellow-400 flex items-center gap-2">
+                          👤 Assigned to Me ({supervisorItems.pending_for_me.length})
                         </h3>
                       </div>
                       <div className="p-6 space-y-4">
@@ -521,15 +485,12 @@ function PendingSupervisorItems() {
                       </div>
                     </div>
                   )}
-
-                {/* Available Items Section */}
                 {supervisorItems.available_for_me &&
                   supervisorItems.available_for_me.length > 0 && (
-                    <div className="bg-white rounded-lg shadow">
-                      <div className="px-6 py-4 border-b bg-blue-50">
-                        <h3 className="text-lg font-semibold text-blue-800 flex items-center gap-2">
-                          📋 Available for Me (
-                          {supervisorItems.available_for_me.length})
+                    <div className={`${palette.cardBlue} rounded-lg shadow`}>
+                      <div className="px-6 py-4 border-b bg-blue-50 dark:bg-blue-900/20">
+                        <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-400 flex items-center gap-2">
+                          📋 Available for Me ({supervisorItems.available_for_me.length})
                         </h3>
                       </div>
                       <div className="p-6 space-y-4">
@@ -555,19 +516,18 @@ function PendingSupervisorItems() {
                   )}
               </div>
             )}
-
             {/* Summary */}
             {stats.total > 0 && (
-              <div className="mt-6 p-4 bg-purple-50 rounded-lg">
+              <div className="mt-6 p-4 bg-purple-50 dark:bg-yellow-900/30 rounded-lg">
                 <div className="flex justify-between items-center">
-                  <div className="text-sm text-gray-700">
+                  <div className={`text-sm ${theme === "dark" ? "text-yellow-200" : "text-gray-700"}`}>
                     <strong>Summary:</strong> {stats.submitted} of{" "}
                     {stats.pendingForSupervisor} pending items reviewed
                     {stats.pending > 0 && ` • ${stats.pending} remaining`}
                   </div>
                   {stats.submitted === stats.pendingForSupervisor &&
                     stats.pendingForSupervisor > 0 && (
-                      <div className="text-green-600 font-semibold">
+                      <div className="text-green-600 dark:text-green-300 font-semibold">
                         ✓ All pending items have been reviewed!
                       </div>
                     )}
@@ -578,23 +538,20 @@ function PendingSupervisorItems() {
         ) : (
           // ITEM DETAILS VIEW
           <div>
-            {/* Header with Go Back */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center">
                 <button
                   onClick={handleGoBack}
-                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium mr-4 transition-colors flex items-center"
+                  className={`${palette.buttonAlt} px-4 py-2 rounded-lg font-medium mr-4 transition-colors flex items-center`}
                 >
                   ← Go Back
                 </button>
-                <h2 className="text-2xl font-bold text-gray-800">
+                <h2 className={`text-2xl font-bold ${palette.text}`}>
                   👨‍💼 Review Item:{" "}
                   {selectedItem?.title || `Item ${selectedItem?.id}`}
                 </h2>
               </div>
             </div>
-
-            {/* Item Review Form */}
             {selectedItem && (
               <SupervisorItemForm
                 item={selectedItem}
@@ -605,6 +562,7 @@ function PendingSupervisorItems() {
                 onRemovePhoto={removePhoto}
                 onSubmit={submitItem}
                 getStatusColor={getStatusColor}
+                theme={theme}
               />
             )}
           </div>
@@ -614,7 +572,7 @@ function PendingSupervisorItems() {
   );
 }
 
-// Item Card Component
+// --- ITEM CARD COMPONENT ---
 const ItemCard = ({
   item,
   index,
@@ -626,38 +584,36 @@ const ItemCard = ({
   const itemState = itemStates[item.id] || {};
   const isSubmitted = itemState.submitted;
   const isPendingForSupervisor = item.status === "pending_for_supervisor";
-
   return (
     <div
       className={`border-2 rounded-lg p-4 transition-all hover:shadow-md ${
         isSubmitted
-          ? "border-green-300 bg-green-50"
+          ? "border-green-300 bg-green-50 dark:bg-green-900/20"
           : isPendingForSupervisor
-          ? "border-purple-300 bg-purple-50"
-          : "border-gray-200 bg-gray-50"
+          ? "border-purple-300 bg-purple-50 dark:bg-yellow-900/20"
+          : "border-gray-200 bg-gray-50 dark:bg-[#23232e]"
       }`}
     >
-      {/* Item Header */}
       <div className="flex justify-between items-start mb-3">
         <div className="flex-1">
           <h5 className="font-semibold text-lg flex items-center gap-2">
             <span
               className={`px-2 py-1 rounded text-xs font-medium ${
                 type === "assigned"
-                  ? "bg-purple-600 text-white"
-                  : "bg-blue-600 text-white"
+                  ? "bg-purple-600 dark:bg-yellow-700 text-white"
+                  : "bg-blue-600 dark:bg-blue-700 text-white"
               }`}
             >
               {type === "assigned" ? "Assigned" : "Available"}
             </span>
             {item.title || `Item ${item.id}`}
             {isSubmitted && (
-              <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">
+              <span className="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-2 py-1 rounded text-xs">
                 ✓ Reviewed
               </span>
             )}
           </h5>
-          <div className="text-sm text-gray-600 mt-1">
+          <div className="text-sm text-gray-600 dark:text-yellow-300 mt-1">
             <span
               className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
                 item.status
@@ -675,37 +631,33 @@ const ItemCard = ({
             )}
           </div>
           {item.description && (
-            <p className="text-sm text-gray-700 mt-2 italic">
-              {item.description}
-            </p>
+            <p className="text-sm text-gray-700 dark:text-yellow-200 mt-2 italic">{item.description}</p>
           )}
         </div>
         <div className="flex flex-col gap-2 ml-4">
-          <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
+          <span className="bg-gray-100 dark:bg-yellow-900 text-gray-700 dark:text-yellow-200 px-2 py-1 rounded text-xs">
             ID: {item.id}
           </span>
           <button
             onClick={() => onNavigate(item)}
-            className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-3 py-1 rounded transition-colors"
+            className="bg-purple-600 hover:bg-purple-700 dark:bg-yellow-700 dark:hover:bg-yellow-800 text-white text-xs px-3 py-1 rounded transition-colors"
           >
             Review
           </button>
         </div>
       </div>
-
-      {/* Quick Action Buttons */}
       <div className="flex gap-2 pt-2">
         {isPendingForSupervisor && !isSubmitted && (
           <button
             onClick={() => onNavigate(item)}
-            className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded transition-colors"
+            className="flex-1 bg-purple-600 hover:bg-purple-700 dark:bg-yellow-700 dark:hover:bg-yellow-800 text-white font-semibold py-2 px-4 rounded transition-colors"
           >
             👨‍💼 Review Item
           </button>
         )}
         <button
           onClick={() => onNavigate(item)}
-          className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded transition-colors"
+          className="bg-gray-600 hover:bg-gray-700 dark:bg-yellow-900 dark:hover:bg-yellow-800 text-white font-semibold py-2 px-4 rounded transition-colors"
         >
           📋 View Details
         </button>
@@ -714,7 +666,7 @@ const ItemCard = ({
   );
 };
 
-// Supervisor Item Form Component
+// --- SUPERVISOR ITEM FORM ---
 const SupervisorItemForm = ({
   item,
   itemStates,
@@ -724,26 +676,26 @@ const SupervisorItemForm = ({
   onRemovePhoto,
   onSubmit,
   getStatusColor,
+  theme,
 }) => {
   const itemState = itemStates[item.id] || {};
   const isSubmitted = itemState.submitted;
   const isPendingForSupervisor = item.status === "pending_for_supervisor";
   const yesOption = item.options?.find((opt) => opt.choice === "P");
   const noOption = item.options?.find((opt) => opt.choice === "N");
-
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-white dark:bg-[#23232e] rounded-lg shadow p-6">
       <div
         className={`transition-all ${
           isSubmitted
-            ? "bg-green-50"
+            ? "bg-green-50 dark:bg-green-900/20"
             : isPendingForSupervisor
-            ? "bg-purple-50"
-            : "bg-gray-50"
+            ? "bg-purple-50 dark:bg-yellow-900/20"
+            : "bg-gray-50 dark:bg-[#23232e]"
         } rounded-lg p-6`}
       >
         {/* Item Info */}
-        <div className="mb-6 p-4 bg-white rounded-lg border">
+        <div className="mb-6 p-4 bg-white dark:bg-[#181826] rounded-lg border">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <strong>ID:</strong> {item.id}
@@ -771,14 +723,13 @@ const SupervisorItemForm = ({
             </div>
           )}
         </div>
-
         {/* Latest Submission Details */}
         {item.latest_submission && (
-          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <h6 className="font-semibold text-sm mb-2 text-yellow-800">
+          <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-700 rounded-lg">
+            <h6 className="font-semibold text-sm mb-2 text-yellow-800 dark:text-yellow-200">
               📋 Latest Submission Details:
             </h6>
-            <div className="text-sm text-gray-700 space-y-1">
+            <div className="text-sm text-gray-700 dark:text-yellow-200 space-y-1">
               <p>
                 <strong>Status:</strong> {item.latest_submission.status}
               </p>
@@ -801,7 +752,6 @@ const SupervisorItemForm = ({
             </div>
           </div>
         )}
-
         {/* Interactive Section - Only for pending_for_supervisor */}
         {isPendingForSupervisor && !isSubmitted ? (
           <>
@@ -812,7 +762,7 @@ const SupervisorItemForm = ({
                   className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${
                     itemState.optionId === yesOption.id
                       ? "bg-green-600 text-white shadow-lg"
-                      : "bg-green-100 text-green-700 hover:bg-green-200 border border-green-300"
+                      : "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-200 hover:bg-green-200 border border-green-300"
                   }`}
                   onClick={() => onSelectionChange(item.id, yesOption, item)}
                 >
@@ -824,7 +774,7 @@ const SupervisorItemForm = ({
                   className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${
                     itemState.optionId === noOption.id
                       ? "bg-red-600 text-white shadow-lg"
-                      : "bg-red-100 text-red-700 hover:bg-red-200 border border-red-300"
+                      : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-200 hover:bg-red-200 border border-red-300"
                   }`}
                   onClick={() => onSelectionChange(item.id, noOption, item)}
                 >
@@ -832,28 +782,26 @@ const SupervisorItemForm = ({
                 </button>
               )}
             </div>
-
             {/* Remarks Field */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-yellow-100 mb-2">
                 Supervisor Remarks (Optional)
               </label>
               <textarea
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-yellow-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                 rows="4"
                 placeholder="Add any supervisor comments or observations..."
                 value={itemState.remarks || ""}
                 onChange={(e) => onRemarksChange(item.id, e.target.value)}
               />
             </div>
-
             {/* Photo Upload */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-yellow-100 mb-2">
                 Reviewer Photo (Optional)
               </label>
               {!itemState.photoPreview ? (
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                <div className="border-2 border-dashed border-gray-300 dark:border-yellow-900 rounded-lg p-8 text-center">
                   <input
                     type="file"
                     accept="image/*"
@@ -866,7 +814,7 @@ const SupervisorItemForm = ({
                     className="cursor-pointer"
                   >
                     <svg
-                      className="mx-auto h-16 w-16 text-gray-400"
+                      className="mx-auto h-16 w-16 text-gray-400 dark:text-yellow-300"
                       stroke="currentColor"
                       fill="none"
                       viewBox="0 0 48 48"
@@ -878,10 +826,10 @@ const SupervisorItemForm = ({
                         strokeLinejoin="round"
                       />
                     </svg>
-                    <p className="mt-3 text-lg text-gray-600">
+                    <p className="mt-3 text-lg text-gray-600 dark:text-yellow-100">
                       Click to upload reviewer photo
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-yellow-200">
                       PNG, JPG, GIF up to 10MB
                     </p>
                   </label>
@@ -914,10 +862,9 @@ const SupervisorItemForm = ({
                 </div>
               )}
             </div>
-
             {/* Error Message */}
             {itemState.error && (
-              <div className="mb-6 p-4 bg-red-100 border border-red-300 text-red-700 rounded-lg">
+              <div className="mb-6 p-4 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg">
                 <div className="flex items-center">
                   <svg
                     className="w-5 h-5 mr-2"
@@ -934,12 +881,11 @@ const SupervisorItemForm = ({
                 </div>
               </div>
             )}
-
             {/* Submit Button */}
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => window.history.back()}
-                className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white font-semibold rounded-lg transition-colors"
+                className="px-6 py-3 bg-gray-500 dark:bg-yellow-900 hover:bg-gray-600 dark:hover:bg-yellow-800 text-white font-semibold rounded-lg transition-colors"
               >
                 Cancel
               </button>
@@ -948,10 +894,10 @@ const SupervisorItemForm = ({
                 disabled={itemState.isSubmitting || !itemState.optionId}
                 className={`px-8 py-3 rounded-lg font-semibold transition-all ${
                   itemState.isSubmitting
-                    ? "bg-gray-400 cursor-not-allowed"
+                    ? "bg-gray-400 dark:bg-yellow-700/20 cursor-not-allowed"
                     : !itemState.optionId
-                    ? "bg-gray-300 cursor-not-allowed"
-                    : "bg-purple-600 hover:bg-purple-700 text-white shadow-lg"
+                    ? "bg-gray-300 dark:bg-yellow-700/10 cursor-not-allowed"
+                    : "bg-purple-600 hover:bg-purple-700 dark:bg-yellow-700 dark:hover:bg-yellow-800 text-white shadow-lg"
                 }`}
               >
                 {itemState.isSubmitting ? (
@@ -986,27 +932,27 @@ const SupervisorItemForm = ({
           </>
         ) : isSubmitted ? (
           <div className="text-center py-8">
-            <div className="text-green-600 font-semibold text-2xl mb-3">
+            <div className="text-green-600 dark:text-green-300 font-semibold text-2xl mb-3">
               ✅ Review Submitted Successfully
             </div>
-            <p className="text-lg text-gray-600 mb-4">
+            <p className="text-lg text-gray-600 dark:text-yellow-100 mb-4">
               This item has been reviewed and processed.
             </p>
-            <div className="bg-white p-4 rounded-lg border max-w-md mx-auto">
-              <p className="text-sm text-gray-700">
+            <div className="bg-white dark:bg-[#181826] p-4 rounded-lg border max-w-md mx-auto">
+              <p className="text-sm text-gray-700 dark:text-yellow-100">
                 <strong>Decision:</strong>
               </p>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-600 dark:text-yellow-200 mt-1">
                 {itemState.optionId === yesOption?.id
                   ? yesOption?.name
                   : noOption?.name}
               </p>
               {itemState.remarks && (
                 <>
-                  <p className="text-sm text-gray-700 mt-2">
+                  <p className="text-sm text-gray-700 dark:text-yellow-100 mt-2">
                     <strong>Remarks:</strong>
                   </p>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-gray-600 dark:text-yellow-200 mt-1">
                     {itemState.remarks}
                   </p>
                 </>
@@ -1014,31 +960,30 @@ const SupervisorItemForm = ({
             </div>
             <button
               onClick={() => window.history.back()}
-              className="mt-6 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+              className="mt-6 bg-purple-600 hover:bg-purple-700 dark:bg-yellow-700 dark:hover:bg-yellow-800 text-white px-6 py-2 rounded-lg font-medium transition-colors"
             >
               ← Back to Items List
             </button>
           </div>
         ) : (
           <div className="text-center py-8">
-            <div className="text-gray-600 font-medium text-lg mb-2">
+            <div className="text-gray-600 dark:text-yellow-100 font-medium text-lg mb-2">
               📋 Read-Only Item
             </div>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 dark:text-yellow-100">
               Status: {item.status.replace("_", " ")}
               <br />
               This item is not pending for supervisor review.
             </p>
-
             {/* Show available options for read-only items */}
             {item.options && item.options.length > 0 && (
               <div className="mt-3">
-                <p className="text-xs text-gray-500 mb-2">Available options:</p>
+                <p className="text-xs text-gray-500 dark:text-yellow-200 mb-2">Available options:</p>
                 <div className="flex gap-2 justify-center">
                   {item.options.map((option) => (
                     <span
                       key={option.id}
-                      className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs"
+                      className="px-2 py-1 bg-gray-100 dark:bg-yellow-900 text-gray-600 dark:text-yellow-100 rounded text-xs"
                     >
                       {option.name} ({option.choice === "P" ? "Yes" : "No"})
                     </span>

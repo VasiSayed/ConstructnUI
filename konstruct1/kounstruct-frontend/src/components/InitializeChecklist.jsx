@@ -244,16 +244,14 @@ import SiteBarHome from "./SiteBarHome";
 import { projectInstance, NEWchecklistInstance } from "../api/axiosInstance";
 import { useTheme } from "../ThemeContext";
 
-// UTILITY: Detect if current user is Intializer
+// UTILITY: Detect if current user is Initializer
 function isInitializerRole() {
   try {
     const userStr = localStorage.getItem("USER_DATA");
     if (!userStr || userStr === "undefined") return false;
     const userData = JSON.parse(userStr);
 
-    // .role (string)
     if (userData.role === "Intializer") return true;
-    // .roles (array of strings or objects)
     if (Array.isArray(userData.roles)) {
       if (
         userData.roles.some(
@@ -264,7 +262,6 @@ function isInitializerRole() {
       )
         return true;
     }
-    // .accesses (optional, array with roles inside)
     if (Array.isArray(userData.accesses)) {
       for (let a of userData.accesses) {
         if (
@@ -288,16 +285,19 @@ function InitializeChecklist() {
   const { theme, toggleTheme } = useTheme();
   const isInitializer = isInitializerRole();
 
+  // --- Clean palette, use everywhere below ---
   const palette = theme === "dark"
     ? {
         pageBg: "bg-[#181820]",
-        card: "bg-[#23232e] border border-amber-400/30 shadow-lg",
+        card: "bg-[#23232e] border border-yellow-400/30 shadow-lg",
         section: "bg-[#23232e]",
         text: "text-yellow-100",
-        textDim: "text-yellow-200",
+        textHead: "text-yellow-300",
+        textDim: "text-yellow-400",
         border: "border-yellow-400/50",
         select: "bg-[#191921] text-yellow-100 border-yellow-400/30",
         button: "bg-yellow-400 hover:bg-yellow-300 text-black font-semibold",
+        buttonAlt: "bg-[#222] hover:bg-yellow-700 text-yellow-200",
         input: "bg-[#23232e] text-yellow-100 border-yellow-400/30",
         badge: "bg-yellow-800 text-yellow-200"
       }
@@ -306,10 +306,12 @@ function InitializeChecklist() {
         card: "bg-white border border-orange-200 shadow",
         section: "bg-white",
         text: "text-gray-800",
+        textHead: "text-orange-600",
         textDim: "text-gray-500",
         border: "border-orange-300",
         select: "bg-white text-gray-800 border-orange-300",
         button: "bg-orange-500 hover:bg-orange-600 text-white font-semibold",
+        buttonAlt: "bg-gray-200 hover:bg-orange-300 text-orange-800",
         input: "bg-white text-gray-800 border-orange-300",
         badge: "bg-orange-100 text-orange-700"
       };
@@ -319,27 +321,19 @@ function InitializeChecklist() {
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [error, setError] = useState(null);
 
-  // Checklists state
   const [checklists, setChecklists] = useState([]);
   const [loadingChecklists, setLoadingChecklists] = useState(false);
   const [checklistError, setChecklistError] = useState(null);
 
-  // Checklist items state
   const [checklistItems, setChecklistItems] = useState([]);
   const [loadingChecklistItems, setLoadingChecklistItems] = useState(false);
   const [viewedChecklistName, setViewedChecklistName] = useState("");
-
-  // Status filter state
   const [statusFilter, setStatusFilter] = useState("all");
-
-  // View state for single page navigation
   const [isViewingItems, setIsViewingItems] = useState(false);
 
-  // Get user/checker accesses from localStorage
   const accessesStr = localStorage.getItem("ACCESSES");
   const accesses = accessesStr ? JSON.parse(accessesStr) : [];
 
-  // Function to refresh checklists
   const refreshChecklists = async () => {
     if (!selectedProjectId) {
       setChecklists([]);
@@ -367,7 +361,6 @@ function InitializeChecklist() {
     }
   };
 
-  // Initialize checklist function
   const handleInitializeChecklist = async (checklistId) => {
     try {
       await NEWchecklistInstance.post(
@@ -386,14 +379,10 @@ function InitializeChecklist() {
     }
   };
 
-  // View checklist function
   const handleViewChecklist = async (checklistId) => {
     try {
-      console.log("Viewing checklist:", checklistId);
       setLoadingChecklistItems(true);
-      setIsViewingItems(true); // Switch to items view
-
-      // Hit the checklist-items API to fetch data
+      setIsViewingItems(true);
       const response = await NEWchecklistInstance.get(
         `/checklist-items/${checklistId}/`,
         {
@@ -402,39 +391,29 @@ function InitializeChecklist() {
           },
         }
       );
-
-      console.log("Checklist data fetched successfully:", response.data);
-
-      // Find checklist name for display
       const checklist = checklists.find((c) => c.id === checklistId);
       setViewedChecklistName(checklist?.name || `Checklist #${checklistId}`);
-
-      // Set checklist items data
       setChecklistItems(response.data);
     } catch (err) {
-      console.error("View checklist error:", err);
-      alert("Failed to load checklist. Please try again.");
       setChecklistItems([]);
-      setIsViewingItems(false); // Return to main view on error
+      setIsViewingItems(false);
+      alert("Failed to load checklist. Please try again.");
     } finally {
       setLoadingChecklistItems(false);
     }
   };
 
-  // Go back to main view
   const handleGoBack = () => {
     setIsViewingItems(false);
     setChecklistItems([]);
     setViewedChecklistName("");
   };
 
-  // Filter checklists by status
   const filteredChecklists =
     statusFilter === "all"
       ? checklists
       : checklists.filter((checklist) => checklist.status === statusFilter);
 
-  // Status options for filter
   const statusOptions = [
     { value: "all", label: "All Statuses" },
     { value: "not_started", label: "Not Started" },
@@ -443,54 +422,54 @@ function InitializeChecklist() {
     { value: "completed", label: "Completed" },
   ];
 
-  // Get status badge color
+  // Badge color by status (yellow for in_progress/work_in_progress)
   const getStatusColor = (status) => {
     switch (status) {
       case "not_started":
-        return "bg-gray-100 text-gray-700";
+        return palette.badge;
       case "in_progress":
-        return "bg-blue-100 text-blue-700";
+        return theme === "dark"
+          ? "bg-yellow-400 text-black"
+          : "bg-orange-200 text-orange-900";
       case "work_in_progress":
-        return "bg-yellow-100 text-yellow-700";
+        return theme === "dark"
+          ? "bg-yellow-500 text-black"
+          : "bg-orange-300 text-orange-900";
       case "completed":
-        return "bg-green-100 text-green-700";
+        return "bg-green-200 text-green-800";
       default:
         return "bg-gray-100 text-gray-700";
     }
   };
 
-  // Reset items when filter changes
   useEffect(() => {
     if (isViewingItems) {
       setIsViewingItems(false);
       setChecklistItems([]);
       setViewedChecklistName("");
     }
+    // eslint-disable-next-line
   }, [statusFilter]);
 
-  // Fetch projects
   useEffect(() => {
     async function fetchProjects() {
       setLoadingProjects(true);
       setError(null);
       try {
-        // Filter projects where user has access
         const userProjects = accesses
           .filter((a) => a.active)
           .map((a) => Number(a.project_id));
-
         const res = await projectInstance.get("/projects/", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("access")}`,
           },
         });
-
         const allProjects = Array.isArray(res.data)
           ? res.data
           : res.data.results;
-
-        const filtered = allProjects.filter((p) => userProjects.includes(p.id));
-
+        const filtered = allProjects.filter((p) =>
+          userProjects.includes(p.id)
+        );
         setProjects(filtered);
         if (filtered.length > 0 && !selectedProjectId) {
           setSelectedProjectId(filtered[0].id);
@@ -509,166 +488,121 @@ function InitializeChecklist() {
     // eslint-disable-next-line
   }, []);
 
-  // Fetch checklists when project is selected
   useEffect(() => {
     refreshChecklists();
     // eslint-disable-next-line
   }, [selectedProjectId]);
 
   // --- THEME TOGGLE BUTTON (only for Initializer)
-  const ThemeToggle = () =>
-    isInitializer ? (
-      <button
-        className={`fixed top-5 right-7 z-50 px-4 py-2 rounded-xl shadow-md font-semibold text-sm
-        ${theme === "dark"
-          ? "bg-yellow-400 text-black hover:bg-yellow-300"
-          : "bg-gray-800 text-yellow-300 hover:bg-gray-900"}
-        transition-all duration-200`}
-        style={{ border: "2px solid #facc15" }}
-        onClick={toggleTheme}
-      >
-        {theme === "dark" ? "Light Mode" : "Dark Mode"}
-      </button>
-    ) : null;
+  // const ThemeToggle = () =>
+  //   isInitializer ? (
+  //     // <button
+  //     //   className={`
+  //     //     fixed top-5 right-7 z-50 px-4 py-2 rounded-xl shadow-md font-semibold text-sm
+  //     //     ${palette.button}
+  //     //   `}
+  //     //   style={{
+  //     //     border: theme === "dark" ? "2px solid #facc15" : "2px solid #ffa726",
+  //     //   }}
+  //     //   onClick={toggleTheme}
+  //     // >
+  //     //   {theme === "dark" ? "Light Mode" : "Dark Mode"}
+  //     // </button>
+  //   ) : null;
 
   return (
     <div className={`flex min-h-screen ${palette.pageBg}`}>
       <SiteBarHome />
-      <ThemeToggle />
+      {/* <ThemeToggle /> */}
       <main className="ml-[15%] w-full p-6">
-        {/* Conditional Rendering: Main View or Items View */}
+        {/* MAIN CHECKLIST ITEMS VIEW */}
         {isViewingItems ? (
-          // CHECKLIST ITEMS VIEW
           <div>
-            {/* Header with Go Back */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center">
                 <button
                   onClick={handleGoBack}
-                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium mr-4 transition-colors flex items-center"
+                  className={`mr-4 px-4 py-2 rounded-lg font-medium shadow-sm border ${palette.buttonAlt}`}
+                  style={{ borderColor: "#fff2", minWidth: 110 }}
                 >
                   ← Go Back
                 </button>
-                <h2 className="text-2xl font-bold text-gray-800">
+                <h2 className={`text-2xl font-bold ${palette.textHead}`}>
                   {viewedChecklistName}
                 </h2>
               </div>
             </div>
-
-            {/* Checklist Items Content */}
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className={`${palette.card} rounded-lg p-6`}>
               {loadingChecklistItems ? (
                 <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mr-3"></div>
-                  <span className="text-gray-600 text-lg">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-yellow-400 mr-3"></div>
+                  <span className={`${palette.text} text-lg`}>
                     Loading checklist items...
                   </span>
                 </div>
               ) : checklistItems.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="text-gray-600 text-lg">
+                  <p className={`${palette.textDim} text-lg`}>
                     No items found for this checklist.
                   </p>
                 </div>
               ) : (
                 <div>
                   <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                    <h3 className={`text-lg font-semibold ${palette.textHead} mb-2`}>
                       Checklist Items ({checklistItems.length})
                     </h3>
-                    <p className="text-gray-600 text-sm">
+                    <p className={`${palette.textDim} text-sm`}>
                       Review and manage the items in this checklist
                     </p>
                   </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {checklistItems.map((item) => (
                       <div
                         key={item.id}
-                        className="border border-gray-200 rounded-lg p-6 bg-gray-50 hover:shadow-md transition-shadow"
+                        className={`${palette.card} border rounded-lg p-6 hover:shadow-md transition-shadow`}
                       >
                         <div className="flex justify-between items-start mb-4">
-                          <h4 className="font-semibold text-lg text-gray-800">
+                          <h4 className={`font-semibold text-lg ${palette.text}`}>
                             {item.title}
                           </h4>
-                          <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-xs font-medium">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
                             ID: {item.id}
                           </span>
                         </div>
-
                         {item.description && (
                           <div className="mb-4">
-                            <p className="text-gray-600 text-sm bg-white p-3 rounded border">
+                            <p className={`${palette.textDim} text-sm bg-transparent p-3 rounded border`}>
                               {item.description}
                             </p>
                           </div>
                         )}
-
                         <div className="space-y-3 mb-4">
                           <div className="flex items-center justify-between">
-                            <span className="font-medium text-sm text-gray-700">
+                            <span className={`font-medium text-sm ${palette.textDim}`}>
                               Status:
                             </span>
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                                item.status
-                              )}`}
-                            >
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
                               {item.status.replace("_", " ").toUpperCase()}
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="font-medium text-sm text-gray-700">
+                            <span className={`font-medium text-sm ${palette.textDim}`}>
                               Photo Required:
                             </span>
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                item.photo_required
-                                  ? "bg-yellow-100 text-yellow-700"
-                                  : "bg-gray-100 text-gray-600"
-                              }`}
-                            >
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${item.photo_required ? "bg-yellow-100 text-yellow-700" : "bg-gray-100 text-gray-600"}`}>
                               {item.photo_required ? "Yes" : "No"}
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="font-medium text-sm text-gray-700">
+                            <span className={`font-medium text-sm ${palette.textDim}`}>
                               Ignore Now:
                             </span>
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                item.ignore_now
-                                  ? "bg-red-100 text-red-700"
-                                  : "bg-gray-100 text-gray-600"
-                              }`}
-                            >
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${item.ignore_now ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600"}`}>
                               {item.ignore_now ? "Yes" : "No"}
                             </span>
                           </div>
                         </div>
-
-                        {/* {item.options && item.options.length > 0 && (
-                          <div className="mt-4">
-                            <p className="font-medium text-sm mb-3 text-gray-700">
-                              Available Options:
-                            </p>
-                            <div className="space-y-2">
-                              {item.options.map((option) => (
-                                <div
-                                  key={option.id}
-                                  className="flex items-center justify-between bg-white p-3 rounded-lg border hover:bg-gray-50 transition-colors"
-                                >
-                                  <span className="text-sm font-medium">
-                                    {option.name}
-                                  </span>
-                                  <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium">
-                                    Choice: {option.choice}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )} */}
                       </div>
                     ))}
                   </div>
@@ -679,31 +613,28 @@ function InitializeChecklist() {
         ) : (
           // MAIN VIEW (Project Selection, Filters, Checklists)
           <div>
-            <h2 className="text-2xl font-bold mb-6">Initialize Checklist</h2>
-
-            {/* Project Selection and Info - Side by Side */}
+            <h2 className={`text-2xl font-bold mb-6 ${palette.textHead}`}>Initialize Checklist</h2>
+            {/* Project Selection and Info */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              {/* Project Dropdown */}
-              <div className="bg-white rounded-lg shadow p-4">
-                <label className="block mb-2 font-semibold text-gray-700">
+              <div className={`${palette.card} rounded-lg p-4`}>
+                <label className={`block mb-2 font-semibold ${palette.textHead}`}>
                   Select Project:
                 </label>
                 {loadingProjects ? (
                   <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                    <span className="text-gray-600">Loading projects...</span>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-400 mr-2"></div>
+                    <span className={`${palette.textDim}`}>Loading projects...</span>
                   </div>
                 ) : error ? (
                   <p className="text-red-500 text-sm">{error}</p>
                 ) : (
                   <select
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full p-3 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent border-2 ${palette.select}`}
                     value={selectedProjectId}
                     onChange={(e) =>
                       setSelectedProjectId(Number(e.target.value))
                     }
                     disabled={projects.length === 0}
-
                   >
                     {projects.length === 0 && (
                       <option>No projects available</option>
@@ -716,14 +647,13 @@ function InitializeChecklist() {
                   </select>
                 )}
               </div>
-
               {/* Selected Project Info */}
               {selectedProjectId && (
-                <div className="bg-white rounded-lg shadow p-4">
-                  <h3 className="font-semibold text-gray-700 mb-2">
+                <div className={`${palette.card} rounded-lg p-4`}>
+                  <h3 className={`font-semibold mb-2 ${palette.textHead}`}>
                     Selected Project Details:
                   </h3>
-                  <div className="text-sm text-gray-600">
+                  <div className={`text-sm ${palette.textDim}`}>
                     <p>
                       <span className="font-medium">ID:</span>{" "}
                       {selectedProjectId}
@@ -737,10 +667,9 @@ function InitializeChecklist() {
                 </div>
               )}
             </div>
-
-            {/* Status Filter Section */}
-            <div className="bg-white rounded-lg shadow p-6 mb-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+            {/* Status Filter */}
+            <div className={`${palette.card} rounded-lg p-6 mb-6`}>
+              <h3 className={`text-lg font-semibold mb-4 ${palette.textHead}`}>
                 Filter by Status
               </h3>
               <div className="flex flex-wrap gap-3">
@@ -750,8 +679,8 @@ function InitializeChecklist() {
                     onClick={() => setStatusFilter(option.value)}
                     className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                       statusFilter === option.value
-                        ? "bg-blue-600 text-white shadow-md"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        ? `${palette.button} shadow-md`
+                        : `${palette.buttonAlt}`
                     }`}
                   >
                     {option.label}
@@ -759,7 +688,7 @@ function InitializeChecklist() {
                 ))}
               </div>
               {statusFilter !== "all" && (
-                <p className="text-sm text-gray-600 mt-2">
+                <p className={`${palette.textDim} text-sm mt-2`}>
                   Currently showing:{" "}
                   {
                     statusOptions.find((opt) => opt.value === statusFilter)
@@ -768,39 +697,37 @@ function InitializeChecklist() {
                 </p>
               )}
             </div>
-
-            {/* Checklists Section */}
-            <div className="bg-white rounded-lg shadow p-6">
+            {/* Checklists */}
+            <div className={`${palette.card} rounded-lg p-6`}>
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold text-gray-800">
+                <h3 className={`text-xl font-semibold ${palette.textHead}`}>
                   Available Checklists
                 </h3>
                 {filteredChecklists.length > 0 && (
-                  <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
+                  <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
                     {filteredChecklists.length} checklist
                     {filteredChecklists.length !== 1 ? "s" : ""} found
                   </span>
                 )}
               </div>
-
               {loadingChecklists ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-3"></div>
-                  <span className="text-gray-600">Loading checklists...</span>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400 mr-3"></div>
+                  <span className={`${palette.textDim}`}>Loading checklists...</span>
                 </div>
               ) : checklistError ? (
                 <div className="text-center py-8">
                   <p className="text-red-500 mb-2">{checklistError}</p>
                   <button
                     onClick={refreshChecklists}
-                    className="text-blue-600 hover:text-blue-800 font-medium"
+                    className={`${palette.button} px-4 py-2 rounded-lg font-medium mt-2`}
                   >
                     Try Again
                   </button>
                 </div>
               ) : !filteredChecklists.length ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-600">
+                  <p className={`${palette.textDim}`}>
                     {statusFilter === "all"
                       ? "No checklists available for this project."
                       : `No checklists found with status: ${
@@ -815,18 +742,17 @@ function InitializeChecklist() {
                   {filteredChecklists.map((checklist) => (
                     <div
                       key={checklist.id}
-                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                      className={`${palette.card} border rounded-lg p-4 hover:shadow-md transition-shadow`}
                     >
                       <div className="flex justify-between items-start mb-3">
-                        <h4 className="font-semibold text-lg text-gray-800">
+                        <h4 className={`font-semibold text-lg ${palette.text}`}>
                           {checklist.name}
                         </h4>
-                        <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
+                        <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs">
                           #{checklist.id}
                         </span>
                       </div>
-
-                      <div className="text-sm text-gray-600 mb-3 space-y-1">
+                      <div className={`text-sm ${palette.textDim} mb-3 space-y-1`}>
                         <p>
                           <span className="font-medium">Category:</span>{" "}
                           {checklist.category || "N/A"}
@@ -848,21 +774,15 @@ function InitializeChecklist() {
                           {checklist.items?.length || 0}
                         </p>
                       </div>
-
                       <div className="mb-3">
-                        <span
-                          className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                            checklist.status
-                          )}`}
-                        >
+                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(checklist.status)}`}>
                           {checklist.status.replace("_", " ").toUpperCase()}
                         </span>
                       </div>
-
                       <div className="flex gap-2">
                         {checklist.status === "not_started" && (
                           <button
-                            className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded transition-colors"
+                            className={`flex-1 ${palette.button} py-2 px-4 rounded transition-colors`}
                             onClick={() =>
                               handleInitializeChecklist(checklist.id)
                             }
@@ -871,7 +791,7 @@ function InitializeChecklist() {
                           </button>
                         )}
                         <button
-                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition-colors"
+                          className={`flex-1 ${palette.buttonAlt} py-2 px-4 rounded transition-colors`}
                           onClick={() => handleViewChecklist(checklist.id)}
                         >
                           View
