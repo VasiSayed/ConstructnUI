@@ -59,7 +59,7 @@ const Layout = () => {
       {!shouldHideHeader && <Header />}
       <main className={!shouldHideHeader ? "mt-[65px]" : ""}>
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/config" element={<Configuration />} />
           <Route path="/all-checklists" element={<AllChecklists />} />
           <Route
             path="/my-ongoing-checklist"
