@@ -316,7 +316,7 @@ const UserSetup = () => {
             boxShadow: theme === "dark" ? "0 2px 12px #0001" : "0 1px 4px #ea682220"
           }}
         >
-          {theme === "light" ? "🌙 Dark Theme" : "☀️ Light Theme"}
+          {theme === "light" ? "🌙" : "☀️"}
         </button>
       </div>
 

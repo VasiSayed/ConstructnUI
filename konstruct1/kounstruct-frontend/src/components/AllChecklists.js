@@ -3,8 +3,38 @@ import SideBarSetup from "./SideBarSetup";
 import { getProjectUserDetails } from "../api";
 import { checklistInstance } from "../api/axiosInstance";
 import { toast } from "react-hot-toast";
+import { useTheme } from "../ThemeContext"; // Ensure this path is correct
 
 function AllChecklists() {
+  const { theme } = useTheme();
+  const palette = theme === "dark"
+    ? {
+        bg: "#191921",
+        card: "bg-[#23232e]",
+        text: "text-amber-200",
+        border: "border-[#facc1530]",
+        input: "bg-[#181820] text-amber-200",
+        tableHead: "bg-[#181820] text-[#facc15]",
+        trHover: "hover:bg-[#23232e]",
+        shadow: "shadow-xl",
+        btn: "bg-[#4375e8] text-white hover:bg-[#1e4fb2]",
+        btnSec: "bg-gray-600 text-amber-100 hover:bg-gray-700",
+        badge: "bg-[#fde047] text-[#181820]"
+      }
+    : {
+        bg: "#f7f8fa",
+        card: "bg-white",
+        text: "text-[#22223b]",
+        border: "border-[#ececf0]",
+        input: "bg-white text-[#22223b]",
+        tableHead: "bg-[#f6f8fd] text-[#9aa2bc]",
+        trHover: "hover:bg-[#f6f8fd]",
+        shadow: "shadow",
+        btn: "bg-[#4375e8] text-white hover:bg-[#1e4fb2]",
+        btnSec: "bg-gray-500 text-white hover:bg-gray-600",
+        badge: "bg-[#4375e8] text-white"
+      };
+
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState("");
   const [checklists, setChecklists] = useState([]);
@@ -15,7 +45,6 @@ function AllChecklists() {
   const [editingValue, setEditingValue] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Inline add state
   const [inlineAddBelowId, setInlineAddBelowId] = useState(null);
   const [inlineAddValue, setInlineAddValue] = useState("");
 
@@ -83,11 +112,10 @@ function AllChecklists() {
       await checklistInstance.post(`/items/`, {
         checklist: selectedChecklist,
         description: val,
-        sequence: (items.length + 1),
+        sequence: items.length + 1,
       });
       toast.success("Question added");
       setNewQuestion("");
-      // Refresh items
       const res = await checklistInstance.get(`/items/by_checklist/?checklist_id=${selectedChecklist}`);
       setItems(res.data || []);
     } catch {
@@ -106,16 +134,14 @@ function AllChecklists() {
     }
     setLoading(true);
     try {
-      // Insert with a sequence after the current row (optional; or just append)
       await checklistInstance.post(`/items/`, {
         checklist: selectedChecklist,
         description: val,
-        sequence: (items.findIndex(i => i.id === afterId) + 2), // position after this row
+        sequence: items.findIndex(i => i.id === afterId) + 2,
       });
       toast.success("Question added");
       setInlineAddValue("");
       setInlineAddBelowId(null);
-      // Refresh items
       const res = await checklistInstance.get(`/items/by_checklist/?checklist_id=${selectedChecklist}`);
       setItems(res.data || []);
     } catch {
@@ -144,7 +170,6 @@ function AllChecklists() {
       toast.success("Question updated");
       setEditingId(null);
       setEditingValue("");
-      // Refresh
       const res = await checklistInstance.get(`/items/by_checklist/?checklist_id=${selectedChecklist}`);
       setItems(res.data || []);
     } catch {
@@ -160,7 +185,6 @@ function AllChecklists() {
     try {
       await checklistInstance.delete(`/items/${itemId}/`);
       toast.success("Deleted");
-      // Refresh
       const res = await checklistInstance.get(`/items/by_checklist/?checklist_id=${selectedChecklist}`);
       setItems(res.data || []);
     } catch {
@@ -170,27 +194,27 @@ function AllChecklists() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f7f8fa]">
+    <div className="flex min-h-screen" style={{ background: palette.bg }}>
       <SideBarSetup />
       <div className="flex-1 ml-[16%] mr-4 my-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-2xl md:text-3xl font-semibold text-[#22223b] mb-2 tracking-tight">
+            <h1 className={`text-2xl md:text-3xl font-semibold mb-2 tracking-tight ${palette.text}`}>
               All Checklists
             </h1>
-            <p className="text-[#6c6f7e] text-base md:text-lg">
+            <p className={`${palette.text} opacity-80 text-base md:text-lg`}>
               View and manage all checklist questions by project.
             </p>
           </div>
 
           {/* Project dropdown */}
-          <div className="bg-white rounded-xl border border-[#ececf0] p-6 mb-6 shadow-sm">
-            <label className="block mb-2 text-[#343650] font-semibold">Select Project</label>
+          <div className={`${palette.card} rounded-xl ${palette.border} p-6 mb-6 ${palette.shadow}`}>
+            <label className={`block mb-2 font-semibold ${palette.text}`}>Select Project</label>
             <select
               value={selectedProject}
               onChange={e => setSelectedProject(e.target.value)}
-              className="w-full p-4 border border-[#ececf0] rounded-lg bg-white text-[#2d3047]"
+              className={`w-full p-4 border rounded-lg ${palette.input} ${palette.border} focus:ring-2 focus:ring-[#b4c0e6] focus:border-[#b4c0e6] transition`}
             >
               <option value="">Choose project</option>
               {projects.map(p => (
@@ -201,12 +225,12 @@ function AllChecklists() {
 
           {/* Checklist dropdown */}
           {selectedProject && (
-            <div className="bg-white rounded-xl border border-[#ececf0] p-6 mb-6 shadow-sm">
-              <label className="block mb-2 text-[#343650] font-semibold">Select Checklist</label>
+            <div className={`${palette.card} rounded-xl ${palette.border} p-6 mb-6 ${palette.shadow}`}>
+              <label className={`block mb-2 font-semibold ${palette.text}`}>Select Checklist</label>
               <select
                 value={selectedChecklist}
                 onChange={e => setSelectedChecklist(e.target.value)}
-                className="w-full p-4 border border-[#ececf0] rounded-lg bg-white text-[#2d3047]"
+                className={`w-full p-4 border rounded-lg ${palette.input} ${palette.border} focus:ring-2 focus:ring-[#b4c0e6] focus:border-[#b4c0e6] transition`}
               >
                 <option value="">Choose checklist</option>
                 {checklists.map(cl => (
@@ -218,9 +242,9 @@ function AllChecklists() {
 
           {/* Questions Table */}
           {selectedChecklist && (
-            <div className="bg-white rounded-xl border border-[#ececf0] shadow-sm">
+            <div className={`${palette.card} rounded-xl ${palette.border} ${palette.shadow}`}>
               <div className="px-6 py-4 border-b border-[#f1f2f6] flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[#343650]">
+                <h2 className={`text-lg font-semibold ${palette.text}`}>
                   Checklist Questions
                 </h2>
                 <span className="text-xs text-[#8b8c97]">
@@ -230,12 +254,12 @@ function AllChecklists() {
               {loading ? (
                 <div className="py-10 text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4375e8] mx-auto mb-2"></div>
-                  <p className="text-[#b4c0e6] text-base">Loading...</p>
+                  <p className="text-base text-[#b4c0e6]">Loading...</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
-                    <thead className="bg-[#f6f8fd] text-[#9aa2bc] text-sm">
+                    <thead className={palette.tableHead}>
                       <tr>
                         <th className="px-6 py-4 font-medium">#</th>
                         <th className="px-6 py-4 font-medium">Question</th>
@@ -245,9 +269,9 @@ function AllChecklists() {
                     <tbody className="divide-y divide-[#ececf0]">
                       {items.map((item, idx) => (
                         <React.Fragment key={item.id}>
-                          <tr className="hover:bg-[#f6f8fd]">
-                            <td className="px-6 py-4">{idx + 1}</td>
-                            <td className="px-6 py-4">
+                          <tr className={palette.trHover}>
+                            <td className={`px-6 py-4 ${palette.text}`}>{idx + 1}</td>
+                            <td className={`px-6 py-4 ${palette.text}`}>
                               {editingId === item.id ? (
                                 <input
                                   value={editingValue}
@@ -255,7 +279,7 @@ function AllChecklists() {
                                   onKeyDown={e => {
                                     if (e.key === "Enter") handleSaveEdit(item.id);
                                   }}
-                                  className="w-full border border-gray-300 rounded px-2 py-1"
+                                  className={`w-full border rounded px-2 py-1 ${palette.input} ${palette.border}`}
                                 />
                               ) : (
                                 item.description
@@ -301,7 +325,7 @@ function AllChecklists() {
                                       setInlineAddBelowId(item.id);
                                       setInlineAddValue("");
                                     }}
-                                    className="bg-[#4375e8] hover:bg-[#1e4fb2] text-white px-3 py-1 rounded"
+                                    className={palette.btn}
                                     title="Add new question below"
                                   >
                                     ➕
@@ -323,7 +347,7 @@ function AllChecklists() {
                                     value={inlineAddValue}
                                     onChange={e => setInlineAddValue(e.target.value)}
                                     placeholder="New question"
-                                    className="flex-1 border border-gray-300 rounded px-2 py-1"
+                                    className={`flex-1 border rounded px-2 py-1 ${palette.input} ${palette.border}`}
                                     autoFocus
                                   />
                                   <button
@@ -358,12 +382,12 @@ function AllChecklists() {
                     value={newQuestion}
                     onChange={e => setNewQuestion(e.target.value)}
                     placeholder="Add a new question"
-                    className="flex-1 p-3 border border-gray-300 rounded"
+                    className={`flex-1 p-3 border rounded ${palette.input} ${palette.border}`}
                     disabled={loading}
                   />
                   <button
                     type="submit"
-                    className="bg-[#4375e8] hover:bg-[#1e4fb2] text-white px-6 py-2 rounded-lg font-semibold"
+                    className={`px-6 py-2 rounded-lg font-semibold ${palette.btn}`}
                     disabled={loading}
                   >
                     Add

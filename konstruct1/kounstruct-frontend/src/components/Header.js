@@ -140,17 +140,16 @@ console.log(allowuser,'yhi is alalow user');
             <HiOutlineBuildingStorefront className="text-lg" />
           </NavLink>
 
-          {allowuser &&(
-            <NavLink
-              // to="/chif-setup"
-              to={"/setup"}
-              className={({ isActive }) =>
-                !isActive ? "font-normal" : "font-medium"
-              }
-            >
-            <IoSettingsOutline className="text-lg" />
-          </NavLink>
-          )}
+          {allowuser && (
+  <NavLink
+    to={rolee === "Manager" ? "/user" : "/setup"}
+    className={({ isActive }) =>
+      !isActive ? "font-normal" : "font-medium"
+    }
+  >
+    <IoSettingsOutline className="text-lg" />
+  </NavLink>
+)}
 
           <button
             onClick={() => setIsProfile(true)}
