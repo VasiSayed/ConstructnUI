@@ -1833,7 +1833,7 @@ function PendingForMakerItems() {
                             ✅ Fix Submitted Successfully
                           </div>
                           <p className="text-lg text-gray-600 mb-4">
-                            This item has been fixed and resubmitted for review.
+                            This issue has been fixed and resubmitted for review.
                           </p>
                           <div className="bg-white p-4 rounded-lg border max-w-md mx-auto">
                             <p className="text-sm text-gray-700">
@@ -1847,7 +1847,7 @@ function PendingForMakerItems() {
                             onClick={handleGoBack}
                             className="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
                           >
-                            ← Back to Items List
+                            ← Back to Queries
                           </button>
                         </div>
                       )}

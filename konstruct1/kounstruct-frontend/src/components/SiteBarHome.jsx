@@ -191,7 +191,6 @@ const ORANGE_DARK = "#e44a22";
 const ORANGE_LIGHT = "#fff8f2";
 const GOLD_DARK = "#facc15";
 
-// Utility to get normalized role (single role for this sidebar)
 function getUserRole() {
   try {
     return (localStorage.getItem("USER_ROLE") || "").trim();
@@ -200,31 +199,101 @@ function getUserRole() {
   }
 }
 
-// THEME palette
-const getPalette = (theme) =>
-  theme === "dark"
-    ? {
-        bg: "linear-gradient(135deg, #23232e, #181820 100%)",
-        border: `3px solid ${GOLD_DARK}`,
-        shadow: "0 4px 32px #fffbe022",
-        title: GOLD_DARK,
-        linkActiveBg: "linear-gradient(90deg, #fde047 80%, #facc15)",
-        linkActive: "#23232e",
-        linkInactive: GOLD_DARK,
-        linkBgInactive: "#191921",
-        footer: GOLD_DARK,
+function getUserRoles() {
+  try {
+    const accesses = JSON.parse(localStorage.getItem("ACCESSES") || "[]");
+    let roles = [];
+    accesses.forEach((access) => {
+      if (Array.isArray(access.roles)) {
+        access.roles.forEach((role) => {
+          const roleStr = typeof role === "string" ? role : role?.role;
+          if (roleStr && !roles.includes(roleStr)) roles.push(roleStr);
+        });
       }
-    : {
-        bg: `linear-gradient(135deg, ${ORANGE_LIGHT}, #fff)`,
-        border: `3px solid ${ORANGE}`,
-        shadow: "0 4px 32px #ea682220",
-        title: ORANGE_DARK,
-        linkActiveBg: `linear-gradient(90deg, ${ORANGE} 80%, ${ORANGE_DARK})`,
-        linkActive: "#fff",
-        linkInactive: ORANGE_DARK,
-        linkBgInactive: "#fff",
-        footer: ORANGE_DARK,
-      };
+    });
+    return roles;
+  } catch {
+    return [];
+  }
+}
+
+function SiteBarHome() {
+  const { theme } = useTheme();
+  const userRole = getUserRole();
+  const userRoles = getUserRoles();
+
+  // All possible navs
+  const navItems = [
+    { name: "Projects", path: "/config", key: "projects" },
+    { name: "My In-Progress Items", path: "/my-inprogress-submissions", key: "my_inprogress" },
+    { name: "Inspector", path: "/checker-verified-inspector-pending", key: "inspector" },
+    { name: "Checklists", path: "/accessible-checklists", key: "checklists" },
+    { name: "Checker Inbox", path: "/checker-inbox", key: "checker_inbox" },
+    { name: "Verifications", path: "/hierarchical-verifications", key: "verifications" },
+    { name: "Initialize Checklist", path: "/Initialize-Checklist", key: "InitializeChecklist" },
+    { name: "Pending Inspector Checklists", path: "/PendingInspector-Checklist", key: "PendingInspectorChecklists" },
+    { name: "Pending For Maker Items", path: "/Pending-For-MakerItems", key: "PendingForMakerItems" },
+    { name: "Pending Supervisor Items", path: "/PendingSupervisorItems", key: "PendingSupervisorItems" },
+    { name: "Users Management", path: "/UsersManagement", key: "UsersManagement" },
+  ];
+
+  // ---- Filtering Logic ----
+  let filteredItems = navItems;
+
+  // Convert for easy role comparison
+  const _role = (userRole || "").toUpperCase();
+
+  if (
+    _role === "ADMIN" ||
+    _role === "MANAGER" ||
+    _role === "SUPERADMIN"
+  ) {
+    // Show everything
+    filteredItems = navItems;
+  } else if (_role === "INTIALIZER") {
+    filteredItems = navItems.filter(
+      (item) => item.key === "InitializeChecklist"
+    );
+  } else if (_role === "SUPERVISOR") {
+    filteredItems = navItems.filter(
+      (item) => item.key === "PendingSupervisorItems"
+    );
+  } else if (_role === "MAKER") {
+    filteredItems = navItems.filter(
+      (item) => item.key === "PendingForMakerItems"
+    );
+  } else if (_role === "CHECKER" || _role === "INSPECTOR") {
+    filteredItems = navItems.filter(
+      (item) => item.key === "PendingInspectorChecklists"
+    );
+  }
+  // Extend logic for other roles if needed
+
+  // THEME palette
+  const palette =
+    theme === "dark"
+      ? {
+          bg: "linear-gradient(135deg, #23232e, #181820 100%)",
+          border: `3px solid ${GOLD_DARK}`,
+          shadow: "0 4px 32px #fffbe022",
+          title: GOLD_DARK,
+          linkActiveBg: `linear-gradient(90deg, #fde047 80%, #facc15)`,
+          linkActive: "#23232e",
+          linkInactive: GOLD_DARK,
+          linkBgInactive: "#191921",
+          footer: GOLD_DARK,
+        }
+      : {
+          bg: `linear-gradient(135deg, ${ORANGE_LIGHT}, #fff)`,
+          border: `3px solid ${ORANGE}`,
+          shadow: "0 4px 32px #ea682220",
+          title: ORANGE_DARK,
+          linkActiveBg: `linear-gradient(90deg, ${ORANGE} 80%, ${ORANGE_DARK})`,
+          linkActive: "#fff",
+          linkInactive: ORANGE_DARK,
+          linkBgInactive: "#fff",
+          footer: ORANGE_DARK,
+        };
 
 
 // Sidebar config for each role
@@ -260,14 +329,14 @@ const NAV_CONFIG = {
   // fallback: []
 };
 
-function SiteBarHome() {
-  const { theme } = useTheme();
-  const userRole = getUserRole(); // Should be one of ADMIN, Intializer, INSPECTOR, CHECKER, MAKER, SUPERVISOR
+// function SiteBarHome() {
+//   const { theme } = useTheme();
+//   const userRole = getUserRole();
 
-  // Get the right menu or fallback
-  const navItems = NAV_CONFIG[userRole] || [];
+//   // Get the right menu or fallback
+//   const navItems = NAV_CONFIG[userRole] || [];
 
-  const palette = getPalette(theme);
+//   const palette = getPalette(theme);
 
   return (
     <div
@@ -277,6 +346,8 @@ function SiteBarHome() {
         borderRight: palette.border,
         boxShadow: palette.shadow,
         transition: "all 0.3s",
+
+        zIndex: 50,
       }}
     >
       <div className="mb-6 text-center">

@@ -11,7 +11,8 @@ import Notification from "./Notification";
 import Profile from "./Profile";
 import { useSelector, useDispatch } from "react-redux";
 import { setSelectedProject } from "../store/userSlice";
-import { useTheme } from "../ThemeContext";
+
+import { useTheme } from "../ThemeContext"; // <<-- Make sure this is imported
 
 function Header() {
   const [isNotification, setIsNotification] = useState(false);
@@ -29,12 +30,11 @@ function Header() {
 
   const navigate = useNavigate();
 
+
+
   const handleProject = (e) => {
-    console.log(e.target.value, "e.target.value");
     dispatch(setSelectedProject(e.target.value));
   };
-
-  console.log(allowuser, "yhi is alalow user");
 
   const handleUserSetupClick = () => {
     if (!token) {
@@ -75,6 +75,23 @@ function Header() {
             </select>
           )}
 
+          {/* <button>
+            <CiSearch className="text-xl" />
+          </button>
+          <button>
+            <IoIosNotificationsOutline className="text-xl" />
+          </button> */}
+          {/* <button>
+            <GoCalendar className="text-lg" />
+          </button> */}
+          {/* <NavLink
+            to="/blog"
+            className={({ isActive }) =>
+              !isActive ? "font-normal" : "font-medium"
+            }
+          >
+            <HiOutlineBuildingStorefront className="text-lg" />
+          </NavLink> */}
           {allowuser && (
             <NavLink
               to={rolee === "Manager" ? "/user" : "/setup"}
@@ -86,21 +103,23 @@ function Header() {
             </NavLink>
           )}
 
-          {/* Theme Toggle Button */}
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-full hover:bg-gray-100 transition-colors duration-200"
-            title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
-          >
-            {theme === "dark" ? (
-              <FaSun className="text-lg text-yellow-500" />
-            ) : (
-              <FaMoon className="text-lg text-gray-600" />
-            )}
-          </button>
-
           <button onClick={() => setIsProfile(true)}>
             <FaRegCircleUser className="text-lg" />
+          </button>
+          {/* <button onClick={() => setIsNotification(true)}>
+            <CgMenuGridO className="text-xl" />
+          </button> */}
+          {/* ---- Theme Toggle Button ---- */}
+          <button
+            onClick={toggleTheme}
+            className="rounded-full p-2 bg-gray-800 hover:bg-yellow-400 transition-colors"
+            title="Toggle Theme"
+          >
+            {theme === "dark" ? (
+              <FaSun className="text-yellow-300" />
+            ) : (
+              <FaMoon className="text-gray-700" />
+            )}
           </button>
         </ul>
       </nav>

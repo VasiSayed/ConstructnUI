@@ -488,7 +488,7 @@ function Level({ nextStep, previousStep }) {
                 placeholder="Number of Floors"
                 min="1"
               />
-              <button
+              {/* <button
                 className="px-3 py-2 rounded-xl font-bold text-white"
                 style={{
                   background: buttonBg,
@@ -496,7 +496,7 @@ function Level({ nextStep, previousStep }) {
                 onClick={() => setFloorInput(10)}
               >
                 +10 Floors
-              </button>
+              </button> */}
               <button
                 className="px-2 py-2 rounded-xl font-bold text-xs"
                 style={{
