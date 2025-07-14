@@ -10,8 +10,11 @@ import {
   createChecklistQuestion,
   // createChecklistItemOption,
   createChecklistItemOPTIONSS,
+  getChecklistById,
+  updateChecklistById,
 } from "../../api";
 import { showToast } from "../../utils/toast";
+import * as XLSX from 'xlsx'; // Add this import
 
 
 const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklistCreated }) => {
@@ -33,7 +36,7 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
   const [selectedPurpose, setSelectedPurpose] = useState("");
   const [selectedPhase, setSelectedPhase] = useState("");
   const [selectedStage, setSelectedStage] = useState("");
-
+  const [skipInitializer, setSkipInitializer] = useState(false);
   // Category tree & category levels
   const [categoryTree, setCategoryTree] = useState([]);
   const [category, setCategory] = useState("");
@@ -55,7 +58,6 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
 
   // Checklist name
   const [checklistName, setChecklistName] = useState("");
-
 
   // Flat name object
   const selectedFlatObj = flats.find(
@@ -106,7 +108,7 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
       .then((res) => setCategoryTree(res.data || []))
       .catch(() => {
         setCategoryTree([]);
-        showToast("Failed to load categories","error");
+        showToast("Failed to load categories", "error");
       });
   }, [projectId]);
 
@@ -132,13 +134,13 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
     allinfobuildingtoflat(projectId)
       .then((res) => setBuildings(res.data || []))
       .catch(() => {
-        showToast("Failed to load buildings","error");
+        showToast("Failed to load buildings", "error");
         setBuildings([]);
       });
     getPurposeByProjectId(projectId)
       .then((res) => setPurposes(res.data || []))
       .catch(() => {
-        showToast("Failed to load purposes","error");
+        showToast("Failed to load purposes", "error");
         setPurposes([]);
       });
     setLevels([]);
@@ -155,6 +157,54 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
     setSelectedStage("");
   }, [projectId]);
 
+  // Add this useEffect after your existing ones
+  useEffect(() => {
+    if (isEdit && checklist?.id) {
+      const fetchChecklistDetails = async () => {
+        try {
+          const response = await getChecklistById(checklist.id);
+          const checklistData = response.data;
+
+          // Pre-populate all fields
+          setChecklistName(checklistData.name || "");
+          setProjectId(checklistData.project_id || "");
+          setSelectedPurpose(checklistData.purpose_id || "");
+          setSelectedPhase(checklistData.phase_id || "");
+          setSelectedStage(checklistData.stage_id || "");
+          setCategory(checklistData.category || "");
+          setCat1(checklistData.category_level1 || "");
+          setCat2(checklistData.category_level2 || "");
+          setCat3(checklistData.category_level3 || "");
+          setCat4(checklistData.category_level4 || "");
+          setCat5(checklistData.category_level5 || "");
+          setCat6(checklistData.category_level6 || "");
+          setSelectedBuilding(checklistData.building_id || "");
+          setSelectedZone(checklistData.zone_id || "");
+          setSelectedFlat(checklistData.flat_id || "");
+
+          // Pre-populate questions if they exist
+          // Pre-populate questions if they exist
+          if (checklistData.items && checklistData.items.length > 0) {
+            const formattedQuestions = checklistData.items.map((item) => ({
+              question: item.title,
+              options: item.options
+                ? item.options.map((opt) => ({
+                    value: opt.name,
+                    submission: opt.choice,
+                  }))
+                : [],
+              photo_required: item.photo_required || false,
+            }));
+            setQuestions(formattedQuestions);
+          }
+        } catch (error) {
+          showToast("Failed to load checklist details", "error");
+        }
+      };
+
+      fetchChecklistDetails();
+    }
+  }, [isEdit, checklist?.id]);
   // Levels by building
   useEffect(() => {
     if (!selectedBuilding) {
@@ -212,7 +262,7 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
     getPhaseByPurposeId(selectedPurpose)
       .then((res) => setPhases(res.data || []))
       .catch(() => {
-        showToast("Failed to load phases","error");
+        showToast("Failed to load phases", "error");
         setPhases([]);
       });
     setStages([]);
@@ -413,10 +463,9 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
     if (!category || category === "") return showToast("Select a category");
     if (!questions.length) return showToast("Add at least one question");
 
-    for (let q of questions) {
-      if (!q.question?.trim())
-        return showToast("All questions must have text");
-    }
+    // for (let q of questions) {
+    //   if (!q.question?.trim()) return showToast("All questions must have text");
+    // }
 
     // Convert and validate IDs
     const parsedProjectId = parseInt(projectId);
@@ -425,8 +474,7 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
 
     if (isNaN(parsedProjectId)) return showToast("Invalid project selected");
     if (isNaN(parsedPurposeId)) return showToast("Invalid purpose selected");
-    if (isNaN(parsedCategoryId))
-      return showToast("Invalid category selected");
+    if (isNaN(parsedCategoryId)) return showToast("Invalid category selected");
 
     console.log("Project ID:", parsedProjectId);
 
@@ -454,22 +502,38 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
       flat_id:
         selectedFlat && selectedFlat !== "" ? parseInt(selectedFlat) : null,
       remarks: "",
+      not_initialized: skipInitializer,
     };
 
     try {
       console.log("Payload being sent:", checklistPayload);
-      const checklistRes = await createChecklist(checklistPayload);
+
+      let checklistRes;
+      let checklistId;
+
+      if (isEdit && checklist?.id) {
+        // UPDATE existing checklist
+        checklistRes = await updateChecklistById(
+          checklist.id,
+          checklistPayload
+        );
+        checklistId = checklist.id;
+        showToast("Checklist updated successfully!", "success");
+      } else {
+        // CREATE new checklist
+        checklistRes = await createChecklist(checklistPayload);
+        checklistId =
+          checklistRes.data?.id ||
+          checklistRes.data?.pk ||
+          checklistRes.data?.ID;
+        showToast("Checklist created successfully!", "success");
+      }
 
       if (
         checklistRes.status === 201 ||
         checklistRes.status === 200 ||
         checklistRes.data?.id
       ) {
-        const checklistId =
-          checklistRes.data?.id ||
-          checklistRes.data?.pk ||
-          checklistRes.data?.ID;
-
         // Create items and options
         for (let i = 0; i < questions.length; i++) {
           const q = questions[i];
@@ -500,26 +564,32 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
           }
         }
 
-        showToast("Checklist and Questions created!",'success');  
+      
         // Call the callback function to show user access table
-        if (onChecklistCreated && typeof onChecklistCreated === "function") {
-          const createdChecklistData = {
-            ...checklistPayload,
-            id: checklistId,
-            project_id: parsedProjectId,    // Add this line
-            category_id: parsedCategoryId   // Add this line
-          };
-          onChecklistCreated(createdChecklistData);
-        }
+       if (
+         !isEdit &&
+         onChecklistCreated &&
+         typeof onChecklistCreated === "function"
+       ) {
+         const createdChecklistData = {
+           ...checklistPayload,
+           id: checklistId,
+           project_id: parsedProjectId,
+           category_id: parsedCategoryId,
+         };
+         onChecklistCreated(createdChecklistData);
+       }
 
         setShowForm(false);
-        
       } else {
         console.error("Checklist creation failed:", checklistRes);
-        showToast(checklistRes.data?.message || "Failed to create checklist","error");
+        showToast(
+          checklistRes.data?.message || "Failed to create checklist",
+          "error"
+        );
       }
     } catch (error) {
-      console.error("Error creating checklist:","error");
+      console.error("Error creating checklist:", "error");
 
       // More detailed error handling
       if (error.response) {
@@ -531,10 +601,80 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
         showToast(errorMessage);
       } else {
         showToast(
-          "Failed to create checklist and questions. Please try again.","error"
+          "Failed to create checklist and questions. Please try again.",
+          "error"
         );
       }
     }
+  };
+
+  // Bulk upload handler
+  const handleBulkUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+        const bulkQuestions = [];
+
+        jsonData.forEach((row) => {
+          // Expected columns: Question, Options, PhotoRequired
+          // Options format: "Option1(P)|Option2(N)|Option3(P)"
+          const question = row["Question"] || row["question"] || "";
+          const optionsString = row["Options"] || row["options"] || "";
+          const photoRequired =
+            row["PhotoRequired"] || row["photo_required"] || false;
+
+          const options = [];
+          if (optionsString) {
+            const optionPairs = optionsString.split("|");
+            optionPairs.forEach((pair) => {
+              const match = pair.match(/^(.+)\(([PN])\)$/);
+              if (match) {
+                options.push({
+                  value: match[1].trim(),
+                  submission: match[2],
+                });
+              }
+            });
+          }
+
+          if (question.trim()) {
+            bulkQuestions.push({
+              question: question.trim(),
+              options: options,
+              photo_required:
+                photoRequired === true ||
+                photoRequired === "true" ||
+                photoRequired === "True",
+            });
+          }
+        });
+
+        if (bulkQuestions.length > 0) {
+          setQuestions([...questions, ...bulkQuestions]);
+          showToast(
+            `${bulkQuestions.length} questions uploaded successfully!`,
+            "success"
+          );
+        } else {
+          showToast("No valid questions found in the file", "error");
+        }
+
+        // Reset file input
+        event.target.value = "";
+      } catch (error) {
+        showToast("Error reading file. Please check the format.", "error");
+      }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   return (
@@ -835,6 +975,21 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
           </div>
         )}
       </div>
+      <div className="flex items-center gap-2 mb-4">
+        <input
+          type="checkbox"
+          id="skip-initializer"
+          checked={skipInitializer}
+          onChange={(e) => setSkipInitializer(e.target.checked)}
+          className="accent-purple-700"
+        />
+        <label
+          htmlFor="skip-initializer"
+          className="font-medium text-purple-800"
+        >
+          Skip Initializer (Start checklist as In Progress)
+        </label>
+      </div>
       {/* Question/Option Section */}
       <div className="mb-6">
         <h2 className="text-lg font-semibold mb-2">Add Questions</h2>
@@ -852,6 +1007,29 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
             className="bg-purple-600 text-white p-2 rounded col-span-2"
           >
             Add More Questions
+          </button>
+        </div>
+        <div className="grid grid-cols-6 gap-4 mb-4 items-center">
+          <label className="col-span-2 font-medium">
+            Bulk Upload Questions
+          </label>
+          <input
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            onChange={handleBulkUpload}
+            className="col-span-2 p-2 border border-gray-300 rounded text-sm"
+          />
+          <button
+            onClick={() => {
+              const link = document.createElement("a");
+              link.href =
+                'data:text/plain;charset=utf-8,Question,Options,PhotoRequired\n"What is the quality?","Good(P)|Bad(N)|Average(P)",false\n"Check alignment","Aligned(P)|Not Aligned(N)",true';
+              link.download = "questions_template.csv";
+              link.click();
+            }}
+            className="bg-green-600 text-white p-2 rounded col-span-2 text-sm"
+          >
+            Download Template
           </button>
         </div>
         <div className="flex flex-col gap-4">
@@ -920,7 +1098,7 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
                   className="text-red-600 hover:bg-red-100 rounded p-2 transition"
                   onClick={() => {
                     if (questions.length === 1) {
-                      showToast("At least one question is required",'error');
+                      showToast("At least one question is required", "error");
                       return;
                     }
                     setQuestions(questions.filter((_, idx) => idx !== qIdx));

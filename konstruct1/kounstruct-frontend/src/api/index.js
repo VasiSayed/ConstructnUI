@@ -862,4 +862,18 @@ export const patchStage = (id, payload) => {
   });
 };
 
+export const getChecklistById = async (checklistId) =>
+  NEWchecklistInstance.get(`/checklists/${checklistId}/`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+// Update existing checklist using PATCH
+export const updateChecklistById = async (checklistId, payload) =>
+  NEWchecklistInstance.patch(`/checklists/${checklistId}/`, payload, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 

@@ -5,7 +5,7 @@ import React, {
   useCallback,
   useRef,
 } from "react";
-import { FaPlus, FaMoon, FaSun } from "react-icons/fa";
+// import { FaPlus, FaMoon, FaSun } from "react-icons/fa";
 import { MdOutlineCancel } from "react-icons/md";
 import SideBarSetup from "../../components/SideBarSetup";
 import { showToast } from "../../utils/toast";
@@ -744,7 +744,7 @@ function User() {
                   </span>
                 </div>
               </div>
-              <button
+              {/* <button
                 onClick={toggleTheme}
                 className="rounded-full p-2 bg-yellow-400 hover:bg-yellow-300 transition-colors shadow-md"
                 title="Toggle Theme"
@@ -755,7 +755,7 @@ function User() {
                 ) : (
                   <FaMoon className="text-2xl text-yellow-700" />
                 )}
-              </button>
+              </button> */}
             </div>
             {/* ...rest unchanged */}
             <div className={`rounded-lg p-8 ${theme === "dark" ? "bg-[#23232e]" : "bg-gray-50"}`}>
@@ -800,7 +800,7 @@ function User() {
                 </span>
               </div>
             </div>
-            <button
+            {/* <button
               onClick={toggleTheme}
               className="rounded-full p-2 bg-yellow-400 hover:bg-yellow-300 transition-colors shadow-md"
               title="Toggle Theme"
@@ -811,9 +811,9 @@ function User() {
               ) : (
                 <FaMoon className="text-2xl text-yellow-700" />
               )}
-            </button>
+            </button> */}
           </div>
-          <div className={`rounded-lg p-8 ${theme === "dark" ? "bg-[#23232e]" : "bg-gray-50"}`}>
+          {/* <div className={`rounded-lg p-8 ${theme === "dark" ? "bg-[#23232e]" : "bg-gray-50"}`}>
             <div className="text-center">
               <div className="mb-6">
                 <div className="mx-auto w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4">
@@ -841,7 +841,7 @@ function User() {
                 {canCreateNormalUser && "Create New User"}
               </button>
             </div>
-          </div>
+          </div> */}
           {/* Add User Modal */}
           {isAdd && (
             <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">

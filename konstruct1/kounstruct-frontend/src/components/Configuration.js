@@ -14,7 +14,7 @@ const Configuration = () => {
   const navigate = useNavigate();
   const { state } = useLocation();
   const userDataString = localStorage.getItem("USER_DATA");
-  const userData = JSON.parse(userDataString);
+  // const userData = JSON.parse(userDataString);
   const userId = useSelector((state) => state.user.user.id);
 
   const handleImageClick = (project) => {
@@ -39,6 +39,10 @@ console.log(rolee,'this is the roleee');
 
 
   useEffect(() => {
+    if (!userDataString || userDataString === "undefined") return;
+
+    const userData = JSON.parse(userDataString);
+
     const getAllProject = async () => {
       try {
         let response = null;
@@ -46,17 +50,22 @@ console.log(rolee,'this is the roleee');
         console.log("Superadmin", userData?.is_staff || userData?.superadmin);
         console.log("client", userData ? userData.is_client : null);
 
-
         if (userData?.is_manager) {
           if (userData.entity_id) {
-            response = await getProjectsByOwnership({ entity_id: userData.entity_id });
+            response = await getProjectsByOwnership({
+              entity_id: userData.entity_id,
+            });
           } else if (userData.company_id) {
-            response = await getProjectsByOwnership({ company_id: userData.company_id });
+            response = await getProjectsByOwnership({
+              company_id: userData.company_id,
+            });
           } else if (userData.org || userData.organization_id) {
             const orgId = userData.org || userData.organization_id;
             response = await getProjectsByOwnership({ organization_id: orgId });
           } else {
-            showToast("No entity, company, or organization found for this manager.");
+            showToast(
+              "No entity, company, or organization found for this manager."
+            );
             return;
           }
         } else if (
@@ -76,16 +85,12 @@ console.log(rolee,'this is the roleee');
           showToast(response?.data?.message || "Failed to fetch projects.");
         }
       } catch (error) {
-        showToast(
-          error?.response?.data?.message || "Error fetching projects."
-        );
+        showToast(error?.response?.data?.message || "Error fetching projects.");
       }
     };
 
-    if (userData) {
-      getAllProject();
-    }
-  }, [userData]);
+    getAllProject();
+  }, [userDataString]);
 
   // Basic palette
   const palette = theme === "dark"

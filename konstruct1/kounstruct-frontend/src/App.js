@@ -65,10 +65,10 @@ const Layout = () => {
             path="/my-ongoing-checklist"
             element={<MyOngoingChecklist />}
           />
-          <Route
+          {/* <Route
             path="/my-inprogress-submissions"
             element={<MyInProgressSubmissions />}
-          />
+          /> */}
           <Route path="/checker-inbox" element={<CheckerInbox />} />
 
           <Route path="/config" element={<Configuration />} />
@@ -111,15 +111,15 @@ const Layout = () => {
           <Route path="/user-setup" element={<UserSetup />} />
           <Route path="/user" element={<User />} />
           <Route path="/category-sidebar" element={<CategoryChecklist />} />
-          <Route
+          {/* <Route
             path="/checker-verified-inspector-pending"
             element={<InspectorPending />}
-          />
+          /> */}
           <Route path="/edit-checklist/:id" element={<EditCheckList />} />
-          <Route
+          {/* <Route
             path="/accessible-checklists"
             element={<AccessibleChecklists />}
-          />
+          /> */}
           <Route
             path="/hierarchical-verifications"
             element={<HierarchicalVerifications />}
