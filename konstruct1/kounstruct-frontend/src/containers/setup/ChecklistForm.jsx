@@ -11,7 +11,8 @@ import {
   // createChecklistItemOption,
   createChecklistItemOPTIONSS,
 } from "../../api";
-import { toast } from "react-hot-toast";
+import { showToast } from "../../utils/toast";
+
 
 const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklistCreated }) => {
   // Project and hierarchy
@@ -105,7 +106,7 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
       .then((res) => setCategoryTree(res.data || []))
       .catch(() => {
         setCategoryTree([]);
-        toast.error("Failed to load categories");
+        showToast("Failed to load categories","error");
       });
   }, [projectId]);
 
@@ -131,13 +132,13 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
     allinfobuildingtoflat(projectId)
       .then((res) => setBuildings(res.data || []))
       .catch(() => {
-        toast.error("Failed to load buildings");
+        showToast("Failed to load buildings","error");
         setBuildings([]);
       });
     getPurposeByProjectId(projectId)
       .then((res) => setPurposes(res.data || []))
       .catch(() => {
-        toast.error("Failed to load purposes");
+        showToast("Failed to load purposes","error");
         setPurposes([]);
       });
     setLevels([]);
@@ -211,7 +212,7 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
     getPhaseByPurposeId(selectedPurpose)
       .then((res) => setPhases(res.data || []))
       .catch(() => {
-        toast.error("Failed to load phases");
+        showToast("Failed to load phases","error");
         setPhases([]);
       });
     setStages([]);
@@ -229,7 +230,7 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
     GetstagebyPhaseid(selectedPhase)
       .then((res) => setStages(res.data || []))
       .catch(() => {
-        toast.error("Failed to load stages");
+        showToast("Failed to load stages");
         setStages([]);
       });
     setSelectedStage("");
@@ -405,16 +406,16 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
 
   const handleCreateChecklist = async () => {
     // Enhanced validation
-    if (!checklistName.trim()) return toast.error("Checklist name required!");
-    if (!projectId || projectId === "") return toast.error("Select a project");
+    if (!checklistName.trim()) return showToast("Checklist name required!");
+    if (!projectId || projectId === "") return showToast("Select a project");
     if (!selectedPurpose || selectedPurpose === "")
-      return toast.error("Select a purpose");
-    if (!category || category === "") return toast.error("Select a category");
-    if (!questions.length) return toast.error("Add at least one question");
+      return showToast("Select a purpose");
+    if (!category || category === "") return showToast("Select a category");
+    if (!questions.length) return showToast("Add at least one question");
 
     for (let q of questions) {
       if (!q.question?.trim())
-        return toast.error("All questions must have text");
+        return showToast("All questions must have text");
     }
 
     // Convert and validate IDs
@@ -422,10 +423,10 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
     const parsedPurposeId = parseInt(selectedPurpose);
     const parsedCategoryId = parseInt(category);
 
-    if (isNaN(parsedProjectId)) return toast.error("Invalid project selected");
-    if (isNaN(parsedPurposeId)) return toast.error("Invalid purpose selected");
+    if (isNaN(parsedProjectId)) return showToast("Invalid project selected");
+    if (isNaN(parsedPurposeId)) return showToast("Invalid purpose selected");
     if (isNaN(parsedCategoryId))
-      return toast.error("Invalid category selected");
+      return showToast("Invalid category selected");
 
     console.log("Project ID:", parsedProjectId);
 
@@ -499,7 +500,7 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
           }
         }
 
-        toast.success("Checklist and items created!");  
+        showToast("Checklist and Questions created!",'success');  
         // Call the callback function to show user access table
         if (onChecklistCreated && typeof onChecklistCreated === "function") {
           const createdChecklistData = {
@@ -515,10 +516,10 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
         
       } else {
         console.error("Checklist creation failed:", checklistRes);
-        toast.error(checklistRes.data?.message || "Failed to create checklist");
+        showToast(checklistRes.data?.message || "Failed to create checklist","error");
       }
     } catch (error) {
-      console.error("Error creating checklist:", error);
+      console.error("Error creating checklist:","error");
 
       // More detailed error handling
       if (error.response) {
@@ -527,10 +528,10 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
           error.response.data?.message ||
           error.response.data?.detail ||
           `Server error: ${error.response.status}`;
-        toast.error(errorMessage);
+        showToast(errorMessage);
       } else {
-        toast.error(
-          "Failed to create checklist and questions. Please try again."
+        showToast(
+          "Failed to create checklist and questions. Please try again.","error"
         );
       }
     }
@@ -919,7 +920,7 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
                   className="text-red-600 hover:bg-red-100 rounded p-2 transition"
                   onClick={() => {
                     if (questions.length === 1) {
-                      toast.error("At least one question is required");
+                      showToast("At least one question is required",'error');
                       return;
                     }
                     setQuestions(questions.filter((_, idx) => idx !== qIdx));

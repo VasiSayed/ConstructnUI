@@ -3,8 +3,10 @@ import ChecklistForm from "./ChecklistForm";
 import Checklistdetails from "./ChecklistDetails";
 import SideBarSetup from "../../components/SideBarSetup";
 import UserSelectionTable from "../../components/UserSelectionTable"; // Update import
-import { toast } from "react-hot-toast";
 import { getProjectsByOrganization, getchecklistbyProject } from "../../api";
+// import { showToast } from "../../utils/toast";
+import { showToast } from "../../utils/toast";
+
 
 const Checklist = () => {
   const [userData, setUserData] = useState(null);
@@ -48,10 +50,10 @@ const Checklist = () => {
         if (response.status === 200) {
           setProjects(response.data || []);
         } else {
-          toast.error("Failed to fetch projects.");
+          showToast("Failed to fetch projects.",'error');
         }
       } catch (err) {
-        toast.error("Failed to fetch projects.");
+        showToast("Failed to fetch projects.",'error');
       }
     };
     fetchProjects();
@@ -70,11 +72,11 @@ const Checklist = () => {
           setChecklistData(response.data || []);
         } else {
           setChecklistData([]);
-          toast.error("Failed to fetch checklists.");
+          showToast("Failed to fetch checklists.",'error');
         }
       } catch (err) {
         setChecklistData([]);
-        toast.error("Failed to fetch checklists.");
+        showToast("Failed to fetch checklists.",'error');
       }
     };
     fetchChecklists();
@@ -104,7 +106,7 @@ const Checklist = () => {
       setRefreshTrigger((prev) => prev + 1);
 
       console.log("🔄 State updated - showUserSelection should be true");
-      toast.success("Checklist created! Assign users to this checklist.");
+      showToast("Checklist created! Assign users to this checklist.",'success');
     } else {
       console.log("❌ Missing project_id, category_id, or id:", newChecklist);
     }
@@ -126,9 +128,9 @@ const Checklist = () => {
 
     try {
       // Success message already handled in UserSelectionTable
-      toast.success(
+      showToast(
         `Successfully assigned ${selectedUserIds.length} users to checklist!`
-      );
+      ,'success');
 
       // Optionally hide the selection after assigning
       // hideUserSelection();
@@ -333,8 +335,8 @@ const Checklist = () => {
                             setShowUserSelection(true);
                             setRefreshTrigger((prev) => prev + 1);
                           } else {
-                            toast.error(
-                              "Project or Category ID not found for this checklist"
+                            showToast(
+                              "Project or Category ID not found for this checklist" ,'error'
                             );
                           }
                         }}

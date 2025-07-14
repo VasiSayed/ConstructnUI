@@ -3,6 +3,7 @@ import { FaPlus } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
 import { useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
+import { showToast } from "../../utils/toast";
 import { createUnit, updateUnit, allinfobuildingtoflat } from "../../api";
 import { useTheme } from "../../ThemeContext";
 
@@ -85,10 +86,10 @@ function Unit({ nextStep, previousStep }) {
           loadExistingUnits(response.data[0]);
         }
       } else {
-        toast.error("Failed to fetch building details");
+        showToast("Failed to fetch building details",'error');
       }
     } catch (error) {
-      toast.error("Error loading building data");
+      showToast("Error loading building data",'error');
     } finally {
       setIsLoading(false);
     }
@@ -148,15 +149,15 @@ function Unit({ nextStep, previousStep }) {
   // Add units to all floors
   const handleAddUnitsToAllFloors = () => {
     if (!selectedBuilding) {
-      toast.error("Please select a building first.");
+      showToast("Please select a building first.", "error");
       return;
     }
     if (!unitCount || unitCount <= 0) {
-      toast.error("Please enter a valid number of units.");
+      showToast("Please enter a valid number of units.",'error');
       return;
     }
     if (!selectedFlatType) {
-      toast.error("Please select a flat type.");
+      showToast("Please select a flat type.",'error');
       return;
     }
     const currentBuilding = getCurrentBuilding();
@@ -189,12 +190,12 @@ function Unit({ nextStep, previousStep }) {
     setUnitCount("");
     setSelectedUnits({});
     setBulkFlatType({});
-    toast.success(`Added ${unitCount} units to each floor`);
+    showToast(`Added ${unitCount} units to each floor`,'success');
   };
 
   const handleAddSingleUnit = (level) => {
     if (!selectedFlatType) {
-      toast.error("Please select a flat type first.");
+      showToast("Please select a flat type first.",'error');
       return;
     }
     const flatType = flatTypes.find(
@@ -288,14 +289,14 @@ function Unit({ nextStep, previousStep }) {
       (floor) => floor.units && floor.units.length > 0
     );
     if (!hasUnits) {
-      toast.error("No units to save");
+      showToast("No units to save",'info');
       return;
     }
     const hasUnmappedUnits = Object.values(floorUnits).some(
       (floor) => floor.units && floor.units.some((unit) => !unit.flat_type_id)
     );
     if (hasUnmappedUnits) {
-      toast.error("Please assign flat types to all units before saving.");
+      showToast("Please assign flat types to all units before saving.",'error');
       return;
     }
     setIsLoading(true);
@@ -331,7 +332,7 @@ function Unit({ nextStep, previousStep }) {
       await fetchBuildingDetails();
     }
     if (errorCount) {
-      toast.error(`${errorCount} units failed to save`);
+      showToast(`${errorCount} units failed to save`);
     }
   };
 
@@ -340,7 +341,7 @@ function Unit({ nextStep, previousStep }) {
       (floor) => floor.units && floor.units.length > 0
     );
     if (!hasUnits) {
-      toast.error("No units to update");
+      showToast("No units to update",'error');
       return;
     }
     setIsLoading(true);
@@ -362,13 +363,13 @@ function Unit({ nextStep, previousStep }) {
       };
       const response = await updateUnit(apiData);
       if (response.status === 200) {
-        toast.success("Units updated successfully");
+        showToast("Units updated successfully",'success');
         await fetchBuildingDetails();
       } else {
-        toast.error(response.data?.message || "Failed to update units");
+        showToast(response.data?.message || "Failed to update units",'error');
       }
     } catch (error) {
-      toast.error("Error updating units");
+      showToast("Error updating units",'error');
     } finally {
       setIsLoading(false);
     }

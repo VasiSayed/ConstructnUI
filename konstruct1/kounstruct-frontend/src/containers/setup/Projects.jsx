@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
+import { showToast } from "../../utils/toast";
 import projectImage from "../../Images/Project.png";
 import AddProjectModal from "./AddProjectModal";
 import { getProjectDetailsById } from "../../api";
 import { useDispatch, useSelector } from "react-redux";
 import { setProjects, setSelectedProject } from "../../store/userSlice";
-import { toast } from "react-hot-toast";
 import { useTheme } from "../../ThemeContext"; // <- ADD THIS
 
 function Projects({ onProjectSetupComplete }) {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { createTransferRule, getTransferRules } from "../../api";
-import { toast } from "react-hot-toast";
+import { showToast } from "../../utils/toast";
 import { useTheme } from "../../ThemeContext";
 
 // THEME COLORS
@@ -45,7 +45,7 @@ function TransferRules({ nextStep, previousStep }) {
             setSelectedLevel(matchingRule);
           }
         }
-        toast.success(response.data.message);
+        showToast(response.data.message,'success');
       }
     };
     fetchTransferRules();
@@ -61,10 +61,10 @@ function TransferRules({ nextStep, previousStep }) {
     };
     const response = await createTransferRule(data);
     if (response.status === 200) {
-      toast.success(response.data.message);
+      showToast(response.data.message,"success");
       nextStep();
     } else {
-      toast.error(response.data.message);
+      showToast(response.data.message,"error");
     }
   };
 

@@ -13,11 +13,11 @@ import {
   editPhase,
   deletePhase,
 } from "../../api";
+import { showToast } from "../../utils/toast";
 import { useSelector, useDispatch } from "react-redux";
 import { setPurposes, setPhases, setStages } from "../../store/userSlice";
 import { Check, Edit3, Trash2, Plus, X } from "lucide-react";
-import { toast } from "react-toastify";
-import { useTheme } from "../../ThemeContext"; // import your theme hook
+import { useTheme } from "../../ThemeContext";
 
 const TABS = [
   { key: "Purpose", label: "Purpose" },
@@ -29,11 +29,11 @@ const showApiErrors = (error, fallbackMsg = "An error occurred.") => {
   const apiErrors = error?.response?.data;
   if (apiErrors && typeof apiErrors === "object") {
     Object.values(apiErrors).forEach((errArr) => {
-      if (Array.isArray(errArr)) errArr.forEach((msg) => toast.error(String(msg)));
-      else toast.error(String(errArr));
+      if (Array.isArray(errArr)) errArr.forEach((msg) => showToast(String(msg)));
+      else showToast(String(errArr));
     });
   } else {
-    toast.error(fallbackMsg);
+    showToast(fallbackMsg);
   }
 };
 
@@ -176,7 +176,7 @@ function Stages({ nextStep, previousStep }) {
   // CREATE Purpose
   const handleCreatePurpose = async () => {
     if (!newPurpose.trim()) {
-      toast.error("Purpose name cannot be empty");
+      showToast("Purpose name cannot be empty");
       return;
     }
     try {
@@ -185,7 +185,7 @@ function Stages({ nextStep, previousStep }) {
         project: projectId,
       });
       if (response.status === 201 || response.status === 200) {
-        toast.success("Purpose created!");
+        showToast("Purpose created!");
         setNewPurpose("");
         await fetchAllData();
       }
@@ -202,12 +202,12 @@ function Stages({ nextStep, previousStep }) {
 
   const handleSavePurpose = async (purposeId) => {
     if (!editPurposeName.trim()) {
-      toast.error("Purpose name cannot be empty");
+      showToast("Purpose name cannot be empty");
       return;
     }
     try {
       await editPurpose(purposeId, { name: editPurposeName });
-      toast.success("Purpose updated!");
+      showToast("Purpose updated!");
       setEditPurposeId(null);
       setEditPurposeName("");
       await fetchAllData();
@@ -220,7 +220,7 @@ function Stages({ nextStep, previousStep }) {
     if (!window.confirm("Are you sure you want to delete this purpose?")) return;
     try {
       await deletePurpose(purposeId);
-      toast.success("Purpose deleted!");
+      showToast("Purpose deleted!");
       await fetchAllData();
     } catch (error) {
       showApiErrors(error, "Failed to delete purpose.");
@@ -230,7 +230,7 @@ function Stages({ nextStep, previousStep }) {
   // CREATE Phase
   const handleCreatePhase = async () => {
     if (!selectedPurpose || !phaseName.trim()) {
-      toast.error("Please select purpose and enter phase name");
+      showToast("Please select purpose and enter phase name");
       return;
     }
     try {
@@ -241,7 +241,7 @@ function Stages({ nextStep, previousStep }) {
         name: phaseName.trim(),
       });
       if (response.status === 200 || response.status === 201) {
-        toast.success("Phase created successfully!");
+        showToast("Phase created successfully!");
         setSelectedPurpose("");
         setPhaseName("");
         await fetchAllData();
@@ -261,12 +261,12 @@ function Stages({ nextStep, previousStep }) {
   const handleSavePhase = async (phaseId) => {
     const purposeId = getPurposeId(editPhasePurpose);
     if (!editPhaseName.trim() || !purposeId) {
-      toast.error("Please select purpose and enter phase name");
+      showToast("Please select purpose and enter phase name");
       return;
     }
     try {
       await editPhase(phaseId, { name: editPhaseName, purpose: purposeId });
-      toast.success("Phase updated!");
+      showToast("Phase updated!");
       setEditPhaseId(null);
       setEditPhaseName("");
       setEditPhasePurpose("");
@@ -280,7 +280,7 @@ function Stages({ nextStep, previousStep }) {
     if (!window.confirm("Are you sure you want to delete this phase?")) return;
     try {
       await deletePhase(phaseId);
-      toast.success("Phase deleted!");
+      showToast("Phase deleted!","success");
       await fetchAllData();
     } catch (error) {
       showApiErrors(error, "Failed to delete phase.");
@@ -290,7 +290,7 @@ function Stages({ nextStep, previousStep }) {
   // CREATE Stage
   const handleCreateStage = async () => {
     if (!selectedPhase || !stageName.trim()) {
-      toast.error("Please select phase and enter stage name");
+      showToast("Please select phase and enter stage name");
       return;
     }
     try {
@@ -299,7 +299,7 @@ function Stages({ nextStep, previousStep }) {
       const phaseId = getPhaseId(phaseNameStr);
 
       if (!purposeId || !phaseId) {
-        toast.error("Invalid purpose or phase selection");
+        showToast("Invalid purpose or phase selection");
         return;
       }
       const sequence =
@@ -315,7 +315,7 @@ function Stages({ nextStep, previousStep }) {
 
       const response = await createStage(payload);
       if (response.status === 200 || response.status === 201) {
-        toast.success("Stage created successfully!");
+        showToast("Stage created successfully!");
         setSelectedPhase("");
         setStageName("");
         setIsCreateStage(false);
@@ -344,7 +344,7 @@ function Stages({ nextStep, previousStep }) {
         sequence: editedSequence,
       };
       await editStage(payload);
-      toast.success("Stage updated successfully!");
+      showToast("Stage updated successfully!");
       setEditIndex(null);
       setEditedStageName("");
       setEditedSequence(1);
@@ -359,7 +359,7 @@ function Stages({ nextStep, previousStep }) {
     if (!window.confirm("Are you sure you want to delete this stage?")) return;
     try {
       await deleteStage(id);
-      toast.success("Stage deleted successfully!");
+      showToast("Stage deleted successfully!");
       await fetchAllData();
     } catch (error) {
       showApiErrors(error, "Failed to delete stage.");

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { IoMdAdd } from "react-icons/io";
 import Select from "react-select";
-import { toast } from "react-hot-toast";
+import { showToast } from "../../utils/toast";
+
 import {
   createRoom,
   getRoomsByProject,
@@ -87,7 +88,7 @@ function FlatType({ nextStep, previousStep }) {
       return res;
     } catch (err) {
       if (err.response?.status === 401) {
-        toast.error("Session expired. Please login again.");
+        showToast("Session expired. Please login again.","error");
       }
       return {
         status: err.response?.status || 500,
@@ -155,7 +156,7 @@ function FlatType({ nextStep, previousStep }) {
   // Room create
   const handleAddRoom = async () => {
     if (!newRoom.trim()) {
-      toast.error("Room name is required");
+      showToast("Room name is required","error");
       return;
     }
     if (
@@ -163,7 +164,7 @@ function FlatType({ nextStep, previousStep }) {
         (room) => room?.rooms?.toLowerCase() === newRoom.toLowerCase()
       )
     ) {
-      toast.error("Room already exists");
+      showToast("Room already exists","error");
       return;
     }
     const res = await safeApiCall(createRoom, {
@@ -171,12 +172,12 @@ function FlatType({ nextStep, previousStep }) {
       rooms: newRoom.trim(),
     });
     if (res.status === 201 || res.status === 200) {
-      toast.success("Room added successfully");
+      showToast("Room added successfully","success");
       setNewRoom("");
       setCreateNewRoom(false);
       await fetchRooms();
     } else {
-      toast.error(res.data?.message || "Failed to add room");
+      showToast(res.data?.message || "Failed to add room","error");
     }
   };
 
@@ -196,11 +197,11 @@ function FlatType({ nextStep, previousStep }) {
 
   const validateCreateFlatType = () => {
     if (!flatTypeDetails.flat_type.trim()) {
-      toast.error("Flat Type name is required");
+      showToast("Flat Type name is required","error");
       return false;
     }
     if ((flatTypeDetails.room_ids || []).length === 0) {
-      toast.error("At least one room is required");
+      showToast("At least one room is required","error");
       return false;
     }
     const isFlatTypeExists = (flatTypeList || []).find(
@@ -209,7 +210,7 @@ function FlatType({ nextStep, previousStep }) {
         flatTypeDetails.flat_type.toLowerCase()
     );
     if (isFlatTypeExists) {
-      toast.error("Flat Type already exists");
+      showToast("Flat Type already exists","error");
       return false;
     }
     return true;
@@ -224,7 +225,7 @@ function FlatType({ nextStep, previousStep }) {
       rooms: (flatTypeDetails.room_ids || []).map((item) => item.value),
     });
     if (res.status === 201 || res.status === 200) {
-      toast.success(res.data?.message || "Flat Type Created Successfully");
+      showToast(res.data?.message || "Flat Type Created Successfully","success");
       setFlatTypeDetails({
         flat_type: "",
         is_common: false,
@@ -233,7 +234,7 @@ function FlatType({ nextStep, previousStep }) {
       setIsFlatType(false);
       await fetchFlatTypes();
     } else {
-      toast.error(res.data?.message || "Error creating flat type");
+      showToast(res.data?.message || "Error creating flat type","error");
     }
     setIsLoading(false);
   };
@@ -261,11 +262,11 @@ function FlatType({ nextStep, previousStep }) {
 
   const handleSaveFlatType = async () => {
     if (!editFlatType.flat_type.trim()) {
-      toast.error("Flat Type name is required");
+      showToast("Flat Type name is required","error");
       return;
     }
     if ((editFlatType.room_ids || []).length === 0) {
-      toast.error("At least one room is required");
+      showToast("At least one room is required","error");
       return;
     }
     setIsLoading(true);
@@ -276,11 +277,11 @@ function FlatType({ nextStep, previousStep }) {
       rooms: (editFlatType.room_ids || []).map((item) => item.value),
     });
     if (res.status === 200) {
-      toast.success(res.data?.message || "Flat Type updated successfully");
+      showToast(res.data?.message || "Flat Type updated successfully","success");
       setIsEditFlatType(-1);
       await fetchFlatTypes();
     } else {
-      toast.error(res.data?.message || "Error updating flat type");
+      showToast(res.data?.message || "Error updating flat type","error");
     }
     setIsLoading(false);
   };

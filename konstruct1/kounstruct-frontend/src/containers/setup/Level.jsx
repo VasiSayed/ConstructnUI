@@ -8,7 +8,8 @@ import {
   updateLevel,
   deleteLevel,
 } from "../../api";
-import { toast } from "react-hot-toast";
+import { showToast } from "../../utils/toast";
+
 import { setLevels } from "../../store/userSlice";
 import { useTheme } from "../../ThemeContext"; // your theme hook
 
@@ -96,7 +97,7 @@ function Level({ nextStep, previousStep }) {
       setTowerDetails(obj);
       dispatch(setLevels({ project_id: projectId, data: obj }));
     } catch (err) {
-      toast.error("Failed to load towers and floors");
+      showToast("Failed to load towers and floors","error");
     }
   };
 
@@ -109,7 +110,7 @@ function Level({ nextStep, previousStep }) {
   const handleAddFloors = async () => {
     const numFloors = Number(floorInput);
     if ((!numFloors || numFloors < 1) && selectedCommonFloors.length === 0) {
-      toast.error("Please enter a number or select floor types");
+      showToast("Please enter a number or select floor types",'error');
       return;
     }
     let requests = [];
@@ -147,13 +148,13 @@ function Level({ nextStep, previousStep }) {
     });
     try {
       await Promise.all(requests);
-      toast.success("Floors added successfully");
+      showToast("Floors added successfully",'success');
       setCurrentTower(null);
       setFloorInput("");
       setSelectedCommonFloors([]);
       setRefreshFlag((f) => f + 1);
     } catch {
-      toast.error("Failed to add one or more floors");
+      showToast("Failed to add one or more floors",'error');
     }
   };
 
@@ -161,7 +162,7 @@ function Level({ nextStep, previousStep }) {
   const handleEditFloor = async () => {
     const { tower_id, level_name, level_id } = editing;
     if (!level_name.trim()) {
-      toast.error("Floor name cannot be empty");
+      showToast("Floor name cannot be empty",'error');
       return;
     }
     try {
@@ -171,7 +172,7 @@ function Level({ nextStep, previousStep }) {
         building: Number(tower_id),
       });
       if (response.status === 200) {
-        toast.success(response.data.message || "Floor updated!");
+        showToast(response.data.message || "Floor updated!",'success');
         setEditing({
           tower_id: null,
           level_name: "",
@@ -180,10 +181,10 @@ function Level({ nextStep, previousStep }) {
         });
         setRefreshFlag((f) => f + 1);
       } else {
-        toast.error("Failed to update floor");
+        showToast("Failed to update floor",'error');
       }
     } catch (error) {
-      toast.error("Update failed");
+      showToast("Update failed",'error');
     }
   };
 
@@ -202,13 +203,13 @@ function Level({ nextStep, previousStep }) {
     try {
       const response = await deleteLevel(id);
       if (response.status === 200 || response.status === 204) {
-        toast.success("Floor deleted!");
+        showToast("Floor deleted!","success");
         setRefreshFlag((f) => f + 1);
       } else {
-        toast.error("Failed to delete floor");
+        showToast("Failed to delete floor",'error');
       }
     } catch (err) {
-      toast.error("Delete failed");
+      showToast("Delete failed",'error');
     }
   };
 
@@ -226,14 +227,14 @@ function Level({ nextStep, previousStep }) {
     const toDelete = (towerDetails[towerId]?.floors || []).filter((f) =>
       /^Floor \d+$/.test(f.name)
     );
-    if (!toDelete.length) return toast("No numeric floors to delete");
+    if (!toDelete.length) return showToast("No numeric floors to delete",'info');
     if (
       window.confirm(
         `Delete all numeric floors for ${towerDetails[towerId].details.name}?`
       )
     ) {
       await Promise.all(toDelete.map((f) => deleteLevel(f.id)));
-      toast.success("All numeric floors deleted");
+      showToast("All numeric floors deleted",'success');
       setRefreshFlag((f) => f + 1);
     }
   };
@@ -247,14 +248,14 @@ function Level({ nextStep, previousStep }) {
     const toDelete = (towerDetails[towerId]?.floors || []).filter((f) =>
       staticRegex.test(f.name)
     );
-    if (!toDelete.length) return toast("No static type floors to delete");
+    if (!toDelete.length) return showToast("No static type floors to delete",'info');
     if (
       window.confirm(
         `Delete all static type floors for ${towerDetails[towerId].details.name}?`
       )
     ) {
       await Promise.all(toDelete.map((f) => deleteLevel(f.id)));
-      toast.success("All static type floors deleted");
+      showToast("All static type floors deleted",'success');
       setRefreshFlag((f) => f + 1);
     }
   };
@@ -264,14 +265,14 @@ function Level({ nextStep, previousStep }) {
     const toDelete = (towerDetails[towerId]?.floors || []).filter((f) =>
       typeRegex.test(f.name)
     );
-    if (!toDelete.length) return toast(`No ${type} floors to delete`);
+    if (!toDelete.length) return showToast(`No ${type} floors to delete`,'error');
     if (
       window.confirm(
         `Delete all ${type} floors for ${towerDetails[towerId].details.name}?`
       )
     ) {
       await Promise.all(toDelete.map((f) => deleteLevel(f.id)));
-      toast.success(`All ${type} floors deleted`);
+      showToast(`All ${type} floors deleted`,'success');
       setRefreshFlag((f) => f + 1);
     }
   };

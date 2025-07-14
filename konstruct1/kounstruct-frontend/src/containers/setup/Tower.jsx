@@ -7,7 +7,7 @@ import {
   DeleteTowerByid,
 } from "../../api";
 import { useSelector, useDispatch } from "react-redux";
-import { toast } from "react-toastify";
+import { showToast } from "../../utils/toast";
 import { setTower, setSelectedTowerId } from "../../store/userSlice";
 import { Plus, Edit3, Trash2, Check, X } from "lucide-react";
 import { useTheme } from "../../ThemeContext";
@@ -64,22 +64,22 @@ function Tower({ nextStep, previousStep }) {
     if (!window.confirm("Delete this tower?")) return;
     try {
       await DeleteTowerByid(towerId);
-      toast.success("Tower deleted!");
+      showToast("Tower deleted!");
       loadTowers();
     } catch (err) {
-      toast.error("Failed to delete tower");
+      showToast("Failed to delete tower");
     }
   };
 
   const handleEditTower = async (towerId, name) => {
     try {
       await updateTower(towerId, { name });
-      toast.success("Tower name updated!");
+      showToast("Tower name updated!");
       setEditingIndex(-1);
       setTempName("");
       loadTowers();
     } catch (err) {
-      toast.error("Failed to update tower name");
+      showToast("Failed to update tower name");
     }
   };
 
@@ -90,7 +90,7 @@ function Tower({ nextStep, previousStep }) {
     numTowers = Number(numTowers);
 
     if (!prefix || !numTowers || numTowers < 1) {
-      toast.error("Prefix and Number of Towers are required");
+      showToast("Prefix and Number of Towers are required");
       return;
     }
     for (let i = 0; i < numTowers; i++) {
@@ -118,12 +118,12 @@ function Tower({ nextStep, previousStep }) {
         formData.append("name", tw.name);
         await createTower(formData);
       }
-      toast.success("Towers added!");
+      showToast("Towers added!","success");
       setShowPreview(false);
       setPreviewTowers([]);
       loadTowers();
     } catch (error) {
-      toast.error("Failed to create towers.");
+      showToast("Failed to create towers.");
     }
   };
 

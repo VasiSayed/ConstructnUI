@@ -61,8 +61,14 @@ const Layout = () => {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/all-checklists" element={<AllChecklists />} />
-          <Route path="/my-ongoing-checklist" element={<MyOngoingChecklist />} />
-          <Route path="/my-inprogress-submissions" element={<MyInProgressSubmissions />} />
+          <Route
+            path="/my-ongoing-checklist"
+            element={<MyOngoingChecklist />}
+          />
+          <Route
+            path="/my-inprogress-submissions"
+            element={<MyInProgressSubmissions />}
+          />
           <Route path="/checker-inbox" element={<CheckerInbox />} />
 
           <Route path="/config" element={<Configuration />} />
@@ -80,15 +86,23 @@ const Layout = () => {
           <Route path="/CoustemerHandover" element={<CoustemerHandover />} />
           <Route path="/Chif" element={<Chif />} />
 
-
           <Route
             path="/PendingSupervisorItems"
             element={<PendingSupervisorItems />}
           />
           <Route path="/UsersManagement" element={<UsersManagement />} />
-          <Route path="/Initialize-Checklist" element={<InitializeChecklist />} />
-          <Route path="/PendingInspector-Checklist" element={<PendingInspectorChecklists />} />
-          <Route path="/Pending-For-MakerItems" element={<PendingForMakerItems />} />
+          <Route
+            path="/Initialize-Checklist"
+            element={<InitializeChecklist />}
+          />
+          <Route
+            path="/PendingInspector-Checklist"
+            element={<PendingInspectorChecklists />}
+          />
+          <Route
+            path="/Pending-For-MakerItems"
+            element={<PendingForMakerItems />}
+          />
 
           <Route path="/chif-setup" element={<ChifSetup />} />
           <Route path="/Chifstep1" element={<Chifstep1 />} />
@@ -97,13 +111,21 @@ const Layout = () => {
           <Route path="/user-setup" element={<UserSetup />} />
           <Route path="/user" element={<User />} />
           <Route path="/category-sidebar" element={<CategoryChecklist />} />
-          <Route path="/checker-verified-inspector-pending" element={<InspectorPending />} />
+          <Route
+            path="/checker-verified-inspector-pending"
+            element={<InspectorPending />}
+          />
           <Route path="/edit-checklist/:id" element={<EditCheckList />} />
-          <Route path="/accessible-checklists" element={<AccessibleChecklists />} />
-          <Route path="/hierarchical-verifications" element={<HierarchicalVerifications />} />
+          <Route
+            path="/accessible-checklists"
+            element={<AccessibleChecklists />}
+          />
+          <Route
+            path="/hierarchical-verifications"
+            element={<HierarchicalVerifications />}
+          />
         </Routes>
       </main>
-      <Toaster position="top-right" />
     </>
   );
 };
@@ -112,6 +134,7 @@ function App() {
   return (
     <ThemeProvider>
       <Router>
+        <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
         <Layout />
       </Router>
     </ThemeProvider>

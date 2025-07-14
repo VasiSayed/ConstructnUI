@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { IoIosNotificationsOutline } from "react-icons/io";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { HiOutlineBuildingStorefront } from "react-icons/hi2";
 import { IoSettingsOutline } from "react-icons/io5";
 import { CiSearch } from "react-icons/ci";
@@ -15,15 +15,34 @@ import { setSelectedProject } from "../store/userSlice";
 function Header() {
   const [isNotification, setIsNotification] = useState(false);
   const [isProfile, setIsProfile] = useState(false);
-  console.log(isProfile);
+
   const dispatch = useDispatch();
   const projects = useSelector((state) => state.user.projects);
   const selectedProject = useSelector((state) => state.user.selectedProject.id);
 
-  const handleProject = (e) => {
+
+    const rolee = localStorage.getItem("ROLE");
+    const token = localStorage.getItem("TOKEN"); // Adjust if your login key is different
+    const allowuser =
+      rolee === "Manager" || rolee === "Super Admin" || rolee === "Client";
+
+const navigate = useNavigate();
+
+  const handleProject = (e) => {  
     console.log(e.target.value, "e.target.value");
     dispatch(setSelectedProject(e.target.value));
   };
+console.log(allowuser,'yhi is alalow user');
+
+    const handleUserSetupClick = () => {
+      if (!token) {
+        navigate("/login");
+      } else {
+        navigate("/user-setup");
+      }
+    };
+
+
 
   return (
     // <div className="flex lg:flex-row flex-col gap-2 relative items-center justify-center w-full">
@@ -120,15 +139,19 @@ function Header() {
           >
             <HiOutlineBuildingStorefront className="text-lg" />
           </NavLink>
-          <NavLink
-            // to="/chif-setup"
-            to={"/setup"}
-            className={({ isActive }) =>
-              !isActive ? "font-normal" : "font-medium"
-            }
-          >
+
+          {allowuser &&(
+            <NavLink
+              // to="/chif-setup"
+              to={"/setup"}
+              className={({ isActive }) =>
+                !isActive ? "font-normal" : "font-medium"
+              }
+            >
             <IoSettingsOutline className="text-lg" />
           </NavLink>
+          )}
+
           <button
             onClick={() => setIsProfile(true)}
             // className={({ isActive }) =>

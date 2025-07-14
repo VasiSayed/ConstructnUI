@@ -19,7 +19,7 @@ function getAllRoles() {
     // Check .role (string)
     if (typeof userData.role === "string") roles.push(userData.role);
 
-    // Check .roles (array of strings/objects)
+  
     if (Array.isArray(userData.roles)) {
       userData.roles.forEach((r) => {
         if (typeof r === "string") roles.push(r);
@@ -27,7 +27,6 @@ function getAllRoles() {
       });
     }
 
-    // Also cover "accesses" structure (if any)
     if (Array.isArray(userData.accesses)) {
       userData.accesses.forEach((a) => {
         if (Array.isArray(a.roles)) {
@@ -53,28 +52,35 @@ function SideBarSetup() {
   const { theme } = useTheme();
   const allRoles = getAllRoles();
   const isInitializer = allRoles.includes("Intializer");
+  const rolee=localStorage.getItem('ROLE')
+  console.log(rolee,'my new role');
+  
+console.log(allRoles,'this is the allrole');
 
-  // For the badge, show first role or fallback
-  const badgeRole = allRoles[0] || "User";
+  const badgeRole =  allRoles[0] || "User";
 
-  // --- Completely HIDE sidebar for Initializer ---
   if (isInitializer) return null;
 
-  // Menu nav items (can add role-based filtering here if needed)
-  const navItems = [
-    { name: "User Setup", path: "/user-setup" },
-    { name: "Unit Setup", path: "/setup" },
-    { name: "CA Setup", path: "/casetup" },
-    { name: "User & Role", path: "/user" },
-    { name: "Checklist", path: "/Checklist" },
-    { name: "All Checklists", path: "/all-checklists" },
-    { name: "Category management", path: "/category-sidebar" },
-    { name: "Escalation Setup", path: "/escalation-setup" },
-    { name: "Contractors", path: "/contractors" },
-    { name: "Geo Tag", path: "/geo-tag" },
-    { name: "Project Setup", path: "/project-setup" },
-    { name: "Import/Export", path: "/import-export" },
-  ];
+ let allowuser = false;
+  if (rolee==="Manager" || rolee==="Super Admin" || rolee ==="Manager") {
+     allowuser=true
+  }
+
+const navItems = [
+  { name: "User Setup", path: "/user-setup" },
+  { name: "Unit Setup", path: "/setup" },
+  { name: "CA Setup", path: "/casetup" },
+  { name: "User & Role", path: "/user" },
+  { name: "Checklist", path: "/Checklist" },
+  { name: "All Checklists", path: "/all-checklists" },
+  { name: "Category management", path: "/category-sidebar" },
+  { name: "Escalation Setup", path: "/escalation-setup" },
+  { name: "Contractors", path: "/contractors" },
+  { name: "Geo Tag", path: "/geo-tag" },
+  { name: "Project Setup", path: "/project-setup" },
+  { name: "Import/Export", path: "/import-export" },
+];
+
 
   const palette = theme === "dark"
     ? {

@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { AiOutlineClose } from "react-icons/ai";
 import { createProject, allorgantioninfototalbyUser_id } from "../../api";
-import { toast } from "react-hot-toast";
+import { showToast } from "../../utils/toast";
 import { useSelector } from "react-redux";
-import { useTheme } from "../../ThemeContext"; // THEME!
+import { useTheme } from "../../ThemeContext";// THEME!
 
 function AddProjectModal({ onClose, onSave }) {
   const { theme } = useTheme();
@@ -41,7 +41,7 @@ function AddProjectModal({ onClose, onSave }) {
           setEntityOptions(resp.data.entities || []);
         }
       } catch (e) {
-        toast.error("Failed to load organizations info.");
+        showToast("Failed to load organizations info.",'error');
       }
     };
     fetchUserOrgs();
@@ -58,15 +58,15 @@ function AddProjectModal({ onClose, onSave }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!projectName) {
-      toast.error("Project name is required");
+      showToast("Project name is required",'info');
       return;
     }
     if (!selectedOrg) {
-      toast.error("Please select an organization");
+      showToast("Please select an organization",'info');
       return;
     }
     if (!selectedCompany) {
-      toast.error("Please select a company");
+      showToast("Please select a company",'info');
       return;
     }
     const formData = new FormData();
@@ -80,16 +80,16 @@ function AddProjectModal({ onClose, onSave }) {
     }
     try {
       const res = await createProject(formData);
-      toast.success("Project created!");
+      showToast("Project created!", "success");
       onSave(res.data.id || res.data.data?.id);
       setIsSaved(true);
     } catch (error) {
-      toast.error(
+      showToast(
         error.response?.data?.message ||
           error.response?.data?.detail ||
           JSON.stringify(error.response?.data) ||
           error.message ||
-          "Error creating project"
+          "Error creating project",'error'
       );
     }
   };

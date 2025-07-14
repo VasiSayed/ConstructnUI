@@ -3,9 +3,11 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import projectImage from "../Images/Project.png";
 import { getProjectUserDetails, getProjectsByOwnership } from "../api";
-import toast from "react-hot-toast";
+import { showToast } from "../utils/toast";
+
 import SiteBarHome from "./SiteBarHome";
 import { useTheme } from "../ThemeContext";
+
 
 const Configuration = () => {
   const { theme } = useTheme();
@@ -54,7 +56,7 @@ console.log(rolee,'this is the roleee');
             const orgId = userData.org || userData.organization_id;
             response = await getProjectsByOwnership({ organization_id: orgId });
           } else {
-            toast.error("No entity, company, or organization found for this manager.");
+            showToast("No entity, company, or organization found for this manager.");
             return;
           }
         } else if (
@@ -64,17 +66,17 @@ console.log(rolee,'this is the roleee');
         ) {
           response = await getProjectUserDetails();
         } else {
-          toast.error("You do not have permission to view projects.");
+          showToast("You do not have permission to view projects.");
           return;
         }
 
         if (response?.status === 200) {
           setAllProject(response.data);
         } else {
-          toast.error(response?.data?.message || "Failed to fetch projects.");
+          showToast(response?.data?.message || "Failed to fetch projects.");
         }
       } catch (error) {
-        toast.error(
+        showToast(
           error?.response?.data?.message || "Error fetching projects."
         );
       }
