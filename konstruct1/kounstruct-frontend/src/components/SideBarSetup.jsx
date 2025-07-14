@@ -15,18 +15,13 @@ function getAllRoles() {
   try {
     const userData = JSON.parse(userString);
     let roles = [];
-
-    // Check .role (string)
     if (typeof userData.role === "string") roles.push(userData.role);
-
-  
     if (Array.isArray(userData.roles)) {
       userData.roles.forEach((r) => {
         if (typeof r === "string") roles.push(r);
         else if (typeof r === "object" && r && r.role) roles.push(r.role);
       });
     }
-
     if (Array.isArray(userData.accesses)) {
       userData.accesses.forEach((a) => {
         if (Array.isArray(a.roles)) {
@@ -37,8 +32,6 @@ function getAllRoles() {
         }
       });
     }
-
-    // Add fallbacks
     if (userData.superadmin) roles.push("Super Admin");
     if (userData.is_manager) roles.push("Manager");
     if (userData.is_client === false) roles.push("Admin");
@@ -51,36 +44,38 @@ function getAllRoles() {
 function SideBarSetup() {
   const { theme } = useTheme();
   const allRoles = getAllRoles();
-  const isInitializer = allRoles.includes("Intializer");
-  const rolee=localStorage.getItem('ROLE')
-  console.log(rolee,'my new role');
-  
-console.log(allRoles,'this is the allrole');
+  const rolee = (localStorage.getItem("ROLE") || "").toLowerCase();
 
-  const badgeRole =  allRoles[0] || "User";
-
+  const isInitializer = allRoles.some(r => r === "Intializer" || r === "Initializer");
   if (isInitializer) return null;
 
- let allowuser = false;
-  if (rolee==="Manager" || rolee==="Super Admin" || rolee ==="Manager") {
-     allowuser=true
+  const badgeRole = allRoles[0] || "User";
+
+  // Only for Manager (case-insensitive): Show restricted menu
+  let navItems;
+  if (rolee === "manager") {
+    navItems = [
+      { name: "User & Role", path: "/user" },
+      { name: "Checklist", path: "/Checklist" },
+      { name: "All Checklists", path: "/all-checklists" },
+      { name: "Category management", path: "/category-sidebar" },
+    ];
+  } else {
+    navItems = [
+      { name: "User Setup", path: "/user-setup" },
+      { name: "Unit Setup", path: "/setup" },
+      { name: "CA Setup", path: "/casetup" },
+      { name: "User & Role", path: "/user" },
+      { name: "Checklist", path: "/Checklist" },
+      { name: "All Checklists", path: "/all-checklists" },
+      { name: "Category management", path: "/category-sidebar" },
+      { name: "Escalation Setup", path: "/escalation-setup" },
+      { name: "Contractors", path: "/contractors" },
+      { name: "Geo Tag", path: "/geo-tag" },
+      { name: "Project Setup", path: "/project-setup" },
+      { name: "Import/Export", path: "/import-export" },
+    ];
   }
-
-const navItems = [
-  { name: "User Setup", path: "/user-setup" },
-  { name: "Unit Setup", path: "/setup" },
-  { name: "CA Setup", path: "/casetup" },
-  { name: "User & Role", path: "/user" },
-  { name: "Checklist", path: "/Checklist" },
-  { name: "All Checklists", path: "/all-checklists" },
-  { name: "Category management", path: "/category-sidebar" },
-  { name: "Escalation Setup", path: "/escalation-setup" },
-  { name: "Contractors", path: "/contractors" },
-  { name: "Geo Tag", path: "/geo-tag" },
-  { name: "Project Setup", path: "/project-setup" },
-  { name: "Import/Export", path: "/import-export" },
-];
-
 
   const palette = theme === "dark"
     ? {
@@ -131,7 +126,6 @@ const navItems = [
         >
           Admin Panel
         </div>
-        {/* Always show badge */}
         <div
           className="text-xs font-medium mt-1 px-2 py-1 rounded"
           style={{

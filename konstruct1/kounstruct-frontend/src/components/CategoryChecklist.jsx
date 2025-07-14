@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import SideBarSetup from "./SideBarSetup";
-import { getProjectUserDetails } from "../api";
+import { getProjectsByOwnership } from "../api"; // <-- Make sure this is imported
 import { projectInstance } from "../api/axiosInstance";
 import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
+import { useTheme } from "../ThemeContext";
 
-// Config for 6 category levels
 const CATEGORY_LEVELS = [
   {
     id: 1,
@@ -15,7 +15,7 @@ const CATEGORY_LEVELS = [
     parentLabel: "Project",
     listApi: () => `/categories-simple/`,
     createApi: `/categories-simple/`,
-    entryParentField: "project", // id field to filter
+    entryParentField: "project",
   },
   {
     id: 2,
@@ -71,6 +71,34 @@ const CATEGORY_LEVELS = [
 
 function CategoryChecklist() {
   const userId = useSelector((state) => state.user.user.id);
+  const { theme } = useTheme();
+
+  // --- THEME PALETTE ---
+  const palette = theme === "dark"
+    ? {
+        bg: "#191921",
+        card: "bg-[#23232e]",
+        text: "text-amber-200",
+        border: "border-[#facc1530]",
+        input: "bg-[#181820] text-amber-200",
+        select: "bg-[#23232e] text-amber-200",
+        th: "bg-[#181820] text-[#facc15]",
+        trHover: "hover:bg-[#23232e]",
+        shadow: "shadow-lg",
+        badge: "bg-[#fde047] text-[#181820]"
+      }
+    : {
+        bg: "#f7f8fa",
+        card: "bg-white",
+        text: "text-[#22223b]",
+        border: "border-[#ececf0]",
+        input: "bg-white text-[#22223b]",
+        select: "bg-white text-[#22223b]",
+        th: "bg-[#f6f8fd] text-[#9aa2bc]",
+        trHover: "hover:bg-[#f6f8fd]",
+        shadow: "shadow-sm",
+        badge: "bg-[#4375e8] text-white"
+      };
 
   const [projects, setProjects] = useState([]);
   const [chain, setChain] = useState({
@@ -94,20 +122,35 @@ function CategoryChecklist() {
   const [loading, setLoading] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState(CATEGORY_LEVELS[0]);
 
-  // Fetch all projects at mount
+  // --- FETCH PROJECTS BY USER'S ORG/COMPANY/ENTITY ---
   useEffect(() => {
     (async () => {
       try {
-        const res = await getProjectUserDetails();
+        // Prefer redux user if available, else localStorage
+        let user = null;
+        try {
+          user = JSON.parse(localStorage.getItem("USER_DATA"));
+        } catch {}
+        let params = {};
+        if (user?.entity_id || user?.entity) params.entity_id = user.entity_id || user.entity;
+        else if (user?.company_id || user?.company) params.company_id = user.company_id || user.company;
+        else if (user?.org || user?.organization_id) params.organization_id = user.org || user.organization_id;
+        if (Object.keys(params).length === 0) {
+          setProjects([]);
+          setOptions((prev) => ({ ...prev, project: [] }));
+          toast.error("No organization/company/entity found.");
+          return;
+        }
+        const res = await getProjectsByOwnership(params);
         setProjects(res.data || []);
         setOptions((prev) => ({ ...prev, project: res.data || [] }));
       } catch {
-        toast.error("Failed to fetch projects");
+        toast.error("Failed to fetch user projects");
       }
     })();
   }, []);
 
-  // Reset lower chains/options/entries when level changes
+  // --- RESET LOWER CHAINS/OPTIONS WHEN LEVEL CHANGES ---
   useEffect(() => {
     const chainCopy = { ...chain };
     const optionsCopy = { ...options };
@@ -127,10 +170,9 @@ function CategoryChecklist() {
     setOptions(optionsCopy);
     setEntries([]);
     setInputValue("");
-    // eslint-disable-next-line
   }, [selectedLevel]);
 
-  // On any dropdown parent change, reset all lower dropdowns/options and fetch new options
+  // --- HANDLE PARENT CHANGE ---
   const handleParentChange = (key, value) => {
     const newChain = { ...chain, [key]: value };
     const newOptions = { ...options };
@@ -150,7 +192,7 @@ function CategoryChecklist() {
     setInputValue("");
   };
 
-  // Fetch child dropdown options (next level) whenever a parent in chain changes
+  // --- FETCH CHILD DROPDOWN OPTIONS (next level) ---
   useEffect(() => {
     if (selectedLevel.id === 1) return;
     const prevLevelIdx = selectedLevel.id - 2;
@@ -179,10 +221,9 @@ function CategoryChecklist() {
         setOptions((prev) => ({ ...prev, [selectedLevel.parentKey]: [] }));
       })
       .finally(() => setLoading(false));
-    // eslint-disable-next-line
   }, [selectedLevel, ...Object.values(chain).slice(0, -1)]);
 
-  // Fetch table entries for current parent selection at this level
+  // --- FETCH TABLE ENTRIES for current parent selection at this level ---
   useEffect(() => {
     if (!chain[selectedLevel.parentKey]) {
       setEntries([]);
@@ -192,7 +233,6 @@ function CategoryChecklist() {
     projectInstance
       .get(selectedLevel.listApi())
       .then((res) => {
-        // Filter by selected parent
         const filtered = (res.data || []).filter(
           (item) =>
             String(item[selectedLevel.entryParentField]) ===
@@ -202,10 +242,9 @@ function CategoryChecklist() {
       })
       .catch(() => setEntries([]))
       .finally(() => setLoading(false));
-    // eslint-disable-next-line
   }, [selectedLevel, chain[selectedLevel.parentKey]]);
 
-  // After adding, re-fetch entries and options for that level
+  // --- ADD NEW ENTRY ---
   const handleAdd = async (e) => {
     e.preventDefault();
     const val = inputValue.trim();
@@ -223,8 +262,7 @@ function CategoryChecklist() {
       await projectInstance.post(selectedLevel.createApi, payload);
       toast.success("Added successfully");
       setInputValue("");
-      // Re-fetch entries and dropdown for next level
-      setChain((prev) => ({ ...prev }));
+      setChain((prev) => ({ ...prev })); // Triggers table reload
     } catch (err) {
       toast.error("API error");
     }
@@ -232,24 +270,22 @@ function CategoryChecklist() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f7f8fa]">
+    <div className={`flex min-h-screen`} style={{ background: palette.bg }}>
       <SideBarSetup />
       <div className="flex-1 ml-[16%] mr-4 my-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-2xl md:text-3xl font-semibold text-[#22223b] mb-2 tracking-tight">
+            <h1 className={`text-2xl md:text-3xl font-semibold mb-2 tracking-tight ${palette.text}`}>
               Category Management
             </h1>
-            <p className="text-[#6c6f7e] text-base md:text-lg">
+            <p className={`text-base md:text-lg ${palette.text} opacity-80`}>
               Organize and manage your project categories efficiently
             </p>
           </div>
           {/* Category Level Selector */}
-          <div className="bg-white rounded-xl border border-[#ececf0] p-6 mb-8 shadow-sm">
-            <h2 className="text-lg font-semibold text-[#343650] mb-4">
-              Select Category Level
-            </h2>
+          <div className={`${palette.card} rounded-xl ${palette.border} p-6 mb-8 ${palette.shadow}`}>
+            <h2 className={`text-lg font-semibold mb-4 ${palette.text}`}>Select Category Level</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {CATEGORY_LEVELS.map((cat) => (
                 <button
@@ -258,8 +294,8 @@ function CategoryChecklist() {
                   className={`py-4 px-2 rounded-lg border transition text-center duration-200 text-base font-medium
                   ${
                     selectedLevel.id === cat.id
-                      ? "border-[#4375e8] bg-[#f6f8fd] text-[#1e2a44] shadow-sm"
-                      : "border-[#ececf0] bg-white text-[#656777] hover:bg-[#f6f8fd] hover:border-[#b4c0e6]"
+                      ? `${palette.border} bg-[#f6f8fd] text-[#1e2a44] shadow`
+                      : `${palette.border} ${palette.card} ${palette.text} hover:bg-[#f6f8fd] hover:border-[#b4c0e6]`
                   }
                 `}
                   onClick={() => setSelectedLevel(cat)}
@@ -271,16 +307,15 @@ function CategoryChecklist() {
             </div>
           </div>
           {/* All Parent Dropdowns up to selected level */}
-          <div className="bg-white rounded-xl border border-[#ececf0] p-6 mb-8 shadow-sm">
+          <div className={`${palette.card} rounded-xl ${palette.border} p-6 mb-8 ${palette.shadow}`}>
             {[...Array(selectedLevel.id)].map((_, idx) => {
               const config = CATEGORY_LEVELS[idx];
               const label = config.parentLabel;
               const key = config.parentKey;
-              // For Project (level 1), always show
               if (idx === 0) {
                 return (
                   <div className="mb-6" key={key}>
-                    <label className="block mb-2 text-[#343650] font-semibold">
+                    <label className={`block mb-2 font-semibold ${palette.text}`}>
                       Select Project
                     </label>
                     <select
@@ -288,7 +323,7 @@ function CategoryChecklist() {
                       onChange={(e) =>
                         handleParentChange("project", e.target.value)
                       }
-                      className="w-full p-4 border border-[#ececf0] rounded-lg bg-white text-[#2d3047] focus:ring-2 focus:ring-[#b4c0e6] focus:border-[#b4c0e6] transition"
+                      className={`w-full p-4 border rounded-lg ${palette.select} ${palette.border} focus:ring-2 focus:ring-[#b4c0e6] focus:border-[#b4c0e6] transition`}
                     >
                       <option value="">Choose Project</option>
                       {projects.map((proj) => (
@@ -300,11 +335,10 @@ function CategoryChecklist() {
                   </div>
                 );
               }
-              // For others, only show if previous parent is selected
               if (chain[CATEGORY_LEVELS[idx - 1].parentKey]) {
                 return (
                   <div className="mb-6" key={key}>
-                    <label className="block mb-2 text-[#343650] font-semibold">
+                    <label className={`block mb-2 font-semibold ${palette.text}`}>
                       Select {label}
                     </label>
                     <select
@@ -312,7 +346,7 @@ function CategoryChecklist() {
                       onChange={(e) =>
                         handleParentChange(key, e.target.value)
                       }
-                      className="w-full p-4 border border-[#ececf0] rounded-lg bg-white text-[#2d3047] focus:ring-2 focus:ring-[#b4c0e6] focus:border-[#b4c0e6] transition"
+                      className={`w-full p-4 border rounded-lg ${palette.select} ${palette.border} focus:ring-2 focus:ring-[#b4c0e6] focus:border-[#b4c0e6] transition`}
                     >
                       <option value="">Choose {label}</option>
                       {(options[key] || []).map((p) => (
@@ -329,8 +363,8 @@ function CategoryChecklist() {
           </div>
           {/* Add New Entry */}
           {chain[selectedLevel.parentKey] && (
-            <div className="bg-white rounded-xl border border-[#ececf0] p-6 mb-8 shadow-sm">
-              <h2 className="text-lg font-semibold text-[#343650] mb-4">
+            <div className={`${palette.card} rounded-xl ${palette.border} p-6 mb-8 ${palette.shadow}`}>
+              <h2 className={`text-lg font-semibold mb-4 ${palette.text}`}>
                 Add New {selectedLevel.label}
               </h2>
               <div className="flex gap-3">
@@ -339,7 +373,7 @@ function CategoryChecklist() {
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && handleAdd(e)}
                   placeholder={`Enter name for ${selectedLevel.label}`}
-                  className="flex-1 p-4 border border-[#ececf0] rounded-lg focus:ring-2 focus:ring-[#b4c0e6] focus:border-[#b4c0e6] text-base"
+                  className={`flex-1 p-4 border rounded-lg ${palette.input} ${palette.border} text-base`}
                 />
                 <button
                   type="button"
@@ -359,19 +393,19 @@ function CategoryChecklist() {
           )}
           {/* Entries Table */}
           {chain[selectedLevel.parentKey] && (
-            <div className="bg-white rounded-xl border border-[#ececf0] shadow-sm">
+            <div className={`${palette.card} rounded-xl ${palette.border} ${palette.shadow}`}>
               <div className="px-6 py-4 border-b border-[#f1f2f6]">
-                <h2 className="text-lg font-semibold text-[#343650]">
+                <h2 className={`text-lg font-semibold ${palette.text}`}>
                   {selectedLevel.label} List
                 </h2>
-                <p className="text-[#8b8c97] text-xs mt-1">
+                <p className="text-xs mt-1 opacity-70">
                   {entries.length} {entries.length === 1 ? "item" : "items"} found
                 </p>
               </div>
               {loading ? (
                 <div className="py-10 text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4375e8] mx-auto mb-2"></div>
-                  <p className="text-[#b4c0e6] text-base">Loading...</p>
+                  <p className="text-base text-[#b4c0e6]">Loading...</p>
                 </div>
               ) : entries.length === 0 ? (
                 <div className="py-12 text-center text-[#b4c0e6]">
@@ -380,7 +414,7 @@ function CategoryChecklist() {
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
-                    <thead className="bg-[#f6f8fd] text-[#9aa2bc] text-sm">
+                    <thead className={`${palette.th}`}>
                       <tr>
                         <th className="px-6 py-4 font-medium">Name</th>
                         <th className="px-6 py-4 font-medium">ID</th>
@@ -388,11 +422,11 @@ function CategoryChecklist() {
                     </thead>
                     <tbody className="divide-y divide-[#ececf0]">
                       {entries.map((item, index) => (
-                        <tr key={item.id} className="hover:bg-[#f6f8fd]">
-                          <td className="px-6 py-4 font-medium text-[#22223b]">
+                        <tr key={item.id} className={palette.trHover}>
+                          <td className={`px-6 py-4 font-medium ${palette.text}`}>
                             {item.name}
                           </td>
-                          <td className="px-6 py-4 text-[#6c6f7e]">#{item.id}</td>
+                          <td className={`px-6 py-4 ${palette.text}`}>#{item.id}</td>
                         </tr>
                       ))}
                     </tbody>
