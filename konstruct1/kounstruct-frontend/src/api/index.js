@@ -877,3 +877,42 @@ export const updateChecklistById = async (checklistId, payload) =>
     },
   });
 
+  // Update individual checklist item
+export const updateChecklistItem = async (itemId, payload) =>
+  NEWchecklistInstance.patch(`/items/${itemId}/`, payload, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+// Delete individual checklist item  
+export const deleteChecklistItem = async (itemId) =>
+  NEWchecklistInstance.delete(`/items/${itemId}/`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+// Update individual option
+export const updateChecklistItemOption = async (optionId, payload) =>
+  NEWchecklistInstance.patch(`/options/${optionId}/`, payload, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+// Delete individual option
+export const deleteChecklistItemOption = async (optionId) =>
+  NEWchecklistInstance.delete(`/options/${optionId}/`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+// Delete checklist by ID
+export const deleteChecklistById = async (checklistId) =>
+  NEWchecklistInstance.delete(`/checklists/${checklistId}/`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });

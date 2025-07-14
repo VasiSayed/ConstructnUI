@@ -12,6 +12,10 @@ import {
   createChecklistItemOPTIONSS,
   getChecklistById,
   updateChecklistById,
+  updateChecklistItem,
+  deleteChecklistItem,
+  updateChecklistItemOption,
+  deleteChecklistItemOption,
 } from "../../api";
 import { showToast } from "../../utils/toast";
 import * as XLSX from 'xlsx'; // Add this import
@@ -50,7 +54,7 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
   // Checklist logic
   const [options, setOptions] = useState([{ value: "", submission: "P" }]);
   const [questions, setQuestions] = useState([
-    { question: "", options: [], photo_required: false },
+  { id: null, question: "", options: [], photo_required: false },
   ]);
 
   const [numOfQuestions, setNumOfQuestions] = useState(1);
@@ -184,11 +188,14 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
 
           // Pre-populate questions if they exist
           // Pre-populate questions if they exist
+          // Pre-populate questions if they exist
           if (checklistData.items && checklistData.items.length > 0) {
             const formattedQuestions = checklistData.items.map((item) => ({
+              id: item.id, // Track existing item ID
               question: item.title,
               options: item.options
                 ? item.options.map((opt) => ({
+                    id: opt.id, // Track existing option ID
                     value: opt.name,
                     submission: opt.choice,
                   }))
@@ -287,17 +294,16 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
   }, [selectedPhase]);
 
   // Add Option to a Question
-  const handleQuestionOptionAdd = (qIdx) => {
-    setQuestions((prev) => {
-      const updated = [...prev];
-      // Ensure options array exists
-      if (!updated[qIdx].options) {
-        updated[qIdx].options = [];
-      }
-      updated[qIdx].options.push({ value: "", submission: "P" });
-      return updated;
-    });
-  };
+const handleQuestionOptionAdd = (qIdx) => {
+  setQuestions((prev) => {
+    const updated = [...prev];
+    if (!updated[qIdx].options) {
+      updated[qIdx].options = [];
+    }
+    updated[qIdx].options.push({ id: null, value: "", submission: "P" });
+    return updated;
+  });
+};
 
   // Change Option Value/Submission
   const handleQuestionOptionChange = (qIdx, key, value, optIdx) => {
@@ -308,9 +314,9 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
         updated[qIdx].options = [];
       }
       // Ensure the option exists
-      if (!updated[qIdx].options[optIdx]) {
-        updated[qIdx].options[optIdx] = { value: "", submission: "P" };
-      }
+  if (!updated[qIdx].options[optIdx]) {
+    updated[qIdx].options[optIdx] = { id: null, value: "", submission: "P" };
+  }
       updated[qIdx].options[optIdx][key] = value;
       return updated;
     });
@@ -330,17 +336,19 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
   };
 
   // Improved "Add More Questions" handler
-  const handleAddMoreQuestions = () => {
-    const toAdd = [];
-    for (let i = 0; i < numOfQuestions; i++) {
-      toAdd.push({
-        question: "",
-        options: [], // Start with empty options array
-        photo_required: false,
-      });
-    }
-    setQuestions([...questions, ...toAdd]);
-  };
+
+const handleAddMoreQuestions = () => {
+  const toAdd = [];
+  for (let i = 0; i < numOfQuestions; i++) {
+    toAdd.push({
+      id: null, // New questions have no ID
+      question: "",
+      options: [],
+      photo_required: false,
+    });
+  }
+  setQuestions([...questions, ...toAdd]);
+};
 
   // Nested category helpers
   const getLevelOptions = (levelKey) => {
@@ -454,118 +462,86 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
     setCat6(e.target.value);
   };
 
-  const handleCreateChecklist = async () => {
-    // Enhanced validation
-    if (!checklistName.trim()) return showToast("Checklist name required!");
-    if (!projectId || projectId === "") return showToast("Select a project");
-    if (!selectedPurpose || selectedPurpose === "")
-      return showToast("Select a purpose");
-    if (!category || category === "") return showToast("Select a category");
-    if (!questions.length) return showToast("Add at least one question");
+ const handleCreateChecklist = async () => {
+   // Enhanced validation
+   if (!checklistName.trim()) return showToast("Checklist name required!");
+   if (!projectId || projectId === "") return showToast("Select a project");
+   if (!selectedPurpose || selectedPurpose === "")
+     return showToast("Select a purpose");
+   if (!category || category === "") return showToast("Select a category");
+   if (!questions.length) return showToast("Add at least one question");
 
-    // for (let q of questions) {
-    //   if (!q.question?.trim()) return showToast("All questions must have text");
-    // }
+   // Convert and validate IDs
+   const parsedProjectId = parseInt(projectId);
+   const parsedPurposeId = parseInt(selectedPurpose);
+   const parsedCategoryId = parseInt(category);
 
-    // Convert and validate IDs
-    const parsedProjectId = parseInt(projectId);
-    const parsedPurposeId = parseInt(selectedPurpose);
-    const parsedCategoryId = parseInt(category);
+   if (isNaN(parsedProjectId)) return showToast("Invalid project selected");
+   if (isNaN(parsedPurposeId)) return showToast("Invalid purpose selected");
+   if (isNaN(parsedCategoryId)) return showToast("Invalid category selected");
 
-    if (isNaN(parsedProjectId)) return showToast("Invalid project selected");
-    if (isNaN(parsedPurposeId)) return showToast("Invalid purpose selected");
-    if (isNaN(parsedCategoryId)) return showToast("Invalid category selected");
+   const checklistPayload = {
+     name: checklistName,
+     project_id: parsedProjectId,
+     purpose_id: parsedPurposeId,
+     phase_id:
+       selectedPhase && selectedPhase !== "" ? parseInt(selectedPhase) : null,
+     stage_id:
+       selectedStage && selectedStage !== "" ? parseInt(selectedStage) : null,
+     category: parsedCategoryId,
+     category_level1: cat1 && cat1 !== "" ? parseInt(cat1) : null,
+     category_level2: cat2 && cat2 !== "" ? parseInt(cat2) : null,
+     category_level3: cat3 && cat3 !== "" ? parseInt(cat3) : null,
+     category_level4: cat4 && cat4 !== "" ? parseInt(cat4) : null,
+     category_level5: cat5 && cat5 !== "" ? parseInt(cat5) : null,
+     category_level6: cat6 && cat6 !== "" ? parseInt(cat6) : null,
+     building_id:
+       selectedBuilding && selectedBuilding !== ""
+         ? parseInt(selectedBuilding)
+         : null,
+     zone_id:
+       selectedZone && selectedZone !== "" ? parseInt(selectedZone) : null,
+     flat_id:
+       selectedFlat && selectedFlat !== "" ? parseInt(selectedFlat) : null,
+     remarks: "",
+     not_initialized: skipInitializer,
+   };
 
-    console.log("Project ID:", parsedProjectId);
+   try {
+     console.log("Payload being sent:", checklistPayload);
 
-    const checklistPayload = {
-      name: checklistName,
-      project_id: parsedProjectId,
-      purpose_id: parsedPurposeId,
-      phase_id:
-        selectedPhase && selectedPhase !== "" ? parseInt(selectedPhase) : null,
-      stage_id:
-        selectedStage && selectedStage !== "" ? parseInt(selectedStage) : null,
-      category: parsedCategoryId,
-      category_level1: cat1 && cat1 !== "" ? parseInt(cat1) : null,
-      category_level2: cat2 && cat2 !== "" ? parseInt(cat2) : null,
-      category_level3: cat3 && cat3 !== "" ? parseInt(cat3) : null,
-      category_level4: cat4 && cat4 !== "" ? parseInt(cat4) : null,
-      category_level5: cat5 && cat5 !== "" ? parseInt(cat5) : null,
-      category_level6: cat6 && cat6 !== "" ? parseInt(cat6) : null,
-      building_id:
-        selectedBuilding && selectedBuilding !== ""
-          ? parseInt(selectedBuilding)
-          : null,
-      zone_id:
-        selectedZone && selectedZone !== "" ? parseInt(selectedZone) : null,
-      flat_id:
-        selectedFlat && selectedFlat !== "" ? parseInt(selectedFlat) : null,
-      remarks: "",
-      not_initialized: skipInitializer,
-    };
+     let checklistRes;
+     let checklistId;
 
-    try {
-      console.log("Payload being sent:", checklistPayload);
+     if (isEdit && checklist?.id) {
+       // UPDATE existing checklist
+       checklistRes = await updateChecklistById(checklist.id, checklistPayload);
+       checklistId = checklist.id;
 
-      let checklistRes;
-      let checklistId;
+       // SMART UPDATE: Handle questions and options
+       await handleSmartItemsUpdate(checklistId, questions);
 
-      if (isEdit && checklist?.id) {
-        // UPDATE existing checklist
-        checklistRes = await updateChecklistById(
-          checklist.id,
-          checklistPayload
-        );
-        checklistId = checklist.id;
-        showToast("Checklist updated successfully!", "success");
-      } else {
-        // CREATE new checklist
-        checklistRes = await createChecklist(checklistPayload);
-        checklistId =
-          checklistRes.data?.id ||
-          checklistRes.data?.pk ||
-          checklistRes.data?.ID;
-        showToast("Checklist created successfully!", "success");
-      }
+       showToast("Checklist updated successfully!", "success");
+     } else {
+       // CREATE new checklist
+       checklistRes = await createChecklist(checklistPayload);
+       checklistId =
+         checklistRes.data?.id ||
+         checklistRes.data?.pk ||
+         checklistRes.data?.ID;
 
-      if (
-        checklistRes.status === 201 ||
-        checklistRes.status === 200 ||
-        checklistRes.data?.id
-      ) {
-        // Create items and options
-        for (let i = 0; i < questions.length; i++) {
-          const q = questions[i];
+       // Create items and options for new checklist
+       await createItemsAndOptions(checklistId, questions);
 
-          // 1. Create ChecklistItem (question)
-          const itemRes = await createChecklistQuestion({
-            checklist: checklistId,
-            title: q.question,
-            photo_required: q.photo_required || false,
-            // sequence: i + 1,
-            is_done: false,
-          });
+       showToast("Checklist created successfully!", "success");
+     }
 
-          const checklistItemId = itemRes.data?.id;
-
-          // 2. Create options for that question (only if options exist and have values)
-          if (checklistItemId && q.options?.length) {
-            for (let option of q.options) {
-              // Only create options that have actual values
-              if (option.value && option.value.trim() !== "") {
-                await createChecklistItemOPTIONSS({
-                  checklist_item: checklistItemId,
-                  name: option.value,
-                  choice: option.submission,
-                });
-              }
-            }
-          }
-        }
-
-      
-        // Call the callback function to show user access table
+     if (
+       checklistRes.status === 201 ||
+       checklistRes.status === 200 ||
+       checklistRes.data?.id
+     ) {
+       // Call the callback function to show user access table (only for new checklists)
        if (
          !isEdit &&
          onChecklistCreated &&
@@ -580,33 +556,184 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
          onChecklistCreated(createdChecklistData);
        }
 
-        setShowForm(false);
-      } else {
-        console.error("Checklist creation failed:", checklistRes);
-        showToast(
-          checklistRes.data?.message || "Failed to create checklist",
-          "error"
-        );
-      }
-    } catch (error) {
-      console.error("Error creating checklist:", "error");
+       setShowForm(false);
+     } else {
+       console.error("Checklist operation failed:", checklistRes);
+       showToast(
+         checklistRes.data?.message || "Failed to save checklist",
+         "error"
+       );
+     }
+   } catch (error) {
+     console.error("Error saving checklist:", error);
 
-      // More detailed error handling
-      if (error.response) {
-        console.error("Error response:", error.response.data);
-        const errorMessage =
-          error.response.data?.message ||
-          error.response.data?.detail ||
-          `Server error: ${error.response.status}`;
-        showToast(errorMessage);
-      } else {
-        showToast(
-          "Failed to create checklist and questions. Please try again.",
-          "error"
-        );
-      }
-    }
-  };
+     if (error.response) {
+       console.error("Error response:", error.response.data);
+       const errorMessage =
+         error.response.data?.message ||
+         error.response.data?.detail ||
+         `Server error: ${error.response.status}`;
+       showToast(errorMessage, "error");
+     } else {
+       showToast("Failed to save checklist. Please try again.", "error");
+     }
+   }
+ };
+
+ // Helper function for creating items and options (new checklist)
+ const createItemsAndOptions = async (checklistId, questions) => {
+   for (let i = 0; i < questions.length; i++) {
+     const q = questions[i];
+
+     // Create ChecklistItem (question)
+     const itemRes = await createChecklistQuestion({
+       checklist: checklistId,
+       title: q.question,
+       photo_required: q.photo_required || false,
+       is_done: false,
+     });
+
+     const checklistItemId = itemRes.data?.id;
+
+     // Create options for that question
+     if (checklistItemId && q.options?.length) {
+       for (let option of q.options) {
+         if (option.value && option.value.trim() !== "") {
+           await createChecklistItemOPTIONSS({
+             checklist_item: checklistItemId,
+             name: option.value,
+             choice: option.submission,
+           });
+         }
+       }
+     }
+   }
+ };
+
+ // Helper function for smart update (existing checklist)
+ const handleSmartItemsUpdate = async (checklistId, currentQuestions) => {
+   try {
+     // Get existing items from API
+     const existingResponse = await getChecklistById(checklistId);
+     const existingItems = existingResponse.data.items || [];
+
+     console.log("🔍 Existing items:", existingItems);
+     console.log("🔍 Current questions:", currentQuestions);
+
+     // 1. DELETE items that are no longer in current questions
+     const currentItemIds = currentQuestions
+       .filter((q) => q.id)
+       .map((q) => q.id);
+     const itemsToDelete = existingItems.filter(
+       (item) => !currentItemIds.includes(item.id)
+     );
+
+     console.log("🗑️ Items to delete:", itemsToDelete);
+     for (let item of itemsToDelete) {
+       await deleteChecklistItem(item.id);
+       console.log(`✅ Deleted item ${item.id}`);
+     }
+
+     // 2. Process each current question
+     for (let question of currentQuestions) {
+       if (question.id) {
+         // EXISTING ITEM - Update it
+         console.log(`🔄 Updating existing item ${question.id}`);
+
+         await updateChecklistItem(question.id, {
+           checklist: checklistId,
+           title: question.question,
+           photo_required: question.photo_required || false,
+         });
+
+         // Handle options for existing item
+         await handleOptionsUpdate(
+           question.id,
+           question.options,
+           existingItems
+         );
+       } else {
+         // NEW ITEM - Create it
+         console.log("➕ Creating new item");
+
+         const itemRes = await createChecklistQuestion({
+           checklist: checklistId,
+           title: question.question,
+           photo_required: question.photo_required || false,
+           is_done: false,
+         });
+
+         const newItemId = itemRes.data?.id;
+         if (newItemId && question.options?.length) {
+           for (let option of question.options) {
+             if (option.value && option.value.trim() !== "") {
+               await createChecklistItemOPTIONSS({
+                 checklist_item: newItemId,
+                 name: option.value,
+                 choice: option.submission,
+               });
+             }
+           }
+         }
+       }
+     }
+
+     console.log("✅ Smart update completed successfully");
+   } catch (error) {
+     console.error("❌ Error in smart update:", error);
+     throw error;
+   }
+ };
+
+ // Helper function to handle options update for existing items
+ const handleOptionsUpdate = async (itemId, currentOptions, existingItems) => {
+   try {
+     // Find existing options for this item
+     const existingItem = existingItems.find((item) => item.id === itemId);
+     const existingOptions = existingItem?.options || [];
+
+     console.log(`🔍 Item ${itemId} - Existing options:`, existingOptions);
+     console.log(`🔍 Item ${itemId} - Current options:`, currentOptions);
+
+     // 1. DELETE options that are no longer in current options
+     const currentOptionIds = currentOptions
+       .filter((opt) => opt.id)
+       .map((opt) => opt.id);
+     const optionsToDelete = existingOptions.filter(
+       (opt) => !currentOptionIds.includes(opt.id)
+     );
+
+     for (let option of optionsToDelete) {
+       await deleteChecklistItemOption(option.id);
+       console.log(`✅ Deleted option ${option.id}`);
+     }
+
+     // 2. Process each current option
+     for (let option of currentOptions) {
+       if (option.value && option.value.trim() !== "") {
+         if (option.id) {
+           // UPDATE existing option
+           await updateChecklistItemOption(option.id, {
+             name: option.value,
+             choice: option.submission,
+           });
+           console.log(`🔄 Updated option ${option.id}`);
+         } else {
+           // CREATE new option
+           await createChecklistItemOPTIONSS({
+             checklist_item: itemId,
+             name: option.value,
+             choice: option.submission,
+           });
+           console.log(`➕ Created new option for item ${itemId}`);
+         }
+       }
+     }
+   } catch (error) {
+     console.error(`❌ Error updating options for item ${itemId}:`, error);
+     throw error;
+   }
+ };
 
   // Bulk upload handler
   const handleBulkUpload = (event) => {
@@ -648,8 +775,9 @@ const ChecklistForm = ({ setShowForm, checklist, projectOptions = [], onChecklis
 
           if (question.trim()) {
             bulkQuestions.push({
+              id: null, // New questions from bulk upload
               question: question.trim(),
-              options: options,
+              options: options.map((opt) => ({ ...opt, id: null })), // New options
               photo_required:
                 photoRequired === true ||
                 photoRequired === "true" ||
