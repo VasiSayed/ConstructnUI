@@ -14,25 +14,24 @@ import Bg3 from "../Images/image2.jpg";
 const BG_IMAGES = [Bg1, Bg2, Bg3];
 const BG_INTERVAL = 7000;
 
-// --- Extract Primary Role from User Data ---
-function extractPrimaryRole(userData) {
+// --- Role utility ---
+function getDisplayRole(userData) {
   if (!userData) return "User";
-  if (userData.role) return userData.role;
-  if (Array.isArray(userData.roles) && userData.roles.length > 0) {
-    const r = userData.roles[0];
-    return typeof r === "string" ? r : r.role;
-  }
-  if (Array.isArray(userData.accesses) && userData.accesses.length > 0) {
-    for (const access of userData.accesses) {
-      if (Array.isArray(access.roles) && access.roles.length > 0) {
-        const r = access.roles[0];
-        return typeof r === "string" ? r : r.role;
+  let allRoles = [];
+  if (Array.isArray(userData.accesses)) {
+    userData.accesses.forEach((access) => {
+      if (Array.isArray(access.roles)) {
+        access.roles.forEach((role) => {
+          const roleStr = typeof role === "string" ? role : role?.role;
+          if (roleStr && !allRoles.includes(roleStr)) allRoles.push(roleStr);
+        });
       }
-    }
+    });
   }
-  if (userData.superadmin) return "Super Admin";
-  if (userData.is_manager) return "Manager";
-  if (userData.is_client === false) return "Admin";
+  if (userData?.superadmin || userData?.is_staff) return "Super Admin";
+  if (userData?.is_client) return "Client";
+  if (userData?.is_manager) return "Manager";
+  if (allRoles.length > 0) return allRoles.join(", ");
   return "User";
 }
 
@@ -58,14 +57,6 @@ const Login = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Handle field changes
-  const onChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-  };
-
   // JWT decode helper
   const decodeJWT = (token) => {
     try {
@@ -84,7 +75,7 @@ const Login = () => {
     }
   };
 
-  // Check for existing session on mount
+  // Restore session on mount
   useEffect(() => {
     const token =
       localStorage.getItem("TOKEN") || localStorage.getItem("ACCESS_TOKEN");
@@ -102,18 +93,36 @@ const Login = () => {
             is_client: tokenData.is_client,
             superadmin: tokenData.superadmin,
             is_manager: tokenData.is_manager,
+            accesses: tokenData.accesses,
+            org: tokenData.org,
+            company: tokenData.company,
+            entity: tokenData.entity,
+            role: tokenData.role,
+            roles: tokenData.roles,
           })
         );
-        // Also set role from tokenData if possible
-        const role = extractPrimaryRole(tokenData);
-        localStorage.setItem("ROLE", role);
+        // Set all roles for sidebar and display
+        localStorage.setItem(
+          "ROLE",
+          getDisplayRole(tokenData)
+        );
+        localStorage.setItem(
+          "ACCESSES",
+          JSON.stringify(tokenData.accesses || [])
+        );
       }
       navigate("/dashboard");
       toast.success("You are already logged in!");
     }
   }, [navigate, dispatch]);
 
-  const togglePassword = () => setShowPassword((prev) => !prev);
+  // Field change handler
+  const onChange = (e) => {
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  };
 
   // --- LOGIN HANDLER ---
   const handleLogin = async (e) => {
@@ -167,9 +176,8 @@ const Login = () => {
         if (userData) {
           dispatch(setUserData(userData));
           localStorage.setItem("USER_DATA", JSON.stringify(userData));
-          // --- SET THE PRIMARY ROLE ---
-          const role = extractPrimaryRole(userData);
-          localStorage.setItem("ROLE", role);
+          // --- SET ALL ROLES ---
+          localStorage.setItem("ROLE", getDisplayRole(userData));
         }
 
         toast.success("Logged in successfully!");
@@ -191,6 +199,8 @@ const Login = () => {
       setIsLoading(false);
     }
   };
+
+  const togglePassword = () => setShowPassword((prev) => !prev);
 
   return (
     <div
