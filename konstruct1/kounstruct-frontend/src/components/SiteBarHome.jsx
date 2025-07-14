@@ -37,9 +37,6 @@ function getUserRoles() {
   }
 }
 
-const role = localStorage.getItem("USER_ROLE");
-
-
 function SiteBarHome() {
   const { theme } = useTheme();
   const userRole = getUserRole();
@@ -49,84 +46,74 @@ function SiteBarHome() {
   const navItems = [
     { name: "Projects", path: "/config", key: "projects" },
     { name: "My In-Progress Items", path: "/my-inprogress-submissions", key: "my_inprogress" },
-    { name: "Inspector", path: "/checker-verified-inspector-pending" },
+    { name: "Inspector", path: "/checker-verified-inspector-pending", key: "inspector" },
     { name: "Checklists", path: "/accessible-checklists", key: "checklists" },
     { name: "Checker Inbox", path: "/checker-inbox", key: "checker_inbox" },
-
-    {
-      name: "Verifications",
-      path: "/hierarchical-verifications",
-      key: "verifications",
-    },
-    {
-      name: "InitializeChecklist",
-      path: "/Initialize-Checklist",
-      key: "InitializeChecklist",
-    },
-    {
-      name: "PendingInspectorChecklists",
-      path: "/PendingInspector-Checklist",
-      key: "PendingInspectorChecklists",
-    },
-    {
-      name: "PendingForMakerItems",
-      path: "/Pending-For-MakerItems",
-      key: "PendingForMakerItems",
-    },
-    {
-      name: "PendingSupervisorItems",
-      path: "/PendingSupervisorItems",
-      key: "PendingSupervisorItems",
-    },
-    {
-      name: "UsersManagement",
-      path: "/UsersManagement",
-      key: "UsersManagement",
-    },
-
+    { name: "Verifications", path: "/hierarchical-verifications", key: "verifications" },
+    { name: "Initialize Checklist", path: "/Initialize-Checklist", key: "InitializeChecklist" },
+    { name: "Pending Inspector Checklists", path: "/PendingInspector-Checklist", key: "PendingInspectorChecklists" },
+    { name: "Pending For Maker Items", path: "/Pending-For-MakerItems", key: "PendingForMakerItems" },
+    { name: "Pending Supervisor Items", path: "/PendingSupervisorItems", key: "PendingSupervisorItems" },
+    { name: "Users Management", path: "/UsersManagement", key: "UsersManagement" },
   ];
 
-  // Filtering logic:
+  // ---- Filtering Logic ----
   let filteredItems = navItems;
-  if (userRole === "Intializer") {
-    filteredItems = navItems.filter((item) => item.key === "InitializeChecklist");
-  } else {
-    if (userRoles.includes("MAKER")) {
-      filteredItems = navItems.filter(
-        (item) => item.key !== "checker_inbox" && item.key !== "verifications"
-      );
-    }
-    if (userRoles.includes("CHECKER")) {
-      filteredItems = filteredItems.filter(
-        (item) => item.key !== "checklists" && item.key !== "my_inprogress"
-      );
-    }
+
+  // Convert for easy role comparison
+  const _role = (userRole || "").toUpperCase();
+
+  if (
+    _role === "ADMIN" ||
+    _role === "MANAGER" ||
+    _role === "SUPERADMIN"
+  ) {
+    // Show everything
+    filteredItems = navItems;
+  } else if (_role === "INTIALIZER") {
+    filteredItems = navItems.filter(
+      (item) => item.key === "InitializeChecklist"
+    );
+  } else if (_role === "SUPERVISOR") {
+    filteredItems = navItems.filter(
+      (item) => item.key === "PendingSupervisorItems"
+    );
+  } else if (_role === "MAKER") {
+    filteredItems = navItems.filter(
+      (item) => item.key === "PendingForMakerItems"
+    );
+  } else if (_role === "CHECKER" || _role === "INSPECTOR") {
+    filteredItems = navItems.filter(
+      (item) => item.key === "PendingInspectorChecklists"
+    );
   }
+  // Extend logic for other roles if needed
 
   // THEME palette
-  const palette = theme === "dark"
-    ? {
-        bg: "linear-gradient(135deg, #23232e, #181820 100%)",
-        border: `3px solid ${GOLD_DARK}`,
-        shadow: "0 4px 32px #fffbe022",
-        title: GOLD_DARK,
-        linkActiveBg: `linear-gradient(90deg, #fde047 80%, #facc15)`,
-        linkActive: "#23232e",
-        linkInactive: GOLD_DARK,
-        linkBgInactive: "#191921",
-        footer: GOLD_DARK
-      }
-    : {
-        bg: `linear-gradient(135deg, ${ORANGE_LIGHT}, #fff)`,
-        border: `3px solid ${ORANGE}`,
-        shadow: "0 4px 32px #ea682220",
-        title: ORANGE_DARK,
-        linkActiveBg: `linear-gradient(90deg, ${ORANGE} 80%, ${ORANGE_DARK})`,
-        linkActive: "#fff",
-        linkInactive: ORANGE_DARK,
-        linkBgInactive: "#fff",
-        footer: ORANGE_DARK
-      };
+  const palette =
+    theme === "dark"
+      ? {
+          bg: "linear-gradient(135deg, #23232e, #181820 100%)",
+          border: `3px solid ${GOLD_DARK}`,
+          shadow: "0 4px 32px #fffbe022",
+          title: GOLD_DARK,
+          linkActiveBg: `linear-gradient(90deg, #fde047 80%, #facc15)`,
+          linkActive: "#23232e",
+          linkInactive: GOLD_DARK,
+          linkBgInactive: "#191921",
+          footer: GOLD_DARK,
+        }
+      : {
+          bg: `linear-gradient(135deg, ${ORANGE_LIGHT}, #fff)`,
+          border: `3px solid ${ORANGE}`,
+          shadow: "0 4px 32px #ea682220",
+          title: ORANGE_DARK,
+          linkActiveBg: `linear-gradient(90deg, ${ORANGE} 80%, ${ORANGE_DARK})`,
+          linkActive: "#fff",
+          linkInactive: ORANGE_DARK,
+          linkBgInactive: "#fff",
+          footer: ORANGE_DARK,
+        };
 
   return (
     <div
@@ -135,7 +122,8 @@ function SiteBarHome() {
         background: palette.bg,
         borderRight: palette.border,
         boxShadow: palette.shadow,
-        transition: "all 0.3s"
+        transition: "all 0.3s",
+        zIndex: 50,
       }}
     >
       <div className="mb-6 text-center">
@@ -157,9 +145,10 @@ function SiteBarHome() {
                 ? {
                     background: palette.linkActiveBg,
                     color: palette.linkActive,
-                    boxShadow: theme === "dark"
-                      ? "0 2px 12px #fffbe022"
-                      : "0 2px 12px #ea682238",
+                    boxShadow:
+                      theme === "dark"
+                        ? "0 2px 12px #fffbe022"
+                        : "0 2px 12px #ea682238",
                   }
                 : {
                     color: palette.linkInactive,
@@ -171,7 +160,10 @@ function SiteBarHome() {
           </NavLink>
         ))}
       </nav>
-      <div className="mt-8 text-xs text-center" style={{ color: palette.footer }}>
+      <div
+        className="mt-8 text-xs text-center"
+        style={{ color: palette.footer }}
+      >
         &copy; {new Date().getFullYear()} Your Company
       </div>
     </div>

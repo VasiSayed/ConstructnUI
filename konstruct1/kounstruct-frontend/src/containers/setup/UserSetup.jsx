@@ -300,7 +300,7 @@ const UserSetup = () => {
   return (
     <div className={`min-h-screen w-full flex flex-col items-center justify-center py-10 px-4 ${palette.bg}`}>
       {/* Theme Toggle */}
-      <div className="flex justify-end w-full max-w-5xl mb-4">
+      {/* <div className="flex justify-end w-full max-w-5xl mb-4">
         <button
           onClick={toggleTheme}
           style={{
@@ -318,7 +318,7 @@ const UserSetup = () => {
         >
           {theme === "light" ? "🌙" : "☀️"}
         </button>
-      </div>
+      </div> */}
 
       {/* Stepper */}
       <div className="flex items-center gap-2 justify-center w-full max-w-4xl mb-10">

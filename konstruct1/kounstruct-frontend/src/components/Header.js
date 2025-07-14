@@ -7,10 +7,12 @@ import { CiSearch } from "react-icons/ci";
 import { FaRegCircleUser } from "react-icons/fa6";
 import { GoCalendar } from "react-icons/go";
 import { CgMenuGridO } from "react-icons/cg";
+import { FaSun, FaMoon } from "react-icons/fa";
 import Notification from "./Notification";
 import Profile from "./Profile";
 import { useSelector, useDispatch } from "react-redux";
 import { setSelectedProject } from "../store/userSlice";
+import { useTheme } from "../ThemeContext"; // <<-- Make sure this is imported
 
 function Header() {
   const [isNotification, setIsNotification] = useState(false);
@@ -20,69 +22,28 @@ function Header() {
   const projects = useSelector((state) => state.user.projects);
   const selectedProject = useSelector((state) => state.user.selectedProject.id);
 
+  const rolee = localStorage.getItem("ROLE");
+  const token = localStorage.getItem("TOKEN");
+  const allowuser =
+    rolee === "Manager" || rolee === "Super Admin" || rolee === "Client";
 
-    const rolee = localStorage.getItem("ROLE");
-    const token = localStorage.getItem("TOKEN");
-    const allowuser =
-      rolee === "Manager" || rolee === "Super Admin" || rolee === "Client";
+  const navigate = useNavigate();
 
-const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme(); // <-- Theme context
 
-  const handleProject = (e) => {  
-    console.log(e.target.value, "e.target.value");
+  const handleProject = (e) => {
     dispatch(setSelectedProject(e.target.value));
   };
-console.log(allowuser,'yhi is alalow user');
 
-    const handleUserSetupClick = () => {
-      if (!token) {
-        navigate("/login");
-      } else {
-        navigate("/user-setup");
-      }
-    };
-
-
+  const handleUserSetupClick = () => {
+    if (!token) {
+      navigate("/login");
+    } else {
+      navigate("/user-setup");
+    }
+  };
 
   return (
-    // <div className="flex lg:flex-row flex-col gap-2 relative items-center justify-center w-full">
-    //   <div className="sm:flex grid grid-cols-2 flex-wrap text-sm md:text-base sm:flex-row gap-5 font-medium p-2 xl:rounded-full rounded-md opacity-90 bg-gray-200 ">
-    //     <NavLink
-    //       to={"/config"}
-    //       className={({ isActive }) =>
-    //         `  md:rounded-full px-4 cursor-pointer text-center transition-all duration-300 ease-linear ${
-    //           isActive && "bg-white text-blue-500 shadow-custom-all-sides"
-    //         }`
-    //       }
-    //     >
-    //       Home
-    //     </NavLink>
-
-    //     <NavLink
-    //       to={"/ChifSetup"}
-    //       className={({ isActive }) =>
-    //         `  md:rounded-full px-4 cursor-pointer text-center transition-all duration-300 ease-linear ${
-    //           isActive && "bg-white text-blue-500 shadow-custom-all-sides"
-    //         }`
-    //       }
-    //     >
-    //       Setup
-    //     </NavLink>
-
-    //      <NavLink
-    //       to={"/casetup"}
-    //       className={({ isActive }) =>
-    //         `  md:rounded-full px-4 cursor-pointer text-center transition-all duration-300 ease-linear ${
-    //           isActive && ""
-    //         }`
-    //       }
-    //     >
-    //       CA Setup
-    //     </NavLink>
-
-    //   </div>
-
-    // </div>
     <>
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white text-gray-900 flex items-center justify-between px-3 py-2 shadow-md border">
         <div className="flex items-center space-x-8">
@@ -106,66 +67,56 @@ console.log(allowuser,'yhi is alalow user');
               value={selectedProject}
             >
               {projects.map((project) => (
-                <option value={project.id}>{project.project_name}</option>
+                <option key={project.id} value={project.id}>
+                  {project.project_name}
+                </option>
               ))}
             </select>
           )}
-          <button
-            className={({ isActive }) =>
-              !isActive ? "font-normal" : "font-medium"
-            }
-          >
+          {/* <button>
             <CiSearch className="text-xl" />
           </button>
-          <button
-            className={({ isActive }) =>
-              !isActive ? "font-normal" : "font-medium"
-            }
-          >
+          <button>
             <IoIosNotificationsOutline className="text-xl" />
-          </button>
-          <button
-            className={({ isActive }) =>
-              !isActive ? "font-normal" : "font-medium"
-            }
-          >
+          </button> */}
+          {/* <button>
             <GoCalendar className="text-lg" />
-          </button>
-          <NavLink
+          </button> */}
+          {/* <NavLink
             to="/blog"
             className={({ isActive }) =>
               !isActive ? "font-normal" : "font-medium"
             }
           >
             <HiOutlineBuildingStorefront className="text-lg" />
-          </NavLink>
-
+          </NavLink> */}
           {allowuser && (
-  <NavLink
-    to={rolee === "Manager" ? "/user" : "/setup"}
-    className={({ isActive }) =>
-      !isActive ? "font-normal" : "font-medium"
-    }
-  >
-    <IoSettingsOutline className="text-lg" />
-  </NavLink>
-)}
-
-          <button
-            onClick={() => setIsProfile(true)}
-            // className={({ isActive }) =>
-            //   !isActive ? "font-normal" : "font-medium"
-            // }
-          >
+            <NavLink
+              to={rolee === "Manager" ? "/user" : "/setup"}
+              className={({ isActive }) =>
+                !isActive ? "font-normal" : "font-medium"
+              }
+            >
+              <IoSettingsOutline className="text-lg" />
+            </NavLink>
+          )}
+          <button onClick={() => setIsProfile(true)}>
             <FaRegCircleUser className="text-lg" />
           </button>
-          <button
-            onClick={() => setIsNotification(true)}
-            className={({ isActive }) =>
-              !isActive ? "font-normal" : "font-medium"
-            }
-          >
+          {/* <button onClick={() => setIsNotification(true)}>
             <CgMenuGridO className="text-xl" />
+          </button> */}
+          {/* ---- Theme Toggle Button ---- */}
+          <button
+            onClick={toggleTheme}
+            className="rounded-full p-2 bg-gray-800 hover:bg-yellow-400 transition-colors"
+            title="Toggle Theme"
+          >
+            {theme === "dark" ? (
+              <FaSun className="text-yellow-300" />
+            ) : (
+              <FaMoon className="text-gray-700" />
+            )}
           </button>
         </ul>
       </nav>
