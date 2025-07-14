@@ -46,7 +46,7 @@ function Zone({ nextStep }) {
   const { theme: appTheme } = useTheme();
   const theme = THEME[appTheme === "dark" ? "dark" : "light"];
   const projectId = useSelector((state) => state.user.selectedProject.id);
-  
+
   const [zoneData, setZoneData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -57,8 +57,6 @@ function Zone({ nextStep }) {
   const [selectedZones, setSelectedZones] = useState({});
   const [batchZoneCount, setBatchZoneCount] = useState("");
   const [batchSubZoneCount, setBatchSubZoneCount] = useState({});
-  
-  // Dropdown states
   const [expandedTowers, setExpandedTowers] = useState({});
   const [expandedFloors, setExpandedFloors] = useState({});
 
@@ -415,7 +413,7 @@ function Zone({ nextStep }) {
                     )}
                   </button>
                 )}
-                
+
                 <input
                   type="text"
                   value={
@@ -445,7 +443,7 @@ function Zone({ nextStep }) {
                     color: theme.TEXT,
                   }}
                 />
-                
+
                 {isMainZone && (
                   <div className="flex items-center gap-1">
                     <input
@@ -488,7 +486,7 @@ function Zone({ nextStep }) {
                     </button>
                   </div>
                 )}
-                
+
                 <button
                   onClick={() =>
                     handleDeleteZone(towerName, floorName, currentPath)
@@ -498,7 +496,7 @@ function Zone({ nextStep }) {
                   <Trash2 size={14} />
                 </button>
               </div>
-              
+
               {zone.subZones && zone.subZones.length > 0 && (
                 <div className="ml-6 mt-1">
                   {renderZones(
@@ -631,7 +629,7 @@ function Zone({ nextStep }) {
                 <span className="font-medium">{zoneData[towerId].details.naming_convention}</span>
                 {expandedTowers[towerId] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </button>
-              
+
               {/* Tower Content */}
               {expandedTowers[towerId] && (
                 <div className="border-t px-3 pb-3" style={{ borderColor: theme.BORDER }}>
@@ -641,7 +639,7 @@ function Zone({ nextStep }) {
                     const allZoneNames = (floor.zones || []).map((z) => z.name);
                     const allSelected = allZoneNames.length && selectedZones[key]?.length === allZoneNames.length;
                     const hasSelectedZones = selectedZones[key]?.length > 0;
-                    
+
                     return (
                       <div key={floor.level_name} className="mt-3 border rounded" style={{ borderColor: theme.BORDER }}>
                         {/* Floor Header */}
@@ -658,7 +656,7 @@ function Zone({ nextStep }) {
                             {expandedFloors[floorKey] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                           </div>
                         </button>
-                        
+
                         {/* Floor Content */}
                         {expandedFloors[floorKey] && (
                           <div className="border-t p-3 space-y-3" style={{ borderColor: theme.BORDER }}>
@@ -693,7 +691,7 @@ function Zone({ nextStep }) {
                                   Add Zones
                                 </button>
                               </div>
-                              
+
                               {/* Selection & Batch Sub-zones */}
                               {floor.zones && floor.zones.length > 0 && (
                                 <div className="flex items-center gap-2 text-sm">
@@ -767,7 +765,7 @@ function Zone({ nextStep }) {
                                 </div>
                               )}
                             </div>
-                            
+
                             {/* Warning */}
                             {(!floor?.zones || floor?.zones?.length === 0) && (
                               <div className="text-xs text-red-600 bg-red-50 p-2 rounded flex items-center gap-1">
@@ -775,7 +773,7 @@ function Zone({ nextStep }) {
                                 At least 1 zone required
                               </div>
                             )}
-                            
+
                             {/* Zones */}
                             {floor?.zones?.length > 0 && (
                               renderZones(
