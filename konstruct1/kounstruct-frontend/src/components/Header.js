@@ -22,7 +22,7 @@ function Header() {
 
 
     const rolee = localStorage.getItem("ROLE");
-    const token = localStorage.getItem("TOKEN"); // Adjust if your login key is different
+    const token = localStorage.getItem("TOKEN");
     const allowuser =
       rolee === "Manager" || rolee === "Super Admin" || rolee === "Client";
 

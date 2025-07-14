@@ -3,7 +3,11 @@ import ChecklistForm from "./ChecklistForm";
 import Checklistdetails from "./ChecklistDetails";
 import SideBarSetup from "../../components/SideBarSetup";
 import UserSelectionTable from "../../components/UserSelectionTable"; // Update import
-import { getProjectsByOrganization, getchecklistbyProject } from "../../api";
+import {
+  getProjectsByOwnership,
+  getchecklistbyProject,
+  getMyChecklists,
+} from "../../api";
 // import { showToast } from "../../utils/toast";
 import { showToast } from "../../utils/toast";
 
@@ -28,10 +32,20 @@ const Checklist = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  // Filter checklist data by selected project, or show all if not selected
+  const filteredChecklistData = selectedProjectId
+    ? checklistData.filter(
+        (item) => String(item.project_id) === String(selectedProjectId)
+      )
+    : checklistData;
+
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = checklistData.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(checklistData.length / itemsPerPage);
+  const currentItems = filteredChecklistData.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
+  const totalPages = Math.ceil(filteredChecklistData.length / itemsPerPage);
 
   // Get userData from localStorage on mount
   useEffect(() => {
@@ -41,46 +55,81 @@ const Checklist = () => {
     }
   }, []);
 
-  // Fetch projects ONCE when userData is ready
   useEffect(() => {
-    if (!userData?.org) return;
+    // Adjust this according to how your userData structure is!
+    if (!userData) return;
+
+    // Prefer entity > company > organization (or customize as needed)
+    const entity_id = userData.entity_id || null;
+    const company_id = userData.company_id || null;
+    const organization_id = userData.org || userData.organization_id || null;
+
+    // Only call if we have some ownership info
+    if (!entity_id && !company_id && !organization_id) return;
+
     const fetchProjects = async () => {
       try {
-        const response = await getProjectsByOrganization(userData.org);
+        const response = await getProjectsByOwnership({
+          entity_id,
+          company_id,
+          organization_id,
+        });
         if (response.status === 200) {
           setProjects(response.data || []);
         } else {
-          showToast("Failed to fetch projects.",'error');
+          setProjects([]);
+          showToast("Failed to fetch projects.", "error");
         }
       } catch (err) {
-        showToast("Failed to fetch projects.",'error');
+        setProjects([]);
+        showToast("Failed to fetch projects.", "error");
       }
     };
     fetchProjects();
   }, [userData]);
 
-  // Fetch checklists when project changes
   useEffect(() => {
+    // Fetch "my checklists" if no project is selected
     if (!selectedProjectId) {
-      setChecklistData([]);
-      return;
-    }
-    const fetchChecklists = async () => {
-      try {
-        const response = await getchecklistbyProject(selectedProjectId);
-        if (response.status === 200) {
-          setChecklistData(response.data || []);
-        } else {
+      const fetchMyChecklists = async () => {
+        try {
+          const response = await getMyChecklists();
+          if (response.status === 200) {
+            setChecklistData(response.data || []);
+          } else {
+            setChecklistData([]);
+            showToast("Failed to fetch your checklists.", "error");
+          }
+        } catch (err) {
           setChecklistData([]);
-          showToast("Failed to fetch checklists.",'error');
+          showToast("Failed to fetch your checklists.", "error");
         }
-      } catch (err) {
-        setChecklistData([]);
-        showToast("Failed to fetch checklists.",'error');
-      }
-    };
-    fetchChecklists();
-  }, [selectedProjectId, showForm, detailForm]);
+      };
+      fetchMyChecklists();
+    }
+  }, [selectedProjectId]);
+
+  // useEffect(() => {
+  //   if (!selectedProjectId) {
+  //     setChecklistData([]);
+  //     return;
+  //   }
+  //   const fetchChecklists = async () => {
+  //     try {
+  //       const response = await getchecklistbyProject(selectedProjectId);
+  //       if (response.status === 200) {
+  //         setChecklistData(response.data || []);
+  //       } else {
+  //         setChecklistData([]);
+  //         showToast("Failed to fetch checklists.", "error");
+  //       }
+  //     } catch (err) {
+  //       setChecklistData([]);
+  //       showToast("Failed to fetch checklists.", "error");
+  //     }
+  //   };
+  //   fetchChecklists();
+  // }, [selectedProjectId, showForm, detailForm]);
 
   // Function to handle checklist creation success
   const handleChecklistCreated = (newChecklist) => {
@@ -106,7 +155,10 @@ const Checklist = () => {
       setRefreshTrigger((prev) => prev + 1);
 
       console.log("🔄 State updated - showUserSelection should be true");
-      showToast("Checklist created! Assign users to this checklist.",'success');
+      showToast(
+        "Checklist created! Assign users to this checklist.",
+        "success"
+      );
     } else {
       console.log("❌ Missing project_id, category_id, or id:", newChecklist);
     }
@@ -129,8 +181,9 @@ const Checklist = () => {
     try {
       // Success message already handled in UserSelectionTable
       showToast(
-        `Successfully assigned ${selectedUserIds.length} users to checklist!`
-      ,'success');
+        `Successfully assigned ${selectedUserIds.length} users to checklist!`,
+        "success"
+      );
 
       // Optionally hide the selection after assigning
       // hideUserSelection();
@@ -282,12 +335,17 @@ const Checklist = () => {
             userAccessCategoryId
           )}
 
-          {/* Checklist Table */}
           <table className="min-w-full bg-white shadow rounded">
             <thead className="bg-gray-200">
               <tr>
                 <th className="font-semibold p-2 text-left">ID</th>
                 <th className="font-semibold p-2 text-left">Name</th>
+                <th className="font-semibold p-2 text-left">Status</th>
+                <th className="font-semibold p-2 text-left">Project ID</th>
+                <th className="font-semibold p-2 text-left">Category</th>
+                <th className="font-semibold p-2 text-left">Purpose ID</th>
+                <th className="font-semibold p-2 text-left">Created By</th>
+                <th className="font-semibold p-2 text-left">Created At</th>
                 <th className="font-semibold p-2 text-left">No. of Ques</th>
                 <th className="font-semibold p-2 text-left">View</th>
                 <th className="font-semibold p-2 text-left">Edit</th>
@@ -300,7 +358,19 @@ const Checklist = () => {
                   <tr key={item.id} className="border-t">
                     <td className="p-2">{item.id}</td>
                     <td className="p-2">{item.name || item.random_num}</td>
-                    <td className="p-2">{item.questions?.length || 0}</td>
+                    <td className="p-2 capitalize">{item.status}</td>
+                    <td className="p-2">{item.project_id}</td>
+                    <td className="p-2">{item.category}</td>
+                    <td className="p-2">{item.purpose_id}</td>
+                    <td className="p-2">{item.created_by_id}</td>
+                    <td className="p-2">
+                      {item.created_at
+                        ? new Date(item.created_at).toLocaleString()
+                        : ""}
+                    </td>
+                    <td className="p-2">
+                      {item.items?.length ?? item.questions?.length ?? 0}
+                    </td>
                     <td className="p-2">
                       <button
                         className="bg-gray-200 px-2 py-1 rounded"
@@ -327,16 +397,16 @@ const Checklist = () => {
                       <button
                         className="bg-blue-200 px-2 py-1 rounded text-sm"
                         onClick={() => {
-                          // Show user selection for existing checklist
-                          if (item.project_id && item.category_id) {
+                          if (item.project_id && item.category) {
                             setUserAccessProjectId(item.project_id);
-                            setUserAccessCategoryId(item.category_id);
-                            setCurrentChecklistId(item.id); // Set the existing checklist ID
+                            setUserAccessCategoryId(item.category);
+                            setCurrentChecklistId(item.id);
                             setShowUserSelection(true);
                             setRefreshTrigger((prev) => prev + 1);
                           } else {
                             showToast(
-                              "Project or Category ID not found for this checklist" ,'error'
+                              "Project or Category ID not found for this checklist",
+                              "error"
                             );
                           }
                         }}
@@ -348,7 +418,7 @@ const Checklist = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="text-center py-4 text-gray-500">
+                  <td colSpan={12} className="text-center py-4 text-gray-500">
                     No checklists found.
                   </td>
                 </tr>

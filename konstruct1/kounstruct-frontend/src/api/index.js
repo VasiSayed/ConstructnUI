@@ -152,6 +152,14 @@ export const getPurposeByProjectId = async (id) =>
     },
   });
 
+  export const getMyChecklists= async () => 
+    NEWchecklistInstance.get("checklists/my-checklists/",{
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+  
+
 
   export const createPhase = async (data) =>
     projectInstance.post("phase/create-phases/", data, {
@@ -610,6 +618,7 @@ export const getstageDetails = async (projectId) =>
     }
   );
 
+  
 export const getProjectUserDetails = async  =>
   projectInstance.get(
     // `/user-stage-role/get-projects-by-user/?user_id=${userId}`,
@@ -623,6 +632,8 @@ export const getProjectUserDetails = async  =>
     }
   );
 
+
+
 export const editStage = async (data) =>
   axiosInstance.put("/stage/update-stage-details/", data, {
     headers: {
@@ -631,7 +642,7 @@ export const editStage = async (data) =>
   });
 
 
-// api.js or wherever your API calls are
+
 export const getProjectsByOwnership = async ({ entity_id, company_id, organization_id }) => {
   let query = '';
   if (entity_id) query = `entity_id=${entity_id}`;
