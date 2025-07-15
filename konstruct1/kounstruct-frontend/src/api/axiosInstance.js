@@ -1,12 +1,6 @@
 import axios from "axios";
 
 const LOCAL_IP = "192.168.1.28";
-// const LOCAL_IP = "192.168.78.214";
-// const LOCAL_IP = "192.168.16.214";
-// const LOCAL_IP = "192.168.0.204";
-// const LOCAL_IP = "192.168.78.214";
-
-
 
 const refreshToken = async () => {
   const refresh = localStorage.getItem("REFRESH_TOKEN");
