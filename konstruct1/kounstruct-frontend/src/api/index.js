@@ -916,3 +916,37 @@ export const deleteChecklistById = async (checklistId) =>
       "Content-Type": "application/json",
     },
   });
+
+
+
+// Get user dashboard analytics
+export const getUserDashboard = async () => {
+  const token = localStorage.getItem('ACCESS_TOKEN');
+  console.log("Making API call to /user-dashboard/ with token:", token ? 'Present' : 'Missing');
+  
+  try {
+    const response = await axiosInstance.get("/user-dashboard/", {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+    });
+    
+    console.log("API Response Status:", response.status);
+    console.log("API Response Data:", response.data);
+    return response;
+  } catch (error) {
+    console.error("API Error:", error.response?.status, error.response?.data);
+    throw error;
+  }
+};
+
+// Get specific role analytics (optional - for detailed view)
+export const getChecklistRoleAnalytics = async (userId, projectId, role) =>
+  axiosInstance.get("/checklist-role-analytics/", {
+    params: { user_id: userId, project_id: projectId, role },
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${localStorage.getItem('ACCESS_TOKEN')}`,
+    },
+  });

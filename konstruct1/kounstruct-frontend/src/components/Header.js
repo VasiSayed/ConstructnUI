@@ -75,6 +75,45 @@ function Header() {
             </select>
           )}
 
+          {/* Add Analytics Link */}
+          <NavLink
+            to="/analytics"
+            className={({ isActive }) =>
+              !isActive
+                ? "font-normal flex items-center gap-1"
+                : "font-medium flex items-center gap-1 text-purple-600"
+            }
+            title="Analytics Dashboard"
+          >
+            📊 Analytics
+          </NavLink>
+
+          {allowuser && (
+            <NavLink
+              to={rolee === "Manager" ? "/user" : "/setup"}
+              className={({ isActive }) =>
+                !isActive ? "font-normal" : "font-medium"
+              }
+            >
+              <IoSettingsOutline className="text-lg" />
+            </NavLink>
+          )}
+
+          {/* Rest of your existing navigation items */}
+          {projects.length > 0 && (
+            <select
+              className="bg-gray-700 text-white rounded-md p-2"
+              onChange={handleProject}
+              value={selectedProject}
+            >
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.project_name}
+                </option>
+              ))}
+            </select>
+          )}
+
           {/* <button>
             <CiSearch className="text-xl" />
           </button>

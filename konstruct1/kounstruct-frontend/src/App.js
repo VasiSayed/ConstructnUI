@@ -48,6 +48,7 @@ import AccessibleChecklists from "./components/AccessibleChecklists";
 import HierarchicalVerifications from './components/HierarchicalVerifications'; 
 import PendingInspectorChecklists from './components/PendingInspectorChecklists'
 import PendingSupervisorItems from "./components/PendingSupervisorItems";
+import UserDashboard from "./components/UserDashboard";
 
 const Layout = () => {
   const location = useLocation();
@@ -70,7 +71,6 @@ const Layout = () => {
             element={<MyInProgressSubmissions />}
           /> */}
           <Route path="/checker-inbox" element={<CheckerInbox />} />
-
           <Route path="/config" element={<Configuration />} />
           <Route path="/project/:id" element={<ProjectDetails />} />
           <Route path="/snagging/:id" element={<Snagging />} />
@@ -85,7 +85,8 @@ const Layout = () => {
           <Route path="/RequestManagement" element={<RequestManagement />} />
           <Route path="/CoustemerHandover" element={<CoustemerHandover />} />
           <Route path="/Chif" element={<Chif />} />
-
+     
+          <Route path="/analytics" element={<UserDashboard />} />
           <Route
             path="/PendingSupervisorItems"
             element={<PendingSupervisorItems />}
@@ -103,7 +104,6 @@ const Layout = () => {
             path="/Pending-For-MakerItems"
             element={<PendingForMakerItems />}
           />
-
           <Route path="/chif-setup" element={<ChifSetup />} />
           <Route path="/Chifstep1" element={<Chifstep1 />} />
           <Route path="/Checklist" element={<Checklist />} />
