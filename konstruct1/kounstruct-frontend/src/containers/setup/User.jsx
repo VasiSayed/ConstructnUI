@@ -17,6 +17,7 @@ import {
   getProjectsByOrganization,
   createUserAccessRole,
 } from "../../api";
+import { FaPlus } from "react-icons/fa";
 
 const getPalette = (theme) =>
   theme === "dark"
@@ -51,6 +52,7 @@ const getPalette = (theme) =>
         modal: "bg-white border border-[#ececf0]",
       };
 
+console.log("User.jsx RENDERED!!!");
 function User() {
   const { theme, toggleTheme } = useTheme();
   const palette = getPalette(theme);
@@ -82,17 +84,37 @@ function User() {
     return {};
   }, []);
 
-  const userId = userData?.user_id;
-  const isClient = userData?.is_client;
-  const is_manager = useMemo(
-    () => !!userData.is_manager,
-    [userData.is_manager]
-  );
-  const isStaff = userData?.is_staff;
-  const isSuperAdmin = userData?.superadmin;
+  // const userId = userData?.user_id;
+  // const isClient = userData?.is_client;
+  // const is_manager = useMemo(
+  //   () => !!userData.is_manager,
+  //   [userData.is_manager]
+  // );
+  // const isStaff = userData?.is_staff;
+  // const isSuperAdmin = userData?.superadmin;
+  // const canCreateClient = isStaff || isSuperAdmin;
+  // const canCreateManager = isClient;
+  // const canCreateNormalUser = is_manager;
+
+  const isSuperAdmin = !!userData?.superadmin;
+  const isStaff = !!userData?.is_staff;
+  const isClient = !isSuperAdmin && !isStaff && !!userData?.is_client;
+  const is_manager =!isSuperAdmin && !isStaff && !isClient && !!userData?.is_manager;
+
   const canCreateClient = isStaff || isSuperAdmin;
   const canCreateManager = isClient;
   const canCreateNormalUser = is_manager;
+
+  const userId = userData?.user_id;
+  console.log("isSuperAdmin", isSuperAdmin);
+  console.log("isStaff", isStaff);
+  console.log("isClient", isClient);
+  console.log("is_manager", is_manager);
+  console.log("canCreateClient", canCreateClient);
+  console.log("canCreateManager", canCreateManager);
+  console.log("canCreateNormalUser", canCreateNormalUser);
+
+
   const org = useMemo(() => userData.org || "", [userData.org]);
   const userRole = useMemo(() => {
     if (userData.superadmin) return "ADMIN";
@@ -108,6 +130,11 @@ function User() {
     else if (canCreateNormalUser) return "Can create normal users with roles";
     else return "No user creation permissions";
   }, [canCreateClient, canCreateManager, canCreateNormalUser]);
+
+  console.log("USER_DATA", userData);
+  console.log("superadmin", userData?.superadmin);
+  console.log("is_staff", userData?.is_staff);
+
 
   // Org/project/category state (all logic as in your latest code)
   const [orgInfo, setOrgInfo] = useState({});
@@ -783,19 +810,27 @@ function User() {
     <div className="flex min-h-screen" style={{ background: palette.bg }}>
       <SideBarSetup />
       <div className="my-5 w-[85%] mt-5 ml-[16%] mr-[1%]">
-        <div className={`px-6 py-5 max-w-7xl mx-auto rounded ${palette.card} ${palette.cardBorder} ${palette.shadow}`}>
+        <div
+          className={`px-6 py-5 max-w-7xl mx-auto rounded ${palette.card} ${palette.cardBorder} ${palette.shadow}`}
+        >
           {/* ===== HEADER WITH THEME TOGGLE ===== */}
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <h1 className={`text-2xl font-bold ${palette.text}`}>USER MANAGEMENT</h1>
+              <h1 className={`text-2xl font-bold ${palette.text}`}>
+                USER MANAGEMENT
+              </h1>
               <p className={`${palette.text} opacity-80 mt-2`}>
                 Create and manage users for your organization
               </p>
               <div className="mb-3">
-                <span className={`inline-block px-3 py-1 rounded-full text-sm mr-2 ${palette.badge}`}>
+                <span
+                  className={`inline-block px-3 py-1 rounded-full text-sm mr-2 ${palette.badge}`}
+                >
                   {userRole} Access (Render #{renderCount.current})
                 </span>
-                <span className={`inline-block px-3 py-1 rounded-full text-sm ${palette.info}`}>
+                <span
+                  className={`inline-block px-3 py-1 rounded-full text-sm ${palette.info}`}
+                >
                   {creationCapability}
                 </span>
               </div>
@@ -813,7 +848,11 @@ function User() {
               )}
             </button> */}
           </div>
-          {/* <div className={`rounded-lg p-8 ${theme === "dark" ? "bg-[#23232e]" : "bg-gray-50"}`}>
+          <div
+            className={`rounded-lg p-8 ${
+              theme === "dark" ? "bg-[#23232e]" : "bg-gray-50"
+            }`}
+          >
             <div className="text-center">
               <div className="mb-6">
                 <div className="mx-auto w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4">
@@ -841,11 +880,13 @@ function User() {
                 {canCreateNormalUser && "Create New User"}
               </button>
             </div>
-          </div> */}
+          </div>
           {/* Add User Modal */}
           {isAdd && (
             <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-              <div className={`max-h-[90vh] w-full md:w-2/3 lg:w-1/2 rounded-lg shadow-2xl p-6 flex flex-col overflow-y-auto ${palette.modal}`}>
+              <div
+                className={`max-h-[90vh] w-full md:w-2/3 lg:w-1/2 rounded-lg shadow-2xl p-6 flex flex-col overflow-y-auto ${palette.modal}`}
+              >
                 <div className="flex items-center justify-between mb-6">
                   <h1 className={`text-xl font-semibold ${palette.text}`}>
                     {canCreateClient && "Add New Client User"}
@@ -872,7 +913,9 @@ function User() {
                   {/* ==== FULL FORM FIELDS SECTION ==== */}
                   <form className="space-y-4" onSubmit={handleCreate}>
                     <div className="grid grid-cols-3 gap-3 items-center">
-                      <label className={`text-sm font-medium text-end ${palette.text}`}>
+                      <label
+                        className={`text-sm font-medium text-end ${palette.text}`}
+                      >
                         Username<span className="text-red-500">*</span>
                       </label>
                       <input
@@ -892,7 +935,9 @@ function User() {
                     {(canCreateClient || canCreateManager) && (
                       <>
                         <div className="grid grid-cols-3 gap-3 items-center">
-                          <label className={`text-sm font-medium text-end ${palette.text}`}>
+                          <label
+                            className={`text-sm font-medium text-end ${palette.text}`}
+                          >
                             Organization<span className="text-red-500">*</span>
                           </label>
                           <select
@@ -912,7 +957,9 @@ function User() {
                         {selectedOrganization &&
                           availableCompanies.length > 0 && (
                             <div className="grid grid-cols-3 gap-3 items-center">
-                              <label className={`text-sm font-medium text-end ${palette.text}`}>
+                              <label
+                                className={`text-sm font-medium text-end ${palette.text}`}
+                              >
                                 Company
                               </label>
                               <select
@@ -933,7 +980,9 @@ function User() {
                           )}
                         {selectedCompany && availableEntities.length > 0 && (
                           <div className="grid grid-cols-3 gap-3 items-center">
-                            <label className={`text-sm font-medium text-end ${palette.text}`}>
+                            <label
+                              className={`text-sm font-medium text-end ${palette.text}`}
+                            >
                               Entity
                             </label>
                             <select
@@ -952,7 +1001,9 @@ function User() {
                         )}
                         {canCreateManager && availableProjects.length > 0 && (
                           <div className="grid grid-cols-3 gap-3 items-center">
-                            <label className={`text-sm font-medium text-end ${palette.text}`}>
+                            <label
+                              className={`text-sm font-medium text-end ${palette.text}`}
+                            >
                               Project
                             </label>
                             <select
@@ -981,7 +1032,9 @@ function User() {
                           selectedProject &&
                           availableBuildings.length > 0 && (
                             <div className="grid grid-cols-3 gap-3 items-center">
-                              <label className={`text-sm font-medium text-end ${palette.text}`}>
+                              <label
+                                className={`text-sm font-medium text-end ${palette.text}`}
+                              >
                                 Building
                               </label>
                               <select
@@ -1004,7 +1057,9 @@ function User() {
                           selectedBuilding &&
                           availableZones.length > 0 && (
                             <div className="grid grid-cols-3 gap-3 items-center">
-                              <label className={`text-sm font-medium text-end ${palette.text}`}>
+                              <label
+                                className={`text-sm font-medium text-end ${palette.text}`}
+                              >
                                 Zone
                               </label>
                               <select
@@ -1025,7 +1080,9 @@ function User() {
                     )}
                     {canCreateNormalUser && (
                       <div className="grid grid-cols-3 gap-3 items-center">
-                        <label className={`text-sm font-medium text-end ${palette.text}`}>
+                        <label
+                          className={`text-sm font-medium text-end ${palette.text}`}
+                        >
                           Role<span className="text-red-500">*</span>
                         </label>
                         <select
@@ -1050,7 +1107,9 @@ function User() {
                     )}
                     {canCreateNormalUser && availableProjects.length > 0 && (
                       <div className="grid grid-cols-3 gap-3 items-center">
-                        <label className={`text-sm font-medium text-end ${palette.text}`}>
+                        <label
+                          className={`text-sm font-medium text-end ${palette.text}`}
+                        >
                           Project
                         </label>
                         <select
@@ -1079,7 +1138,9 @@ function User() {
                     {canCreateNormalUser && selectedProject && (
                       <>
                         <div className="grid grid-cols-3 gap-3 items-center">
-                          <label className={`text-sm font-medium text-end ${palette.text}`}>
+                          <label
+                            className={`text-sm font-medium text-end ${palette.text}`}
+                          >
                             Category<span className="text-red-500">*</span>
                           </label>
                           <select
@@ -1107,7 +1168,9 @@ function User() {
                         </div>
                         {selectedCategory && availableLevel1.length > 0 && (
                           <div className="grid grid-cols-3 gap-3 items-center">
-                            <label className={`text-sm font-medium text-end ${palette.text}`}>
+                            <label
+                              className={`text-sm font-medium text-end ${palette.text}`}
+                            >
                               Level 1
                             </label>
                             <select
@@ -1115,7 +1178,9 @@ function User() {
                               value={selectedLevel1}
                               onChange={handleLevel1Change}
                             >
-                              <option value="">Select Level 1 (Optional)</option>
+                              <option value="">
+                                Select Level 1 (Optional)
+                              </option>
                               {availableLevel1.map((item) => (
                                 <option key={item.id} value={item.id}>
                                   {item.name}
@@ -1126,7 +1191,9 @@ function User() {
                         )}
                         {selectedLevel1 && availableLevel2.length > 0 && (
                           <div className="grid grid-cols-3 gap-3 items-center">
-                            <label className={`text-sm font-medium text-end ${palette.text}`}>
+                            <label
+                              className={`text-sm font-medium text-end ${palette.text}`}
+                            >
                               Level 2
                             </label>
                             <select
@@ -1134,7 +1201,9 @@ function User() {
                               value={selectedLevel2}
                               onChange={handleLevel2Change}
                             >
-                              <option value="">Select Level 2 (Optional)</option>
+                              <option value="">
+                                Select Level 2 (Optional)
+                              </option>
                               {availableLevel2.map((item) => (
                                 <option key={item.id} value={item.id}>
                                   {item.name}
@@ -1145,7 +1214,9 @@ function User() {
                         )}
                         {selectedLevel2 && availableLevel3.length > 0 && (
                           <div className="grid grid-cols-3 gap-3 items-center">
-                            <label className={`text-sm font-medium text-end ${palette.text}`}>
+                            <label
+                              className={`text-sm font-medium text-end ${palette.text}`}
+                            >
                               Level 3
                             </label>
                             <select
@@ -1153,7 +1224,9 @@ function User() {
                               value={selectedLevel3}
                               onChange={handleLevel3Change}
                             >
-                              <option value="">Select Level 3 (Optional)</option>
+                              <option value="">
+                                Select Level 3 (Optional)
+                              </option>
                               {availableLevel3.map((item) => (
                                 <option key={item.id} value={item.id}>
                                   {item.name}
@@ -1164,7 +1237,9 @@ function User() {
                         )}
                         {selectedLevel3 && availableLevel4.length > 0 && (
                           <div className="grid grid-cols-3 gap-3 items-center">
-                            <label className={`text-sm font-medium text-end ${palette.text}`}>
+                            <label
+                              className={`text-sm font-medium text-end ${palette.text}`}
+                            >
                               Level 4
                             </label>
                             <select
@@ -1172,7 +1247,9 @@ function User() {
                               value={selectedLevel4}
                               onChange={handleLevel4Change}
                             >
-                              <option value="">Select Level 4 (Optional)</option>
+                              <option value="">
+                                Select Level 4 (Optional)
+                              </option>
                               {availableLevel4.map((item) => (
                                 <option key={item.id} value={item.id}>
                                   {item.name}
@@ -1183,7 +1260,9 @@ function User() {
                         )}
                         {selectedLevel4 && availableLevel5.length > 0 && (
                           <div className="grid grid-cols-3 gap-3 items-center">
-                            <label className={`text-sm font-medium text-end ${palette.text}`}>
+                            <label
+                              className={`text-sm font-medium text-end ${palette.text}`}
+                            >
                               Level 5
                             </label>
                             <select
@@ -1191,7 +1270,9 @@ function User() {
                               value={selectedLevel5}
                               onChange={handleLevel5Change}
                             >
-                              <option value="">Select Level 5 (Optional)</option>
+                              <option value="">
+                                Select Level 5 (Optional)
+                              </option>
                               {availableLevel5.map((item) => (
                                 <option key={item.id} value={item.id}>
                                   {item.name}
@@ -1202,7 +1283,9 @@ function User() {
                         )}
                         {selectedLevel5 && availableLevel6.length > 0 && (
                           <div className="grid grid-cols-3 gap-3 items-center">
-                            <label className={`text-sm font-medium text-end ${palette.text}`}>
+                            <label
+                              className={`text-sm font-medium text-end ${palette.text}`}
+                            >
                               Level 6
                             </label>
                             <select
@@ -1210,7 +1293,9 @@ function User() {
                               value={selectedLevel6}
                               onChange={handleLevel6Change}
                             >
-                              <option value="">Select Level 6 (Optional)</option>
+                              <option value="">
+                                Select Level 6 (Optional)
+                              </option>
                               {availableLevel6.map((item) => (
                                 <option key={item.id} value={item.id}>
                                   {item.name}
@@ -1221,7 +1306,9 @@ function User() {
                         )}
                         {selectedProject && availableBuildings.length > 0 && (
                           <div className="grid grid-cols-3 gap-3 items-center">
-                            <label className={`text-sm font-medium text-end ${palette.text}`}>
+                            <label
+                              className={`text-sm font-medium text-end ${palette.text}`}
+                            >
                               Building
                             </label>
                             <select
@@ -1242,7 +1329,9 @@ function User() {
                         )}
                         {selectedBuilding && availableZones.length > 0 && (
                           <div className="grid grid-cols-3 gap-3 items-center">
-                            <label className={`text-sm font-medium text-end ${palette.text}`}>
+                            <label
+                              className={`text-sm font-medium text-end ${palette.text}`}
+                            >
                               Zone
                             </label>
                             <select
@@ -1262,7 +1351,9 @@ function User() {
                       </>
                     )}
                     <div className="grid grid-cols-3 gap-3 items-center">
-                      <label className={`text-sm font-medium text-end ${palette.text}`}>
+                      <label
+                        className={`text-sm font-medium text-end ${palette.text}`}
+                      >
                         First Name<span className="text-red-500">*</span>
                       </label>
                       <input
@@ -1280,7 +1371,9 @@ function User() {
                       />
                     </div>
                     <div className="grid grid-cols-3 gap-3 items-center">
-                      <label className={`text-sm font-medium text-end ${palette.text}`}>
+                      <label
+                        className={`text-sm font-medium text-end ${palette.text}`}
+                      >
                         Last Name<span className="text-red-500">*</span>
                       </label>
                       <input
@@ -1298,7 +1391,9 @@ function User() {
                       />
                     </div>
                     <div className="grid grid-cols-3 gap-3 items-center">
-                      <label className={`text-sm font-medium text-end ${palette.text}`}>
+                      <label
+                        className={`text-sm font-medium text-end ${palette.text}`}
+                      >
                         Email<span className="text-red-500">*</span>
                       </label>
                       <input
@@ -1316,7 +1411,9 @@ function User() {
                       />
                     </div>
                     <div className="grid grid-cols-3 gap-3 items-center">
-                      <label className={`text-sm font-medium text-end ${palette.text}`}>
+                      <label
+                        className={`text-sm font-medium text-end ${palette.text}`}
+                      >
                         Mobile
                       </label>
                       <input
@@ -1333,7 +1430,9 @@ function User() {
                       />
                     </div>
                     <div className="grid grid-cols-3 gap-3 items-center">
-                      <label className={`text-sm font-medium text-end ${palette.text}`}>
+                      <label
+                        className={`text-sm font-medium text-end ${palette.text}`}
+                      >
                         Password<span className="text-red-500">*</span>
                       </label>
                       <input
