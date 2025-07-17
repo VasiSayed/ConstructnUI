@@ -51,7 +51,7 @@ const getPalette = (theme) =>
         btnCancel: "bg-gray-300 text-gray-700 hover:bg-gray-400",
         modal: "bg-white border border-[#ececf0]",
       };
-
+      
 console.log("User.jsx RENDERED!!!");
 function User() {
   const { theme, toggleTheme } = useTheme();
@@ -822,6 +822,10 @@ function User() {
               <p className={`${palette.text} opacity-80 mt-2`}>
                 Create and manage users for your organization
               </p>
+              <button onClick={() => setAdd(true)}>DEBUG: Open Modal</button>
+              <p>canCreateClient: {canCreateClient.toString()}</p>
+              <p>canCreateManager: {canCreateManager.toString()}</p>
+              <p>canCreateNormalUser: {canCreateNormalUser.toString()}</p>
               <div className="mb-3">
                 <span
                   className={`inline-block px-3 py-1 rounded-full text-sm mr-2 ${palette.badge}`}
