@@ -580,7 +580,7 @@ function User() {
       userDataForm.last_name &&
       userDataForm.email &&
       userDataForm.password;
-    if (canCreateClient) return basicFields && userDataForm.organization_id;
+    if (canCreateClient) return basicFields ;
     else if (canCreateManager) return basicFields && userDataForm.organization_id;
     else if (canCreateNormalUser) return basicFields && userDataForm.role && selectedCategory;
     return false;
@@ -592,14 +592,18 @@ function User() {
     canCreateNormalUser,
   ]);
 
-  const handleCreate = useCallback(
-    async (e) => {
-      e.preventDefault();
-      if (!isFormValid()) {
-        showToast("Please fill in all required fields", "error");
-        return;
-      }
-      const completePayload = {
+
+const handleCreate = useCallback(
+  async (e) => {
+    e.preventDefault();
+    if (!isFormValid()) {
+      showToast("Please fill in all required fields", "error");
+      return;
+    }
+
+    // For client users - simple creation with basic info only
+    if (canCreateClient) {
+      const clientPayload = {
         user: {
           username: userDataForm.username,
           first_name: userDataForm.first_name,
@@ -607,75 +611,37 @@ function User() {
           email: userDataForm.email,
           phone_number: userDataForm.mobile || "",
           password: userDataForm.password,
-          org: userDataForm.organization_id
-            ? parseInt(userDataForm.organization_id)
-            : org
-            ? parseInt(org)
-            : null,
-          company: userDataForm.company_id
-            ? parseInt(userDataForm.company_id)
-            : null,
-          entity: userDataForm.entity_id
-            ? parseInt(userDataForm.entity_id)
-            : null,
-          is_manager: canCreateManager
-            ? false
-            : canCreateClient
-            ? false
-            : false,
-          is_client: canCreateClient ? true : false,
+          is_client: true,
+          is_manager: false,
           has_access: true,
+          org: null,
+          company: null,
+          entity: null,
         },
         access: {
-          project_id: userDataForm.project_id
-            ? parseInt(userDataForm.project_id)
-            : null,
-          building_id: userDataForm.building_id
-            ? parseInt(userDataForm.building_id)
-            : null,
-          zone_id: userDataForm.zone_id ? parseInt(userDataForm.zone_id) : null,
+          project_id: null,
+          building_id: null,
+          zone_id: null,
           flat_id: null,
           active: true,
-          category: selectedCategory ? parseInt(selectedCategory) : null,
-          CategoryLevel1: selectedLevel1 ? parseInt(selectedLevel1) : null,
-          CategoryLevel2: selectedLevel2 ? parseInt(selectedLevel2) : null,
-          CategoryLevel3: selectedLevel3 ? parseInt(selectedLevel3) : null,
-          CategoryLevel4: selectedLevel4 ? parseInt(selectedLevel4) : null,
-          CategoryLevel5: selectedLevel5 ? parseInt(selectedLevel5) : null,
-          CategoryLevel6: selectedLevel6 ? parseInt(selectedLevel6) : null,
+          category: null,
+          CategoryLevel1: null,
+          CategoryLevel2: null,
+          CategoryLevel3: null,
+          CategoryLevel4: null,
+          CategoryLevel5: null,
+          CategoryLevel6: null,
         },
-        roles: [],
+        roles: [], // Empty roles array for client users
       };
-      if (canCreateClient) {
-        completePayload.user.is_client = true;
-        completePayload.user.is_manager = false;
-        completePayload.roles.push({ role: "CLIENT" });
-      } else if (canCreateManager) {
-        completePayload.user.is_manager = true;
-        completePayload.user.is_client = false;
-        completePayload.roles.push({ role: "MANAGER" });
-      } else if (canCreateNormalUser) {
-        completePayload.user.is_manager = false;
-        completePayload.user.is_client = false;
-        if (userDataForm.role) {
-          completePayload.roles.push({ role: userDataForm.role });
-        }
-      }
+
       try {
-        const response = await createUserAccessRole(completePayload);
+        const response = await createUserAccessRole(clientPayload);
         if (response.status === 201) {
-          let successMessage = "User created successfully";
-          if (canCreateClient) {
-            successMessage = "Client user created successfully";
-          } else if (canCreateManager) {
-            successMessage = "Manager user created successfully";
-          } else if (canCreateNormalUser) {
-            successMessage = "User created successfully with role assigned";
-          }
-          showToast(successMessage, "success");
+          showToast("Client user created successfully", "success");
           resetForm();
         } else {
-          showToast("Failed to create user", "error");
+          showToast("Failed to create client user", "error");
         }
       } catch (error) {
         if (error.response && error.response.data) {
@@ -689,25 +655,111 @@ function User() {
             return;
           }
         }
-        showToast("Error creating user. Please try again.", "error");
+        showToast("Error creating client user. Please try again.", "error");
       }
-    },
-    [
-      userDataForm,
-      selectedCategory,
-      selectedLevel1,
-      selectedLevel2,
-      selectedLevel3,
-      selectedLevel4,
-      selectedLevel5,
-      selectedLevel6,
-      canCreateClient,
-      canCreateManager,
-      canCreateNormalUser,
-      org,
-      isFormValid,
-    ]
-  );
+      return;
+    }
+
+    // For manager and normal users - existing complex payload
+    const completePayload = {
+      user: {
+        username: userDataForm.username,
+        first_name: userDataForm.first_name,
+        last_name: userDataForm.last_name,
+        email: userDataForm.email,
+        phone_number: userDataForm.mobile || "",
+        password: userDataForm.password,
+        org: userDataForm.organization_id
+          ? parseInt(userDataForm.organization_id)
+          : org
+          ? parseInt(org)
+          : null,
+        company: userDataForm.company_id
+          ? parseInt(userDataForm.company_id)
+          : null,
+        entity: userDataForm.entity_id
+          ? parseInt(userDataForm.entity_id)
+          : null,
+        is_manager: canCreateManager ? true : false,
+        is_client: false,
+        has_access: true,
+      },
+      access: {
+        project_id: userDataForm.project_id
+          ? parseInt(userDataForm.project_id)
+          : null,
+        building_id: userDataForm.building_id
+          ? parseInt(userDataForm.building_id)
+          : null,
+        zone_id: userDataForm.zone_id ? parseInt(userDataForm.zone_id) : null,
+        flat_id: null,
+        active: true,
+        category: selectedCategory ? parseInt(selectedCategory) : null,
+        CategoryLevel1: selectedLevel1 ? parseInt(selectedLevel1) : null,
+        CategoryLevel2: selectedLevel2 ? parseInt(selectedLevel2) : null,
+        CategoryLevel3: selectedLevel3 ? parseInt(selectedLevel3) : null,
+        CategoryLevel4: selectedLevel4 ? parseInt(selectedLevel4) : null,
+        CategoryLevel5: selectedLevel5 ? parseInt(selectedLevel5) : null,
+        CategoryLevel6: selectedLevel6 ? parseInt(selectedLevel6) : null,
+      },
+      roles: [],
+    };
+
+    if (canCreateManager) {
+      completePayload.roles.push({ role: "MANAGER" });
+    } else if (canCreateNormalUser) {
+      if (userDataForm.role) {
+        completePayload.roles.push({ role: userDataForm.role });
+      }
+    }
+
+    try {
+      const response = await createUserAccessRole(completePayload);
+      if (response.status === 201) {
+        let successMessage = "User created successfully";
+        if (canCreateManager) {
+          successMessage = "Manager user created successfully";
+        } else if (canCreateNormalUser) {
+          successMessage = "User created successfully with role assigned";
+        }
+        showToast(successMessage, "success");
+        resetForm();
+      } else {
+        showToast("Failed to create user", "error");
+      }
+    } catch (error) {
+      if (error.response && error.response.data) {
+        const errorData = error.response.data;
+        if (errorData.user && errorData.user.username) {
+          showToast("Username already exists.", "error");
+          return;
+        }
+        if (errorData.user && errorData.user.email) {
+          showToast("Email already exists.", "error");
+          return;
+        }
+      }
+      showToast("Error creating user. Please try again.", "error");
+    }
+  },
+  [
+    userDataForm,
+    selectedCategory,
+    selectedLevel1,
+    selectedLevel2,
+    selectedLevel3,
+    selectedLevel4,
+    selectedLevel5,
+    selectedLevel6,
+    canCreateClient,
+    canCreateManager,
+    canCreateNormalUser,
+    org,
+    isFormValid,
+  ]
+);
+
+
 
   const resetForm = useCallback(() => {
     setUserDataForm({
@@ -753,7 +805,7 @@ function User() {
     return `${baseClasses} ${isValid ? validClasses : invalidClasses}`;
   }, [isFormValid, palette.btn]);
 
-  // Restrict view if no creation rights
+
   if (!canCreateClient && !canCreateManager && !canCreateNormalUser) {
     return (
       <div className="flex min-h-screen" style={{ background: palette.bg }}>
@@ -936,7 +988,8 @@ function User() {
                         required
                       />
                     </div>
-                    {(canCreateClient || canCreateManager) && (
+
+                    {canCreateManager && (
                       <>
                         <div className="grid grid-cols-3 gap-3 items-center">
                           <label
@@ -1003,7 +1056,7 @@ function User() {
                             </select>
                           </div>
                         )}
-                        {canCreateManager && availableProjects.length > 0 && (
+                        {availableProjects.length > 0 && (
                           <div className="grid grid-cols-3 gap-3 items-center">
                             <label
                               className={`text-sm font-medium text-end ${palette.text}`}
@@ -1032,8 +1085,7 @@ function User() {
                             </select>
                           </div>
                         )}
-                        {canCreateManager &&
-                          selectedProject &&
+                        {selectedProject &&
                           availableBuildings.length > 0 && (
                             <div className="grid grid-cols-3 gap-3 items-center">
                               <label
@@ -1057,8 +1109,7 @@ function User() {
                               </select>
                             </div>
                           )}
-                        {canCreateManager &&
-                          selectedBuilding &&
+                        {selectedBuilding &&
                           availableZones.length > 0 && (
                             <div className="grid grid-cols-3 gap-3 items-center">
                               <label
@@ -1082,6 +1133,7 @@ function User() {
                           )}
                       </>
                     )}
+
                     {canCreateNormalUser && (
                       <div className="grid grid-cols-3 gap-3 items-center">
                         <label
